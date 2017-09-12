@@ -1,6 +1,8 @@
 #ifndef NEWSBEUTER_CONFIG__H
 #define NEWSBEUTER_CONFIG__H
 
+#include "gitversion.h"
+
 #define PACKAGE				"newsboat"
 #define PROGRAM_NAME			PACKAGE
 #define REAL_VERSION "2.10.1"

@@ -1,0 +1,4 @@
+#include "gitversion.h"
+
+#define BASE_VERSION "2.10"
+constexpr char PROGRAM_VERSION[] = BASE_VERSION "@GIT_HASH@";

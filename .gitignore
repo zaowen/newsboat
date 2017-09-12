@@ -24,3 +24,7 @@ doc/generate2
 *.gcno
 *.gcda
 *.sw?
+/gitversion.cpp
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
