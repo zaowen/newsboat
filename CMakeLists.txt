@@ -12,6 +12,7 @@ set (Tutorial_VERSION_MAJOR 2)
 set (Tutorial_VERSION_MINOR 10)
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wunreachable-code")
 include(GNUInstallDirs)
 # TODO: check that by default, this actually resolves into the same dir as before - /usr/local/share/locale
 add_definitions(-DLOCALEDIR="${CMAKE_INSTALL_LOCALEDIR}")
