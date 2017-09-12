@@ -10,7 +10,7 @@
 #include <utils.h>
 #include <strprintf.h>
 
-#include <curses.h>
+#include <ncurses.h>
 
 #include <sstream>
 #include <iostream>
