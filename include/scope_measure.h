@@ -2,6 +2,7 @@
 #define SCOPE_MEASURE_H_
 
 #include <string>
+#include <chrono>
 
 #include <logger.h>
 
@@ -14,7 +15,7 @@ class scope_measure {
 		~scope_measure();
 		void stopover(const std::string& son = "");
 	private:
-		struct timeval tv1, tv2;
+		std::chrono::time_point<std::chrono::steady_clock> start;
 		std::string funcname;
 		level lvl;
 };
