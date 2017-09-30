@@ -27,8 +27,7 @@ const std::string& matcher::get_expression() {
 }
 
 bool matcher::parse(const std::string& expr) {
-	struct timeval tv1, tv2;
-	gettimeofday(&tv1, nullptr);
+	scope_measure m1("matcher::parse");
 
 	errmsg = "";
 
@@ -38,9 +37,7 @@ bool matcher::parse(const std::string& expr) {
 		errmsg = utils::wstr2str(p.get_error());
 	}
 
-	gettimeofday(&tv2, nullptr);
-	unsigned long diff = (((tv2.tv_sec - tv1.tv_sec) * 1000000) + tv2.tv_usec) - tv1.tv_usec;
-	LOG(level::DEBUG, "matcher::parse: parsing `%s' took %lu µs (success = %d)", expr, diff, b ? 1 : 0);
+	LOG(level::DEBUG, "matcher::parse: success = %d", b ? 1 : 0);
 
 	return b;
 }

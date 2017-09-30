@@ -1028,7 +1028,6 @@ void controller::reload_all(bool unattended) {
 	unsigned int unread_feeds, unread_articles;
 	compute_unread_numbers(unread_feeds, unread_articles);
 	unsigned int num_threads = cfg.get_configvalue_as_int("reload-threads");
-	time_t t1, t2, dt;
 
 	unsigned int size;
 
@@ -1048,7 +1047,7 @@ void controller::reload_all(bool unattended) {
 	}
 
 
-	t1 = time(nullptr);
+	scope_measure m1("controller::reload_all", level::INFO);
 
 	LOG(level::DEBUG,"controller::reload_all: starting with reload all...");
 	if (num_threads <= 1) {
@@ -1078,9 +1077,7 @@ void controller::reload_all(bool unattended) {
 	sort_feeds();
 	update_feedlist();
 
-	t2 = time(nullptr);
-	dt = t2 - t1;
-	LOG(level::INFO, "controller::reload_all: reload took %d seconds", dt);
+	m1.stopover("reload finished");
 
 	unsigned int unread_feeds2, unread_articles2;
 	compute_unread_numbers(unread_feeds2, unread_articles2);
