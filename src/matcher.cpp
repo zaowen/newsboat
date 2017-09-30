@@ -1,6 +1,7 @@
 #include <matcher.h>
 #include <logger.h>
 #include <utils.h>
+#include <scope_measure.h>
 #include <exceptions.h>
 
 #include <sys/time.h>

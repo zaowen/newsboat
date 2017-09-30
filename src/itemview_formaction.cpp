@@ -4,6 +4,7 @@
 #include <logger.h>
 #include <exceptions.h>
 #include <utils.h>
+#include <scope_measure.h>
 #include <strprintf.h>
 #include <formatstring.h>
 #include <textformatter.h>

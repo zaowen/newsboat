@@ -8,6 +8,7 @@
 #include <colormanager.h>
 #include <logger.h>
 #include <utils.h>
+#include <scope_measure.h>
 #include <strprintf.h>
 #include <stflpp.h>
 #include <exception.h>

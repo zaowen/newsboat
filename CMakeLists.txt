@@ -28,6 +28,7 @@ add_library(beuter
     ${PROJECT_SOURCE_DIR}/src/logger.cpp
     ${PROJECT_SOURCE_DIR}/src/exception.cpp
     ${PROJECT_SOURCE_DIR}/src/utils.cpp
+    ${PROJECT_SOURCE_DIR}/src/scope_measure.cpp
     ${PROJECT_SOURCE_DIR}/src/matcher.cpp
     ${PROJECT_SOURCE_DIR}/src/formatstring.cpp
     ${PROJECT_SOURCE_DIR}/src/strprintf.cpp)
