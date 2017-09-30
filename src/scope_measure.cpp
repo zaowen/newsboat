@@ -4,6 +4,8 @@
 
 namespace newsbeuter {
 
+#ifndef NDEBUG
+
 scope_measure::scope_measure(const std::string& func, level ll)
 	: funcname(func), lvl(ll)
 {
@@ -21,5 +23,7 @@ scope_measure::~scope_measure() {
 	unsigned long diff = (((tv2.tv_sec - tv1.tv_sec) * 1000000) + tv2.tv_usec) - tv1.tv_usec;
 	LOG(level::INFO, "scope_measure: function `%s' took %lu.%06lu s", funcname, diff / 1000000, diff % 1000000);
 }
+
+#endif
 
 }

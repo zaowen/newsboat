@@ -7,6 +7,7 @@
 
 namespace newsbeuter {
 
+#ifndef NDEBUG
 class scope_measure {
 	public:
 		scope_measure(const std::string& func, level ll = level::DEBUG);
@@ -17,6 +18,14 @@ class scope_measure {
 		std::string funcname;
 		level lvl;
 };
+#else
+class scope_measure {
+	public:
+		scope_measure(const std::string&, level = level::DEBUG) {}
+		~scope_measure() {}
+		void stopover(const std::string& = "") {}
+};
+#endif
 
 }
 
