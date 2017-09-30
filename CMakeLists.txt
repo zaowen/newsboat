@@ -34,13 +34,8 @@ add_library(beuter
     ${PROJECT_SOURCE_DIR}/src/formatstring.cpp
     ${PROJECT_SOURCE_DIR}/src/strprintf.cpp)
 
-add_custom_command(
-    OUTPUT "${PROJECT_SOURCE_DIR}/xlicense.h"
-    COMMAND ${PROJECT_SOURCE_DIR}/txt2h ${PROJECT_SOURCE_DIR}/LICENSE > ${PROJECT_SOURCE_DIR}/xlicense.h
-    DEPENDS "${PROJECT_SOURCE_DIR}/LICENSE"
-    )
-
 file(GLOB STFL_SRCS "${PROJECT_SOURCE_DIR}/stfl/*.stfl")
+set(STFL_HEADERS)
 foreach(SRC ${STFL_SRCS})
     string(REGEX REPLACE "stfl$" "h" OUTPUT_FILE_NAME ${SRC})
 
@@ -49,7 +44,11 @@ foreach(SRC ${STFL_SRCS})
         COMMAND ${PROJECT_SOURCE_DIR}/txt2h ${SRC} .stfl > ${OUTPUT_FILE_NAME}
         DEPENDS ${SRC}
         )
+    set(STFL_HEADERS "${STFL_HEADERS}" "${OUTPUT_FILE_NAME}")
 endforeach(SRC)
+add_custom_target(
+    dialog-headers
+    DEPENDS ${STFL_HEADERS})
 
 include_directories(
     "${PROJECT_SOURCE_DIR}"
@@ -97,16 +96,16 @@ add_executable(newsboat newsbeuter.cpp
     "${PROJECT_SOURCE_DIR}/src/ocnews_api.cpp"
     "${PROJECT_SOURCE_DIR}/src/ocnews_urlreader.cpp"
     "${PROJECT_SOURCE_DIR}/src/remote_api.cpp"
-    "${PROJECT_SOURCE_DIR}/stfl/itemlist.h"
-    "${PROJECT_SOURCE_DIR}/stfl/itemview.h"
-    "${PROJECT_SOURCE_DIR}/stfl/filebrowser.h"
-    "${PROJECT_SOURCE_DIR}/stfl/urlview.h"
-    "${PROJECT_SOURCE_DIR}/stfl/selecttag.h"
-    "${PROJECT_SOURCE_DIR}/stfl/feedlist.h"
-    "${PROJECT_SOURCE_DIR}/stfl/dialogs.h"
-    "${PROJECT_SOURCE_DIR}/xlicense.h"
     )
 target_link_libraries(newsboat filter rsspp beuter)
+add_dependencies(newsboat dialog-headers)
+
+add_custom_target(
+    xlicense-header
+    COMMAND ${PROJECT_SOURCE_DIR}/txt2h ${PROJECT_SOURCE_DIR}/LICENSE > ${PROJECT_SOURCE_DIR}/xlicense.h
+    DEPENDS "${PROJECT_SOURCE_DIR}/LICENSE"
+    )
+add_dependencies(newsboat xlicense-header)
 
 add_executable(podboat podbeuter.cpp
     "${PROJECT_SOURCE_DIR}/gitversion.cpp"
@@ -115,9 +114,9 @@ add_executable(podboat podbeuter.cpp
     "${PROJECT_SOURCE_DIR}/src/download.cpp"
     "${PROJECT_SOURCE_DIR}/src/queueloader.cpp"
     "${PROJECT_SOURCE_DIR}/src/poddlthread.cpp"
-    "${PROJECT_SOURCE_DIR}/stfl/dllist.h"
-    "${PROJECT_SOURCE_DIR}/stfl/help.h")
+    )
 target_link_libraries(podboat filter rsspp beuter)
+add_dependencies(podboat dialog-headers)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake/Modules)
 
