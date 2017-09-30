@@ -78,7 +78,7 @@ void itemlist_formaction::process_operation(operation op, bool automatic, std::v
 	case OP_PURGE_DELETED: {
 		scope_measure m1("OP_PURGE_DELETED");
 		feed->purge_deleted_items();
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate();
 	}
 	break;
 	case OP_OPENBROWSER_AND_MARK: {
@@ -127,7 +127,7 @@ void itemlist_formaction::process_operation(operation op, bool automatic, std::v
 		{
 			LOG(level::INFO, "itemlist_formaction: opening all unread items in browser and marking read");
 			open_unread_items_in_browser(feed , true);
-			invalidate(InvalidationMode::COMPLETE);
+			invalidate();
 		}
 	}
 	break;
@@ -261,7 +261,7 @@ void itemlist_formaction::process_operation(operation op, bool automatic, std::v
 		if (!show_searchresult) {
 			LOG(level::INFO, "itemlist_formaction: reloading current feed");
 			v->get_ctrl()->reload(pos);
-			invalidate(InvalidationMode::COMPLETE);
+			invalidate();
 		} else {
 			v->show_error(_("Error: you can't reload search results."));
 		}
@@ -356,7 +356,7 @@ void itemlist_formaction::process_operation(operation op, bool automatic, std::v
 			}
 			if (v->get_cfg()->get_configvalue_as_bool("markfeedread-jumps-to-next-unread"))
 				process_operation(OP_NEXTUNREAD);
-			invalidate(InvalidationMode::COMPLETE);
+			invalidate();
 			v->set_status("");
 		} catch (const dbexception& e) {
 			v->show_error(strprintf::fmt(_("Error: couldn't mark feed read: %s"), e.what()));
@@ -373,7 +373,7 @@ void itemlist_formaction::process_operation(operation op, bool automatic, std::v
 			apply_filter = false;
 		}
 		save_filterpos();
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate();
 		break;
 	case OP_PIPE_TO:
 		if (visible_items.size() != 0) {
@@ -427,7 +427,7 @@ void itemlist_formaction::process_operation(operation op, bool automatic, std::v
 						m.parse(FILTER_UNREAD_ITEMS);
 					} else {
 						apply_filter = true;
-						invalidate(InvalidationMode::COMPLETE);
+						invalidate();
 						save_filterpos();
 					}
 				}
@@ -452,7 +452,7 @@ void itemlist_formaction::process_operation(operation op, bool automatic, std::v
 		break;
 	case OP_CLEARFILTER:
 		apply_filter = false;
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate();
 		save_filterpos();
 		break;
 	case OP_SORT: {
@@ -500,7 +500,7 @@ void itemlist_formaction::process_operation(operation op, bool automatic, std::v
 	}
 	break;
 	case OP_INT_RESIZE:
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate();
 		break;
 	default:
 		break;
@@ -567,7 +567,7 @@ void itemlist_formaction::qna_end_setfilter() {
 		}
 
 		apply_filter = true;
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate();
 		save_filterpos();
 	}
 }
@@ -662,7 +662,7 @@ void itemlist_formaction::prepare() {
 	if (sort_order != old_sort_order) {
 		feed->sort(sort_order);
 		old_sort_order = sort_order;
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate();
 	}
 
 	try {
@@ -687,7 +687,7 @@ void itemlist_formaction::prepare() {
 	unsigned int width = utils::to_u(f->get("items:w"));
 
 	if (old_width != width) {
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate();
 		old_width = width;
 	}
 
@@ -771,7 +771,7 @@ void itemlist_formaction::init() {
 	f->set("msg","");
 	set_keymap_hints();
 	apply_filter = !(v->get_cfg()->get_configvalue_as_bool("show-read-articles"));
-	invalidate(InvalidationMode::COMPLETE);
+	invalidate();
 	do_update_visible_items();
 	if (v->get_cfg()->get_configvalue_as_bool("goto-first-unread")) {
 		jump_to_next_unread_item(true);
@@ -960,7 +960,7 @@ int itemlist_formaction::get_pos(unsigned int realidx) {
 
 void itemlist_formaction::recalculate_form() {
 	formaction::recalculate_form();
-	invalidate(InvalidationMode::COMPLETE);
+	invalidate();
 
 	std::string itemposname = f->get("itempos");
 	unsigned int itempos = utils::to_u(itemposname);
@@ -1053,7 +1053,7 @@ void itemlist_formaction::set_feed(std::shared_ptr<rss_feed> fd) {
 	LOG(level::DEBUG, "itemlist_formaction::set_feed: fd pointer = %p title = `%s'", fd.get(), fd->title());
 	feed = fd;
 	feed->load();
-	invalidate(InvalidationMode::COMPLETE);
+	invalidate();
 	do_update_visible_items();
 }
 

@@ -24,7 +24,7 @@ class itemlist_formaction : public list_formaction {
 		virtual void set_redraw(bool b) {
 			formaction::set_redraw(b);
 			apply_filter = !(v->get_cfg()->get_configvalue_as_bool("show-read-articles"));
-			invalidate(InvalidationMode::COMPLETE);
+			invalidate();
 		}
 
 		void set_feed(std::shared_ptr<rss_feed> fd);
@@ -86,9 +86,7 @@ class itemlist_formaction : public list_formaction {
 
 		void prepare_set_filterpos();
 
-		inline void invalidate(InvalidationMode m) {
-			assert(m == InvalidationMode::COMPLETE);
-
+		inline void invalidate() {
 			invalidated = true;
 			invalidation_mode = InvalidationMode::COMPLETE;
 		}
