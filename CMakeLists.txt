@@ -7,9 +7,7 @@
 # TODO: cppcheck jobs = 5
 # TODO: define GIT_HASH
 cmake_minimum_required (VERSION 3.7)
-project (newsbeuter)
-set (Tutorial_VERSION_MAJOR 2)
-set (Tutorial_VERSION_MINOR 10)
+project (newsboat)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wunreachable-code")
@@ -59,7 +57,7 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/stfl"
     )
 
-add_executable(newsbeuter newsbeuter.cpp
+add_executable(newsboat newsbeuter.cpp
     "${PROJECT_SOURCE_DIR}/gitversion.cpp"
     "${PROJECT_SOURCE_DIR}/src/cache.cpp"
     "${PROJECT_SOURCE_DIR}/src/htmlrenderer.cpp"
@@ -108,9 +106,9 @@ add_executable(newsbeuter newsbeuter.cpp
     "${PROJECT_SOURCE_DIR}/stfl/dialogs.h"
     "${PROJECT_SOURCE_DIR}/xlicense.h"
     )
-target_link_libraries(newsbeuter filter rsspp beuter)
+target_link_libraries(newsboat filter rsspp beuter)
 
-add_executable(podbeuter podbeuter.cpp
+add_executable(podboat podbeuter.cpp
     "${PROJECT_SOURCE_DIR}/gitversion.cpp"
     "${PROJECT_SOURCE_DIR}/src/pb_controller.cpp"
     "${PROJECT_SOURCE_DIR}/src/pb_view.cpp"
@@ -119,7 +117,7 @@ add_executable(podbeuter podbeuter.cpp
     "${PROJECT_SOURCE_DIR}/src/poddlthread.cpp"
     "${PROJECT_SOURCE_DIR}/stfl/dllist.h"
     "${PROJECT_SOURCE_DIR}/stfl/help.h")
-target_link_libraries(podbeuter filter rsspp beuter)
+target_link_libraries(podboat filter rsspp beuter)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake/Modules)
 
@@ -136,14 +134,14 @@ configure_file(
 find_package(LibXml2)
 if (LIBXML2_FOUND)
     include_directories(${LIBXML2_INCLUDE_DIR})
-    target_link_libraries (newsbeuter ${LIBXML2_LIBRARIES})
+    target_link_libraries (newsboat ${LIBXML2_LIBRARIES})
 endif (LIBXML2_FOUND)
 
 find_package(CURL)
 if (CURL_FOUND)
     include_directories(${CURL_INCLUDE_DIRS})
-    target_link_libraries (newsbeuter ${CURL_LIBRARIES})
-    target_link_libraries (podbeuter ${CURL_LIBRARIES})
+    target_link_libraries (newsboat ${CURL_LIBRARIES})
+    target_link_libraries (podboat ${CURL_LIBRARIES})
 
     execute_process (COMMAND curl-config --static-libs
                      COMMAND egrep -- "-lssl( |$)"
@@ -154,8 +152,8 @@ if (CURL_FOUND)
         find_package(OpenSSL)
         if (OPENSSL_FOUND)
             include_directories(${OPENSSL_INCLUDE_DIRS})
-            target_link_libraries (newsbeuter ${OPENSSL_LIBRARIES})
-            target_link_libraries (podbeuter ${OPENSSL_LIBRARIES})
+            target_link_libraries (newsboat ${OPENSSL_LIBRARIES})
+            target_link_libraries (podboat ${OPENSSL_LIBRARIES})
         endif (OPENSSL_FOUND)
 
         add_definitions(-DHAVE_OPENSSL=1)
@@ -170,8 +168,8 @@ if (CURL_FOUND)
         find_package(GnuTLS)
         if (GNUTLS_FOUND)
             include_directories(${GNUTLS_INCLUDE_DIRS})
-            target_link_libraries (newsbeuter ${GNUTLS_LIBRARIES})
-            target_link_libraries (podbeuter ${GNUTLS_LIBRARIES})
+            target_link_libraries (newsboat ${GNUTLS_LIBRARIES})
+            target_link_libraries (podboat ${GNUTLS_LIBRARIES})
         endif (GNUTLS_FOUND)
 
         add_definitions(-DHAVE_GCRYPT=1)
@@ -181,26 +179,26 @@ endif (CURL_FOUND)
 find_package(STFL)
 if (STFL_FOUND)
     include_directories(${STFL_INCLUDE_DIRS})
-    target_link_libraries (newsbeuter ${STFL_LIBRARIES})
-    target_link_libraries (podbeuter ${STFL_LIBRARIES})
+    target_link_libraries (newsboat ${STFL_LIBRARIES})
+    target_link_libraries (podboat ${STFL_LIBRARIES})
 endif (STFL_FOUND)
 
 find_package(SQLITE3)
 if (SQLITE3_FOUND)
     include_directories(${SQLITE3_INCLUDE_DIRS})
-    target_link_libraries (newsbeuter ${SQLITE3_LIBRARIES})
+    target_link_libraries (newsboat ${SQLITE3_LIBRARIES})
 endif (SQLITE3_FOUND)
 
 find_package(JSON-C)
 if (JSON-C_FOUND)
     include_directories(${JSON-C_INCLUDE_DIRS})
-    target_link_libraries (newsbeuter ${JSON-C_LIBRARIES})
+    target_link_libraries (newsboat ${JSON-C_LIBRARIES})
 endif (JSON-C_FOUND)
 
 set(CURSES_NEED_NCURSES TRUE)
 find_package(Curses)
 if (CURSES_FOUND AND CURSES_HAVE_NCURSES_H)
     include_directories(${CURSES_INCLUDE_DIRS})
-    target_link_libraries (newsbeuter ${CURSES_LIBRARIES})
-    target_link_libraries (podbeuter ${CURSES_LIBRARIES})
+    target_link_libraries (newsboat ${CURSES_LIBRARIES})
+    target_link_libraries (podboat ${CURSES_LIBRARIES})
 endif (CURSES_FOUND AND CURSES_HAVE_NCURSES_H)
