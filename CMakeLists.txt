@@ -1,6 +1,4 @@
-# TODO: include Git commit in the version
-# TODO: build headers from STFL files
-# TODO: add -Wall -Wextr and all this jazz
+# TODO: add -Wall -Wextra and all this jazz
 # TODO: build and run tests
 # TODO: provide installation commands (did we have deinstallation, too?)
 # TODO: check the old Makefile to see what I'm missing here
