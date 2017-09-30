@@ -28,3 +28,6 @@ doc/generate2
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
+Makefile
+filter/Makefile
+rss/Makefile
