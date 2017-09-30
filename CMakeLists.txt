@@ -4,7 +4,7 @@
 # TODO: check the old Makefile to see what I'm missing here
 # TODO: cppcheck jobs = 5
 # TODO: define GIT_HASH
-cmake_minimum_required (VERSION 3.7)
+cmake_minimum_required (VERSION 3.0)
 project (newsboat)
 
 set(CMAKE_CXX_STANDARD 11)
