@@ -80,10 +80,15 @@ class logger {
 
 }
 
-// see http://kernelnewbies.org/FAQ/DoWhile0
 #ifdef NDEBUG
-#define LOG(x, ...) do { } while(0)
+// This is a no-op. Its sole purpose is to make the arguments passed into it
+// "used" so that the compiler doesn't complain.
+template<typename... Args>
+void LOG(newsbeuter::level, Args...) {
+	// Do nothing
+}
 #else
+// see http://kernelnewbies.org/FAQ/DoWhile0
 #define LOG(x, ...) do { logger::getInstance().log(x, __VA_ARGS__); } while(0)
 #endif
 
