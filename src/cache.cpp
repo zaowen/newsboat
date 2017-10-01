@@ -95,7 +95,7 @@ static int single_string_callback(void * handler, int argc, char ** argv, char *
 static int rssfeed_callback(void * myfeed, int argc, char ** argv, char ** /* azColName */) {
 	std::shared_ptr<rss_feed>* feed = static_cast<std::shared_ptr<rss_feed>* >(myfeed);
 	// normaly, this shouldn't happen, but we keep the assert()s here nevertheless
-	assert(argc == 3);
+	assert(argc == 3); (void)argc;
 	assert(argv[0] != nullptr);
 	assert(argv[1] != nullptr);
 	assert(argv[2] != nullptr);
@@ -108,7 +108,7 @@ static int rssfeed_callback(void * myfeed, int argc, char ** argv, char ** /* az
 
 static int lastmodified_callback(void * handler, int argc, char ** argv, char ** /* azColName */) {
 	header_values * result = static_cast<header_values *>(handler);
-	assert(argc == 2);
+	assert(argc == 2); (void)argc;
 	assert(result != nullptr);
 	if (argv[0]) {
 		std::istringstream is(argv[0]);
@@ -128,7 +128,7 @@ static int lastmodified_callback(void * handler, int argc, char ** argv, char **
 
 static int vectorofstring_callback(void * vp, int argc, char ** argv, char ** /* azColName */) {
 	std::vector<std::string> * vectorptr = static_cast<std::vector<std::string> *>(vp);
-	assert(argc == 1);
+	assert(argc == 1); (void)argc;
 	assert(argv[0] != nullptr);
 	vectorptr->push_back(std::string(argv[0]));
 	LOG(level::INFO, "vectorofstring_callback: element = %s", argv[0]);
@@ -137,7 +137,7 @@ static int vectorofstring_callback(void * vp, int argc, char ** argv, char ** /*
 
 static int rssitem_callback(void * myfeed, int argc, char ** argv, char ** /* azColName */) {
 	std::shared_ptr<rss_feed>* feed = static_cast<std::shared_ptr<rss_feed>* >(myfeed);
-	assert (argc == 13);
+	assert (argc == 13); (void)argc;
 	std::shared_ptr<rss_item> item(new rss_item(nullptr));
 	item->set_guid(argv[0]);
 	item->set_title(argv[1]);
@@ -167,7 +167,7 @@ static int rssitem_callback(void * myfeed, int argc, char ** argv, char ** /* az
 
 static int fill_content_callback(void * myfeed, int argc, char ** argv, char ** /* azColName */) {
 	rss_feed * feed = static_cast<rss_feed *>(myfeed);
-	assert(argc == 2);
+	assert(argc == 2); (void)argc;
 	if (argv[0]) {
 		std::shared_ptr<rss_item> item = feed->get_item_by_guid_unlocked(argv[0]);
 		item->set_description(argv[1] ? argv[1] : "");
@@ -178,7 +178,7 @@ static int fill_content_callback(void * myfeed, int argc, char ** argv, char ** 
 static int search_item_callback(void * myfeed, int argc, char ** argv, char ** /* azColName */) {
 	std::vector<std::shared_ptr<rss_item>> * items =
 		static_cast<std::vector<std::shared_ptr<rss_item>> *>(myfeed);
-	assert (argc == 13);
+	assert (argc == 13); (void)argc;
 	std::shared_ptr<rss_item> item(new rss_item(nullptr));
 	item->set_guid(argv[0]);
 	item->set_title(argv[1]);
@@ -206,7 +206,7 @@ static int search_item_callback(void * myfeed, int argc, char ** argv, char ** /
 
 static int guid_callback(void * myguids, int argc, char ** argv, char ** /* azColName */) {
 	auto* guids = static_cast<std::unordered_set<std::string> *>(myguids);
-	assert (argc == 1);
+	assert (argc == 1); (void)argc;
 	guids->emplace(argv[0]);
 	return 0;
 }
