@@ -20,30 +20,31 @@ include_directories("${PROJECT_SOURCE_DIR}/rss")
 add_subdirectory(rss)
 
 add_library(beuter
-    ${PROJECT_SOURCE_DIR}/src/configcontainer.cpp
-    ${PROJECT_SOURCE_DIR}/src/configparser.cpp
-    ${PROJECT_SOURCE_DIR}/src/colormanager.cpp
-    ${PROJECT_SOURCE_DIR}/src/keymap.cpp
-    ${PROJECT_SOURCE_DIR}/src/stflpp.cpp
-    ${PROJECT_SOURCE_DIR}/src/logger.cpp
-    ${PROJECT_SOURCE_DIR}/src/exception.cpp
-    ${PROJECT_SOURCE_DIR}/src/utils.cpp
-    ${PROJECT_SOURCE_DIR}/src/scope_measure.cpp
-    ${PROJECT_SOURCE_DIR}/src/matcher.cpp
-    ${PROJECT_SOURCE_DIR}/src/formatstring.cpp
-    ${PROJECT_SOURCE_DIR}/src/strprintf.cpp)
+    "${PROJECT_SOURCE_DIR}/src/configcontainer.cpp"
+    "${PROJECT_SOURCE_DIR}/src/configparser.cpp"
+    "${PROJECT_SOURCE_DIR}/src/colormanager.cpp"
+    "${PROJECT_SOURCE_DIR}/src/keymap.cpp"
+    "${PROJECT_SOURCE_DIR}/src/stflpp.cpp"
+    "${PROJECT_SOURCE_DIR}/src/logger.cpp"
+    "${PROJECT_SOURCE_DIR}/src/exception.cpp"
+    "${PROJECT_SOURCE_DIR}/src/utils.cpp"
+    "${PROJECT_SOURCE_DIR}/src/scope_measure.cpp"
+    "${PROJECT_SOURCE_DIR}/src/matcher.cpp"
+    "${PROJECT_SOURCE_DIR}/src/formatstring.cpp"
+    "${PROJECT_SOURCE_DIR}/src/strprintf.cpp"
+    )
 
 file(GLOB STFL_SRCS "${PROJECT_SOURCE_DIR}/stfl/*.stfl")
 set(STFL_HEADERS)
 foreach(SRC ${STFL_SRCS})
-    string(REGEX REPLACE "stfl$" "h" OUTPUT_FILE_NAME ${SRC})
+    string(REGEX REPLACE "stfl$" "h" OUTPUT_FILE_NAME "${SRC}")
 
     add_custom_command(
         OUTPUT "${OUTPUT_FILE_NAME}"
-        COMMAND ${PROJECT_SOURCE_DIR}/txt2h ${SRC} .stfl > ${OUTPUT_FILE_NAME}
-        DEPENDS ${SRC}
+        COMMAND "${PROJECT_SOURCE_DIR}/txt2h" "${SRC}" .stfl > "${OUTPUT_FILE_NAME}"
+        DEPENDS "${SRC}"
         )
-    set(STFL_HEADERS "${STFL_HEADERS}" "${OUTPUT_FILE_NAME}")
+    set(STFL_HEADERS ${STFL_HEADERS} "${OUTPUT_FILE_NAME}")
 endforeach(SRC)
 add_custom_target(
     dialog-headers
@@ -101,7 +102,7 @@ add_dependencies(newsboat dialog-headers)
 
 add_custom_target(
     xlicense-header
-    COMMAND ${PROJECT_SOURCE_DIR}/txt2h ${PROJECT_SOURCE_DIR}/LICENSE > ${PROJECT_SOURCE_DIR}/xlicense.h
+    COMMAND "${PROJECT_SOURCE_DIR}/txt2h" "${PROJECT_SOURCE_DIR}/LICENSE" > "${PROJECT_SOURCE_DIR}/xlicense.h"
     DEPENDS "${PROJECT_SOURCE_DIR}/LICENSE"
     )
 add_dependencies(newsboat xlicense-header)
