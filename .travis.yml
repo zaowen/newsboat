@@ -173,7 +173,7 @@ script:
   - if [ -z "$CHECKS" ]; then   cmake -DCMAKE_BUILD_TYPE=Release . && make ; fi
   - if [ -z "$CHECKS" ]; then   make clean   ; fi
   - if [ -z "$CHECKS" ]; then   cmake -DCMAKE_BUILD_TYPE=Debug . && make ; fi
-  - if [ -z "$CHECKS" ]; then   ( cd test && ./test --order rand )   ; fi
+  - if [ -z "$CHECKS" ]; then   ( cd test && ./catch_tests --order rand )   ; fi
   - if [ -n "$CHECKS" ]; then   make run-i18nspector | tee i18nspector.log && if `egrep '^(E|W):' i18nspector.log >/dev/null 2>&1` ; then false else true; fi   ; fi
 
 after_success:
