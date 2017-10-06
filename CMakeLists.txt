@@ -204,4 +204,7 @@ if (CURSES_FOUND AND CURSES_HAVE_NCURSES_H)
     target_link_libraries (podboat ${CURSES_LIBRARIES})
 endif (CURSES_FOUND AND CURSES_HAVE_NCURSES_H)
 
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads)
+
 add_subdirectory(test)
