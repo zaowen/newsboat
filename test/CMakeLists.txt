@@ -26,6 +26,8 @@ add_executable(catch_tests
 add_dependencies(catch_tests dialog-headers)
 target_link_libraries(catch_tests filter rsspp beuter)
 
+target_link_libraries (catch_tests Threads::Threads)
+
 if (STFL_FOUND)
     target_link_libraries (catch_tests ${STFL_LIBRARIES})
 endif (STFL_FOUND)

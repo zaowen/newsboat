@@ -206,5 +206,7 @@ endif (CURSES_FOUND AND CURSES_HAVE_NCURSES_H)
 
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads)
+target_link_libraries (newsboat Threads::Threads)
+target_link_libraries (podboat Threads::Threads)
 
 add_subdirectory(test)
