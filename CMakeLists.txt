@@ -1,4 +1,3 @@
-# TODO: build and run tests
 # TODO: provide installation commands (did we have deinstallation, too?)
 # TODO: check the old Makefile to see what I'm missing here
 # TODO: cppcheck jobs = 5
@@ -55,7 +54,7 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/stfl"
     )
 
-add_executable(newsboat newsbeuter.cpp
+set(NEWSBOAT_SOURCES
     "${PROJECT_SOURCE_DIR}/gitversion.cpp"
     "${PROJECT_SOURCE_DIR}/src/cache.cpp"
     "${PROJECT_SOURCE_DIR}/src/htmlrenderer.cpp"
@@ -95,6 +94,10 @@ add_executable(newsboat newsbeuter.cpp
     "${PROJECT_SOURCE_DIR}/src/ocnews_api.cpp"
     "${PROJECT_SOURCE_DIR}/src/ocnews_urlreader.cpp"
     "${PROJECT_SOURCE_DIR}/src/remote_api.cpp"
+    )
+add_executable(newsboat
+    ${NEWSBOAT_SOURCES}
+    "${PROJECT_SOURCE_DIR}/newsbeuter.cpp"
     )
 target_link_libraries(newsboat filter rsspp beuter)
 add_dependencies(newsboat dialog-headers)
@@ -200,3 +203,5 @@ if (CURSES_FOUND AND CURSES_HAVE_NCURSES_H)
     target_link_libraries (newsboat ${CURSES_LIBRARIES})
     target_link_libraries (podboat ${CURSES_LIBRARIES})
 endif (CURSES_FOUND AND CURSES_HAVE_NCURSES_H)
+
+add_subdirectory(test)

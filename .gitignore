@@ -4,9 +4,7 @@ po/*.mo
 stfl/*.h
 newsboat
 podboat
-test/test
-test/test-rss
-test/testlog.txt
+test/catch_tests
 xlicense.h
 html/*
 *.info
