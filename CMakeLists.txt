@@ -197,6 +197,7 @@ if (JSON-C_FOUND)
 endif (JSON-C_FOUND)
 
 set(CURSES_NEED_NCURSES TRUE)
+set(CURSES_NEED_WIDE TRUE)
 find_package(Curses)
 if (CURSES_FOUND AND CURSES_HAVE_NCURSES_H)
     include_directories(${CURSES_INCLUDE_DIRS})
