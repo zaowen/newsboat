@@ -66,6 +66,8 @@ class cache {
 				bool do_throw);
 
 		sqlite3_ptr db;
+		// configcontainer pointer is managed by whoever creates the cache
+		// object
 		configcontainer * cfg;
 		std::mutex mtx;
 };
