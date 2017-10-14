@@ -28,7 +28,7 @@ class cache {
 		std::unordered_set<std::string> search_in_items(const std::string& querystr, const std::unordered_set<std::string>& guids);
 		void mark_all_read(const std::string& feedurl = "");
 		void mark_all_read(std::shared_ptr<rss_feed> feed);
-		void update_rssitem_flags(rss_item* item);
+		void update_rssitem_flags(const rss_item& item);
 		void fetch_lastmodified(const std::string& uri, time_t& t, std::string& etag);
 		void update_lastmodified(const std::string& uri, time_t t, const std::string& etag);
 		unsigned int get_unread_count();

@@ -289,7 +289,7 @@ std::string rss_item::get_attribute(const std::string& attribname) {
 
 void rss_item::update_flags() {
 	if (ch) {
-		ch->update_rssitem_flags(this);
+		ch->update_rssitem_flags(*this);
 	}
 }
 

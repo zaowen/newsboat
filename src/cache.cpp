@@ -786,13 +786,13 @@ std::string cache::prepare_query(
 	return result + prepare_query(remaining_format, args...);
 }
 
-void cache::update_rssitem_flags(rss_item* item) {
+void cache::update_rssitem_flags(const rss_item& item) {
 	std::lock_guard<std::mutex> lock(mtx);
 
 	std::string update = prepare_query(
 			"UPDATE rss_item SET flags = '%q' WHERE guid = '%q';",
-			item->flags(),
-			item->guid());
+			item.flags(),
+			item.guid());
 
 	run_sql(update);
 }

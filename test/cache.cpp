@@ -552,7 +552,7 @@ TEST_CASE("update_rssitem_flags dumps `rss_item` object's flags to DB",
 
 	auto item = feed->items()[0];
 	item->set_flags("abc");
-	REQUIRE_NOTHROW(rsscache->update_rssitem_flags(item.get()));
+	REQUIRE_NOTHROW(rsscache->update_rssitem_flags(*item));
 
 	rsscache.reset( new cache(dbfile.getPath(), &cfg) );
 	rss_ignores ign;
@@ -748,8 +748,8 @@ TEST_CASE("internalize_rssfeed doesn't return more than `max-items` items, "
 		feed->items()[0]->set_flags("a");
 		feed->items()[1]->set_flags("b");
 		rsscache->externalize_rssfeed(feed, false);
-		rsscache->update_rssitem_flags(feed->items()[0].get());
-		rsscache->update_rssitem_flags(feed->items()[1].get());
+		rsscache->update_rssitem_flags(* feed->items()[0].get());
+		rsscache->update_rssitem_flags(* feed->items()[1].get());
 
 		cfg.reset( new configcontainer() );
 		cfg->set_configvalue("max-items", "1");
