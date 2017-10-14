@@ -106,7 +106,7 @@ void rss_item::set_unread(bool u) {
 			feedptr->get_item_by_guid(guid_)->set_unread_nowrite(unread_); // notify parent feed
 		try {
 			if (ch) {
-				ch->update_rssitem_unread_and_enqueued(this, feedurl_);
+				ch->update_rssitem_unread_and_enqueued(*this, feedurl_);
 			}
 		} catch (const dbexception& e) {
 			// if the update failed, restore the old unread flag and rethrow the exception

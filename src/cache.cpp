@@ -735,16 +735,16 @@ void cache::mark_all_read(const std::string& feedurl) {
 	run_sql(query);
 }
 
-void cache::update_rssitem_unread_and_enqueued(rss_item* item, const std::string& /* feedurl */) {
+void cache::update_rssitem_unread_and_enqueued(const rss_item& item, const std::string& /* feedurl */) {
 	std::lock_guard<std::mutex> lock(mtx);
 
 	auto query = prepare_query(
 			"UPDATE rss_item "
 			"SET unread = '%d', enqueued = '%d' "
 			"WHERE guid = '%q'",
-			item->unread()?1:0,
-			item->enqueued()?1:0,
-			item->guid());
+			item.unread() ? 1 : 0,
+			item.enqueued() ? 1 : 0,
+			item.guid());
 	run_sql(query);
 }
 
@@ -752,7 +752,9 @@ void cache::update_rssitem_unread_and_enqueued(rss_item* item, const std::string
 void cache::update_rssitem_unread_and_enqueued(
 		std::shared_ptr<rss_item> item, const std::string& feedurl)
 {
-	update_rssitem_unread_and_enqueued(item.get(), feedurl);
+	if (item) {
+		update_rssitem_unread_and_enqueued(*item, feedurl);
+	}
 }
 
 /* helper function to wrap std::string around the sqlite3_*mprintf function */

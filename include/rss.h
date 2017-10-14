@@ -99,7 +99,7 @@ class rss_item : public matchable {
 		void set_enclosure_url(const std::string& url);
 		void set_enclosure_type(const std::string& type);
 
-		inline bool enqueued() {
+		inline bool enqueued() const {
 			return enqueued_;
 		}
 		inline void set_enqueued(bool v) {
