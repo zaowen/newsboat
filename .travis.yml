@@ -9,6 +9,7 @@ addons:
     - libstfl-dev
     - libjson-c-dev
     - libncursesw5-dev
+    - libboost-all-dev
     - asciidoc
 addons:
   apt:
@@ -28,6 +29,7 @@ newsboat_brew_commands: &osx_deps
   - brew install "libstfl"
   - brew outdated "json-c" || brew upgrade "json-c"
   - brew install "asciidoc"
+  - brew outdated "boost" || brew upgrade "boost"
   - brew outdated "python" || brew upgrade "python"
   - brew install "pyenv" || brew upgrade "pyenv"
   - eval "$(pyenv init -)"

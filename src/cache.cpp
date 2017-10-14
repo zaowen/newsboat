@@ -421,7 +421,7 @@ void cache::externalize_rssfeed(std::shared_ptr<rss_feed> feed, bool reset_unrea
 
 // this function reads an rss_feed including all of its rss_items.
 // the feed parameter needs to have the rssurl member set.
-std::shared_ptr<rss_feed> cache::internalize_rssfeed(std::string rssurl, rss_ignores * ign) {
+std::shared_ptr<rss_feed> cache::internalize_rssfeed(std::string rssurl, boost::optional<rss_ignores&> ign) {
 	scope_measure m1("cache::internalize_rssfeed");
 
 	std::shared_ptr<rss_feed> feed(new rss_feed(this));

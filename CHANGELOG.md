@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+
+- Dependency on Boost
+
 ### Changed
 
 - `text-width` doesn't apply if it's bigger than terminal width

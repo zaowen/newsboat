@@ -7,6 +7,7 @@
 #include <mutex>
 #include <unordered_set>
 #include <memory>
+#include <boost/optional.hpp>
 
 namespace newsboat {
 
@@ -18,7 +19,7 @@ class cache {
 	public:
 		cache(const std::string& cachefile, configcontainer * c);
 		void externalize_rssfeed(std::shared_ptr<rss_feed> feed, bool reset_unread);
-		std::shared_ptr<rss_feed> internalize_rssfeed(std::string rssurl, rss_ignores * ign);
+		std::shared_ptr<rss_feed> internalize_rssfeed(std::string rssurl, boost::optional<rss_ignores&> ign);
 		void update_rssitem_unread_and_enqueued(std::shared_ptr<rss_item> item, const std::string& feedurl);
 		void update_rssitem_unread_and_enqueued(rss_item* item, const std::string& feedurl);
 		void cleanup_cache(std::vector<std::shared_ptr<rss_feed>>& feeds);

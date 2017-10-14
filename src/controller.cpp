@@ -704,7 +704,10 @@ int controller::run(int argc, char * argv[]) {
 	for (auto url : urlcfg->get_urls()) {
 		try {
 			bool ignore_disp = (cfg.get_configvalue("ignore-mode") == "display");
-			std::shared_ptr<rss_feed> feed = rsscache->internalize_rssfeed(url, ignore_disp ? &ign : nullptr);
+			std::shared_ptr<rss_feed> feed
+				= rsscache->internalize_rssfeed(
+						url,
+						boost::make_optional<rss_ignores&>(ignore_disp, ign));
 			feed->set_tags(urlcfg->get_tags(url));
 			feed->set_order(i);
 			std::lock_guard<std::mutex> feedslock(feeds_mutex);
@@ -902,7 +905,10 @@ void controller::reload(unsigned int pos, unsigned int max, bool unattended, cur
 				newfeed->clear_items();
 
 				bool ignore_disp = (cfg.get_configvalue("ignore-mode") == "display");
-				std::shared_ptr<rss_feed> feed = rsscache->internalize_rssfeed(oldfeed->rssurl(), ignore_disp ? &ign : nullptr);
+				std::shared_ptr<rss_feed> feed
+					= rsscache->internalize_rssfeed(
+							oldfeed->rssurl(),
+							boost::make_optional<rss_ignores&>(ignore_disp,  ign));
 				feed->set_tags(urlcfg->get_tags(oldfeed->rssurl()));
 				feed->set_order(oldfeed->get_order());
 				feeds[pos] = feed;
@@ -1426,7 +1432,10 @@ void controller::reload_urls_file() {
 		if (!found) {
 			try {
 				bool ignore_disp = (cfg.get_configvalue("ignore-mode") == "display");
-				std::shared_ptr<rss_feed> new_feed = rsscache->internalize_rssfeed(url, ignore_disp ? &ign : nullptr);
+				std::shared_ptr<rss_feed> new_feed
+					= rsscache->internalize_rssfeed(
+							url,
+							boost::make_optional<rss_ignores&>(ignore_disp, ign));
 				new_feed->set_tags(urlcfg->get_tags(url));
 				new_feed->set_order(i);
 				new_feeds.push_back(new_feed);
@@ -1617,7 +1626,9 @@ void controller::save_feed(std::shared_ptr<rss_feed> feed, unsigned int pos) {
 		LOG(level::DEBUG, "controller::save_feed: after externalize_rssfeed");
 
 		bool ignore_disp = (cfg.get_configvalue("ignore-mode") == "display");
-		feed = rsscache->internalize_rssfeed(feed->rssurl(), ignore_disp ? &ign : nullptr);
+		feed = rsscache->internalize_rssfeed(
+				feed->rssurl(),
+				boost::make_optional<rss_ignores&>(ignore_disp, ign));
 		LOG(level::DEBUG, "controller::save_feed: after internalize_rssfeed");
 		feed->set_tags(urlcfg->get_tags(feed->rssurl()));
 		{
