@@ -879,9 +879,10 @@ void cache::clean_old_articles() {
 	}
 }
 
-void cache::fetch_descriptions(rss_feed * feed) {
+// TODO: make this argument const when rss_feed::items() becomes const
+void cache::fetch_descriptions(rss_feed& feed) {
 	std::vector<std::string> guids;
-	for (auto item : feed->items()) {
+	for (auto item : feed.items()) {
 		guids.push_back(prepare_query("'%q'", item->guid()));
 	}
 	std::string in_clause = utils::join(guids, ", ");
@@ -891,7 +892,7 @@ void cache::fetch_descriptions(rss_feed * feed) {
 			"SELECT guid, content FROM rss_item WHERE guid IN (%s);",
 			in_clause);
 
-	run_sql(query, fill_content_callback, feed);
+	run_sql(query, fill_content_callback, &feed);
 }
 
 }

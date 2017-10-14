@@ -291,7 +291,7 @@ TEST_CASE("fetch_descriptions fills out feed item's descriptions", "[cache]") {
 		item->set_description("your test failed!");
 	}
 
-	REQUIRE_NOTHROW(rsscache.fetch_descriptions(feed.get()));
+	REQUIRE_NOTHROW(rsscache.fetch_descriptions(*feed.get()));
 
 	for (auto& item : feed->items()) {
 		REQUIRE(item->description() != "your test failed!");

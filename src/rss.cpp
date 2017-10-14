@@ -623,7 +623,7 @@ void rss_feed::unload() {
 
 void rss_feed::load() {
 	std::lock_guard<std::mutex> lock(item_mutex);
-	ch->fetch_descriptions(this);
+	ch->fetch_descriptions(*this);
 }
 
 }
