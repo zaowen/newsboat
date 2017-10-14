@@ -225,17 +225,17 @@ int pb_controller::run(int argc, char * argv[]) {
 	colorman->register_commands(cfgparser);
 
 	keymap keys(KM_PODBOAT);
-	cfgparser.register_handler("bind-key", &keys);
-	cfgparser.register_handler("unbind-key", &keys);
+	cfgparser.register_handler("bind-key", keys);
+	cfgparser.register_handler("unbind-key", keys);
 
 	null_config_action_handler null_cah;
-	cfgparser.register_handler("macro", &null_cah);
-	cfgparser.register_handler("ignore-article", &null_cah);
-	cfgparser.register_handler("always-download", &null_cah);
-	cfgparser.register_handler("define-filter", &null_cah);
-	cfgparser.register_handler("highlight", &null_cah);
-	cfgparser.register_handler("highlight-article", &null_cah);
-	cfgparser.register_handler("reset-unread-on-update", &null_cah);
+	cfgparser.register_handler("macro", null_cah);
+	cfgparser.register_handler("ignore-article", null_cah);
+	cfgparser.register_handler("always-download", null_cah);
+	cfgparser.register_handler("define-filter", null_cah);
+	cfgparser.register_handler("highlight", null_cah);
+	cfgparser.register_handler("highlight-article", null_cah);
+	cfgparser.register_handler("reset-unread-on-update", null_cah);
 
 	try {
 		cfgparser.parse("/etc/newsboat/config");

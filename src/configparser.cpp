@@ -19,7 +19,7 @@
 namespace newsboat {
 
 configparser::configparser() {
-	register_handler("include", this);
+	register_handler("include", *this);
 }
 
 configparser::~configparser() { }
@@ -72,12 +72,13 @@ bool configparser::parse(const std::string& filename, bool double_include) {
 		std::vector<std::string> tokens = utils::tokenize_quoted(line);
 		if (!tokens.empty()) {
 			std::string cmd = tokens[0];
-			config_action_handler * handler = action_handlers[cmd];
-			if (handler) {
+			auto it = action_handlers.find(cmd);
+			if (it != action_handlers.end()) {
+				config_action_handler& handler = it->second;
 				tokens.erase(tokens.begin()); // delete first element
 				try {
 					evaluate_backticks(tokens);
-					handler->handle_action(cmd,tokens);
+					handler.handle_action(cmd,tokens);
 				} catch (const confighandlerexception& e) {
 					throw configexception(strprintf::fmt(_("Error while processing command `%s' (%s line %u): %s"), line, filename, linecounter, e.what()));
 				}
@@ -89,12 +90,20 @@ bool configparser::parse(const std::string& filename, bool double_include) {
 	return true;
 }
 
-void configparser::register_handler(const std::string& cmd, config_action_handler * handler) {
-	action_handlers[cmd] = handler;
+void configparser::register_handler(const std::string& cmd, config_action_handler& handler) {
+	auto it = action_handlers.find(cmd);
+	if (it == action_handlers.end()) {
+		action_handlers.emplace(cmd, handler);
+	} else {
+		it->second = handler;
+	}
 }
 
 void configparser::unregister_handler(const std::string& cmd) {
-	action_handlers[cmd] = 0;
+	auto it = action_handlers.find(cmd);
+	if (it != action_handlers.end()) {
+		action_handlers.erase(it);
+	}
 }
 
 void configparser::evaluate_backticks(std::vector<std::string>& tokens) {

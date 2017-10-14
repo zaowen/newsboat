@@ -27,7 +27,7 @@ class configparser : public config_action_handler {
 	public:
 		configparser();
 		~configparser() override;
-		void register_handler(const std::string& cmd, config_action_handler * handler);
+		void register_handler(const std::string& cmd, config_action_handler& handler);
 		void unregister_handler(const std::string& cmd);
 		void handle_action(const std::string& action, const std::vector<std::string>& params) override;
 		void dump_config(std::vector<std::string>& ) override {
@@ -39,7 +39,7 @@ class configparser : public config_action_handler {
 		void evaluate_backticks(std::vector<std::string>& tokens);
 		static std::string evaluate_cmd(const std::string& cmd);
 		std::vector<std::vector<std::string>> parsed_content;
-		std::map<std::string,config_action_handler *> action_handlers;
+		std::map<std::string,config_action_handler&> action_handlers;
 		std::set<std::string> included_files;
 };
 

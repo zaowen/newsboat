@@ -23,7 +23,7 @@ colormanager::colormanager() : colors_loaded_(false) { }
 colormanager::~colormanager() { }
 
 void colormanager::register_commands(configparser& cfgparser) {
-	cfgparser.register_handler("color", this);
+	cfgparser.register_handler("color", *this);
 }
 
 void colormanager::handle_action(const std::string& action, const std::vector<std::string>& params) {

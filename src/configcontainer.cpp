@@ -197,7 +197,7 @@ void configcontainer::register_commands(configparser& cfgparser) {
 	// this registers the config options defined above in the configuration parser
 	// -> if the resp. config option is encountered, it is passed to the configcontainer
 	for (auto cfg : config_data) {
-		cfgparser.register_handler(cfg.first, this);
+		cfgparser.register_handler(cfg.first, *this);
 	}
 }
 
