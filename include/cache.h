@@ -6,15 +6,17 @@
 #include <configcontainer.h>
 #include <mutex>
 #include <unordered_set>
+#include <memory>
 
 namespace newsboat {
 
 typedef std::vector<std::string> schema_queries_list;
 
+using sqlite3_ptr = std::unique_ptr<sqlite3, decltype(&sqlite3_close)>;
+
 class cache {
 	public:
 		cache(const std::string& cachefile, configcontainer * c);
-		~cache();
 		void externalize_rssfeed(std::shared_ptr<rss_feed> feed, bool reset_unread);
 		std::shared_ptr<rss_feed> internalize_rssfeed(std::string rssurl, rss_ignores * ign);
 		void update_rssitem_unread_and_enqueued(std::shared_ptr<rss_item> item, const std::string& feedurl);
@@ -63,7 +65,7 @@ class cache {
 				void * callback_argument,
 				bool do_throw);
 
-		sqlite3 * db;
+		sqlite3_ptr db;
 		configcontainer * cfg;
 		std::mutex mtx;
 };

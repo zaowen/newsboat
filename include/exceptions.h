@@ -5,7 +5,7 @@
 #include <string>
 #include <configparser.h>
 
-#include <sqlite3.h>
+#include <cache.h>
 
 namespace newsboat {
 
@@ -49,7 +49,7 @@ class confighandlerexception : public std::exception {
 
 class dbexception : public std::exception {
 	public:
-		explicit dbexception(sqlite3 * h) : msg(sqlite3_errmsg(h)) { }
+		explicit dbexception(sqlite3_ptr h) : msg(sqlite3_errmsg(h.get())) { }
 		~dbexception() throw() override { }
 		const char * what() const throw() override {
 			return msg.c_str();

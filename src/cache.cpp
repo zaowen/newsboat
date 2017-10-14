@@ -27,12 +27,12 @@ inline void cache::run_sql_impl(
 {
 	LOG(level::DEBUG, "running query: %s", query);
 	int rc = sqlite3_exec(
-			db, query.c_str(), callback, callback_argument, nullptr);
+			db.get(), query.c_str(), callback, callback_argument, nullptr);
 	if (rc != SQLITE_OK) {
 		std::string message = "query \"%s\" failed: error = %d";
 		LOG(level::CRITICAL, message, query, rc);
 		if (do_throw) {
-			throw dbexception(db);
+			throw dbexception(std::move(db));
 		}
 	}
 }
@@ -211,12 +211,17 @@ static int guid_callback(void * myguids, int argc, char ** argv, char ** /* azCo
 }
 
 
-cache::cache(const std::string& cachefile, configcontainer * c) : db(0),cfg(c) {
-	int error = sqlite3_open(cachefile.c_str(),&db);
+cache::cache(const std::string& cachefile, configcontainer * c)
+	:	db(nullptr, &sqlite3_close),
+		cfg(c)
+{
+	sqlite3* db_ptr = nullptr;
+	int error = sqlite3_open(cachefile.c_str(), &db_ptr);
+	db = sqlite3_ptr(db_ptr, &sqlite3_close);
 	if (error != SQLITE_OK) {
 		LOG(level::ERROR,"couldn't sqlite3_open(%s): error = %d",
 				cachefile, error);
-		throw dbexception(db);
+		throw dbexception(std::move(db));
 	}
 
 	populate_tables();
@@ -226,10 +231,6 @@ cache::cache(const std::string& cachefile, configcontainer * c) : db(0),cfg(c) {
 
 	// we need to manually lock all DB operations because SQLite has no
 	// explicit support for multithreading.
-}
-
-cache::~cache() {
-	sqlite3_close(db);
 }
 
 void cache::set_pragmas() {
