@@ -82,7 +82,7 @@ void colormanager::dump_config(std::vector<std::string>& config_output) {
  * this is podboat-specific color management
  * TODO: refactor this
  */
-void colormanager::set_pb_colors(podboat::pb_view * v) {
+void colormanager::set_pb_colors(podboat::pb_view& v) {
 	auto fgcit = fg_colors.begin();
 	auto bgcit = bg_colors.begin();
 	auto attit = attributes.begin();
@@ -108,8 +108,8 @@ void colormanager::set_pb_colors(podboat::pb_view * v) {
 
 		LOG(level::DEBUG,"colormanager::set_pb_colors: %s %s\n",fgcit->first, colorattr);
 
-		v->dllist_form.set(fgcit->first, colorattr);
-		v->help_form.set(fgcit->first, colorattr);
+		v.dllist_form.set(fgcit->first, colorattr);
+		v.help_form.set(fgcit->first, colorattr);
 
 		if (fgcit->first == "article") {
 			std::string styleend_str;
@@ -122,7 +122,7 @@ void colormanager::set_pb_colors(podboat::pb_view * v) {
 				styleend_str.append(",");
 			styleend_str.append("attr=bold");
 
-			v->help_form.set("styleend", styleend_str.c_str());
+			v.help_form.set("styleend", styleend_str.c_str());
 		}
 	}
 

@@ -246,8 +246,9 @@ int pb_controller::run(int argc, char * argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if (colorman->colors_loaded())
-		colorman->set_pb_colors(v);
+	if (colorman->colors_loaded()) {
+		colorman->set_pb_colors(*v);
+	}
 	delete colorman;
 
 	max_dls = cfg->get_configvalue_as_int("max-downloads");
