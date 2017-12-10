@@ -279,13 +279,6 @@ class rss_feed : public matchable {
 			query = s;
 		}
 
-		bool is_empty() {
-			return empty;
-		}
-		void set_empty(bool t) {
-			empty = t;
-		}
-
 		void sort(const std::string& method);
 		void sort_unlocked(const std::string& method);
 
@@ -342,7 +335,6 @@ class rss_feed : public matchable {
 
 		cache * ch;
 
-		bool empty;
 		bool is_rtl_;
 		unsigned int idx;
 		unsigned int order;

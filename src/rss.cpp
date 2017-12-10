@@ -31,7 +31,7 @@ rss_item::~rss_item() {
 }
 
 rss_feed::rss_feed(cache * c)
-	: pubDate_(0), ch(c), empty(true), is_rtl_(false), idx(0), order(0),
+	: pubDate_(0), ch(c), is_rtl_(false), idx(0), order(0),
 	  status_(dl_status::SUCCESS)
 {
 }
