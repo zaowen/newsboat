@@ -120,7 +120,6 @@ class controller {
 		int execute_commands(char ** argv, unsigned int i);
 
 		std::string prepare_message(unsigned int pos, unsigned int max);
-		void save_feed(std::shared_ptr<rss_feed> feed, unsigned int pos);
 		void enqueue_items(std::shared_ptr<rss_feed> feed);
 
 		std::string generate_enqueue_filename(const std::string& url, std::shared_ptr<rss_feed> feed);

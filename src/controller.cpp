@@ -911,10 +911,7 @@ void controller::reload(unsigned int pos, unsigned int max, bool unattended, cur
 			std::shared_ptr<rss_feed> newfeed = parser.parse();
 			if (newfeed->total_item_count() > 0) {
 				std::lock_guard<std::mutex> feedslock(feeds_mutex);
-				save_feed(newfeed, pos);
-
-				newfeed->clear_items();
-
+				rsscache->externalize_rssfeed(newfeed, ign.matches_resetunread(oldfeed->rssurl()));
 				bool ignore_disp = (cfg.get_configvalue("ignore-mode") == "display");
 				std::shared_ptr<rss_feed> feed = rsscache->internalize_rssfeed(oldfeed->rssurl(), ignore_disp ? &ign : nullptr);
 				feed->set_tags(urlcfg->get_tags(oldfeed->rssurl()));
@@ -1614,25 +1611,6 @@ std::string controller::prepare_message(unsigned int pos, unsigned int max) {
 		return strprintf::fmt("(%u/%u) ", pos, max);
 	}
 	return "";
-}
-
-void controller::save_feed(std::shared_ptr<rss_feed> feed, unsigned int pos) {
-	LOG(level::DEBUG, "controller::save_feed: feed is nonempty, saving");
-	rsscache->externalize_rssfeed(feed, ign.matches_resetunread(feed->rssurl()));
-	LOG(level::DEBUG, "controller::save_feed: after externalize_rssfeed");
-
-	bool ignore_disp = (cfg.get_configvalue("ignore-mode") == "display");
-	feed = rsscache->internalize_rssfeed(feed->rssurl(), ignore_disp ? &ign : nullptr);
-	LOG(level::DEBUG, "controller::save_feed: after internalize_rssfeed");
-	feed->set_tags(urlcfg->get_tags(feed->rssurl()));
-	{
-		unsigned int order = feeds[pos]->get_order();
-		std::lock_guard<std::mutex> itemlock(feeds[pos]->item_mutex);
-		feeds[pos]->clear_items();
-		feed->set_order(order);
-	}
-	feeds[pos] = feed;
-	v->notify_itemlist_change(feeds[pos]);
 }
 
 void controller::enqueue_items(std::shared_ptr<rss_feed> feed) {
