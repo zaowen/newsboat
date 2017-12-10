@@ -910,14 +910,12 @@ void controller::reload(unsigned int pos, unsigned int max, bool unattended, cur
 			oldfeed->set_status(dl_status::DURING_DOWNLOAD);
 			std::shared_ptr<rss_feed> newfeed = parser.parse();
 			if (newfeed->total_item_count() > 0) {
+				newfeed->set_tags(urlcfg->get_tags(oldfeed->rssurl()));
+				newfeed->set_order(oldfeed->get_order());
+
 				std::lock_guard<std::mutex> feedslock(feeds_mutex);
-				rsscache->externalize_rssfeed(newfeed, ign.matches_resetunread(oldfeed->rssurl()));
-				bool ignore_disp = (cfg.get_configvalue("ignore-mode") == "display");
-				std::shared_ptr<rss_feed> feed = rsscache->internalize_rssfeed(oldfeed->rssurl(), ignore_disp ? &ign : nullptr);
-				feed->set_tags(urlcfg->get_tags(oldfeed->rssurl()));
-				feed->set_order(oldfeed->get_order());
-				feeds[pos] = feed;
-				enqueue_items(feed);
+				feeds[pos] = newfeed;
+				enqueue_items(newfeed);
 
 				oldfeed->clear_items();
 
