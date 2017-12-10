@@ -60,11 +60,14 @@ std::shared_ptr<rss_feed> rss_parser::parse() {
 		fill_feed_fields(feed);
 		fill_feed_items(feed);
 
-		bool resetunread = false;
-		if (ign) {
-			resetunread = ign->matches_resetunread(my_uri);
+		if (! feed->title().empty()) {
+			bool resetunread = false;
+			if (ign) {
+				resetunread = ign->matches_resetunread(my_uri);
+			}
+			ch->externalize_rssfeed(feed, resetunread);
 		}
-		ch->externalize_rssfeed(feed, resetunread);
+
 		bool ignore_disp = (cfgcont->get_configvalue("ignore-mode") == "display");
 		feed = ch->internalize_rssfeed(my_uri, ignore_disp ? ign : nullptr);
 
