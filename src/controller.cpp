@@ -901,9 +901,7 @@ void controller::reload(unsigned int pos, unsigned int max, bool unattended, cur
 		if (!unattended)
 			v->set_status(strprintf::fmt(_("%sLoading %s..."), prepare_message(pos+1, max), utils::censor_url(oldfeed->rssurl())));
 
-		bool ignore_dl = (cfg.get_configvalue("ignore-mode") == "download");
-
-		rss_parser parser(oldfeed->rssurl(), rsscache, &cfg, ignore_dl ? &ign : nullptr, api);
+		rss_parser parser(oldfeed->rssurl(), rsscache, &cfg, &ign, api);
 		parser.set_easyhandle(easyhandle);
 		LOG(level::DEBUG, "controller::reload: created parser");
 		try {
