@@ -181,7 +181,7 @@ void rss_parser::download_http(const std::string& uri) {
 			time_t lm = 0;
 			std::string etag;
 			bool ignore_dl = (cfgcont->get_configvalue("ignore-mode") == "download");
-			if (!ign || (ignore_dl && !ign->matches_lastmodified(uri))) {
+			if (!ignore_dl || !ign || !ign->matches_lastmodified(uri)) {
 				ch->fetch_lastmodified(uri, lm, etag);
 			}
 			f = p.parse_url(uri, lm, etag, api, cfgcont->get_configvalue("cookie-cache"), easyhandle ? easyhandle->ptr() : 0);
@@ -442,7 +442,7 @@ void rss_parser::set_item_enclosure(std::shared_ptr<rss_item> x, rsspp::item& it
 void rss_parser::add_item_to_feed(std::shared_ptr<rss_feed> feed, std::shared_ptr<rss_item> item) {
 	// only add item to feed if it isn't on the ignore list or if there is no ignore list
 	bool ignore_dl = (cfgcont->get_configvalue("ignore-mode") == "download");
-	if (!ign || (ignore_dl && !ign->matches(item.get()))) {
+	if (!ignore_dl || !ign || !ign->matches(item.get())) {
 		feed->add_item(item);
 		LOG(level::INFO, "rss_parser::parse: added article title = `%s' link = `%s' ign = %p", item->title(), item->link(), ign);
 	} else {
