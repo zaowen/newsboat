@@ -451,17 +451,16 @@ void itemlist_formaction::process_operation(operation op,
 						feed->item_mutex);
 					LOG(level::DEBUG,
 						"itemlist_formaction: oh, it "
-						"looks "
-						"like I'm in a pseudo-feed "
-						"(search "
-						"result, query feed)");
+						"looks like I'm in a "
+						"pseudo-feed (search result, "
+						"query feed)");
 					for (const auto& item : feed->items()) {
 						item->set_unread_nowrite_notify(
-							false,
-							true); // TODO: do we
-							       // need to call
-							       // mark_article_read
-							       // here, too?
+							false, true);
+						v->get_ctrl()
+							->mark_article_read(
+								item->guid(),
+								true);
 					}
 				}
 				v->get_ctrl()->mark_all_read(feed);
