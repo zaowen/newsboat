@@ -8,11 +8,11 @@
 namespace podboat {
 
 /*
- * the download class represents a single download entry in podboat.
+ * the Download class represents a single download entry in podboat.
  * It manages the filename, the URL, the current state, the progress, etc.
  */
 
-download::download(pb_controller* c)
+Download::Download(PbController* c)
 	: download_status(DlStatus::QUEUED)
 	, cursize(0.0)
 	, totalsize(0.0)
@@ -22,24 +22,24 @@ download::download(pb_controller* c)
 {
 }
 
-download::~download() {}
+Download::~Download() {}
 
-const std::string download::filename() const
+const std::string Download::filename() const
 {
 	return fn;
 }
 
-const std::string download::url() const
+const std::string Download::url() const
 {
 	return url_;
 }
 
-void download::set_filename(const std::string& str)
+void Download::set_filename(const std::string& str)
 {
 	fn = str;
 }
 
-double download::percents_finished() const
+double Download::percents_finished() const
 {
 	if (totalsize < 1) {
 		return 0.0;
@@ -48,7 +48,7 @@ double download::percents_finished() const
 	}
 }
 
-const std::string download::status_text() const
+const std::string Download::status_text() const
 {
 	switch (download_status) {
 	case DlStatus::QUEUED:
@@ -74,12 +74,12 @@ const std::string download::status_text() const
 	}
 }
 
-void download::set_url(const std::string& u)
+void Download::set_url(const std::string& u)
 {
 	url_ = u;
 }
 
-void download::set_progress(double downloaded, double total)
+void Download::set_progress(double downloaded, double total)
 {
 	if (downloaded > cursize)
 		ctrl->set_view_update_necessary(true);
@@ -87,7 +87,7 @@ void download::set_progress(double downloaded, double total)
 	totalsize = total;
 }
 
-void download::set_status(DlStatus dls)
+void Download::set_status(DlStatus dls)
 {
 	if (download_status != dls) {
 		ctrl->set_view_update_necessary(true);
@@ -95,17 +95,17 @@ void download::set_status(DlStatus dls)
 	download_status = dls;
 }
 
-void download::set_kbps(double k)
+void Download::set_kbps(double k)
 {
 	curkbps = k;
 }
 
-double download::kbps() const
+double Download::kbps() const
 {
 	return curkbps;
 }
 
-void download::set_offset(unsigned long offset)
+void Download::set_offset(unsigned long offset)
 {
 	offs = offset;
 }

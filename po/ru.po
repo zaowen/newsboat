@@ -154,8 +154,8 @@ msgstr "Поймали newsboat::matcherexception с сообщением: %s"
 
 #: newsboat.cpp:199 podboat.cpp:32
 #, c-format
-msgid "Caught newsboat::exception with message: %s"
-msgstr "Поймали newsboat::exception с сообщением: %s"
+msgid "Caught newsboat::Exception with message: %s"
+msgstr "Поймали newsboat::Exception с сообщением: %s"
 
 #: src/cliargsparser.cpp:144 src/pbcontroller.cpp:231
 #, c-format

@@ -141,7 +141,7 @@ CLIArgsParser::CLIArgsParser(int argc, char* argv[])
 				log_level = l;
 			} else {
 				display_msg =
-					strprintf::fmt(_("%s: %d: invalid "
+					StrPrintf::fmt(_("%s: %d: invalid "
 							 "loglevel value"),
 						argv[0],
 						l);

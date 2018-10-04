@@ -17,12 +17,12 @@ enum class DlStatus {
 	PLAYED
 };
 
-class pb_controller;
+class PbController;
 
-class download {
+class Download {
 public:
-	explicit download(pb_controller* c = 0);
-	~download();
+	explicit Download(PbController* c = 0);
+	~Download();
 	double percents_finished() const;
 	const std::string status_text() const;
 	DlStatus status() const
@@ -56,7 +56,7 @@ private:
 	float totalsize;
 	double curkbps;
 	unsigned long offs;
-	pb_controller* ctrl;
+	PbController* ctrl;
 };
 
 } // namespace podboat

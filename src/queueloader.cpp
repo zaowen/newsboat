@@ -16,15 +16,15 @@ using namespace newsboat;
 
 namespace podboat {
 
-queueloader::queueloader(const std::string& file, pb_controller* c)
+QueueLoader::QueueLoader(const std::string& file, PbController* c)
 	: queuefile(file)
 	, ctrl(c)
 {
 }
 
-void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
+void QueueLoader::reload(std::vector<Download>& downloads, bool remove_unplayed)
 {
-	std::vector<download> dltemp;
+	std::vector<Download> dltemp;
 	std::fstream f;
 
 	for (const auto& dl : downloads) {
@@ -33,7 +33,7 @@ void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
 							    // if a download is
 							    // in progress!
 			LOG(Level::INFO,
-				"queueloader::reload: aborting reload due to "
+				"QueueLoader::reload: aborting reload due to "
 				"DlStatus::DOWNLOADING status");
 			return;
 		}
@@ -44,7 +44,7 @@ void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
 		case DlStatus::ALREADY_DOWNLOADED:
 		case DlStatus::READY:
 			LOG(Level::DEBUG,
-				"queueloader::reload: storing %s to new vector",
+				"QueueLoader::reload: storing %s to new vector",
 				dl.url());
 			dltemp.push_back(dl);
 			break;
@@ -52,7 +52,7 @@ void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
 		case DlStatus::FINISHED:
 			if (!remove_unplayed) {
 				LOG(Level::DEBUG,
-					"queueloader::reload: storing %s to "
+					"QueueLoader::reload: storing %s to "
 					"new "
 					"vector",
 					dl.url());
@@ -71,17 +71,17 @@ void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
 			std::getline(f, line);
 			if (!f.eof() && line.length() > 0) {
 				LOG(Level::DEBUG,
-					"queueloader::reload: loaded `%s' from "
+					"QueueLoader::reload: loaded `%s' from "
 					"queue file",
 					line);
 				std::vector<std::string> fields =
-					utils::tokenize_quoted(line);
+					Utils::tokenize_quoted(line);
 				bool url_found = false;
 
 				for (const auto& dl : dltemp) {
 					if (fields[0] == dl.url()) {
 						LOG(Level::INFO,
-							"queueloader::reload: "
+							"QueueLoader::reload: "
 							"found `%s' in old "
 							"vector",
 							fields[0]);
@@ -93,7 +93,7 @@ void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
 				for (const auto& dl : downloads) {
 					if (fields[0] == dl.url()) {
 						LOG(Level::INFO,
-							"queueloader::reload: "
+							"QueueLoader::reload: "
 							"found `%s' in new "
 							"vector",
 							line);
@@ -104,12 +104,12 @@ void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
 
 				if (!url_found) {
 					LOG(Level::INFO,
-						"queueloader::reload: found "
+						"QueueLoader::reload: found "
 						"`%s' "
 						"nowhere -> storing to new "
 						"vector",
 						line);
-					download d(ctrl);
+					Download d(ctrl);
 					std::string fn;
 					if (fields.size() == 1)
 						fn = get_filename(fields[0]);
@@ -118,7 +118,7 @@ void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
 					d.set_filename(fn);
 					if (access(fn.c_str(), F_OK) == 0) {
 						LOG(Level::INFO,
-							"queueloader::reload: "
+							"QueueLoader::reload: "
 							"found `%s' on file "
 							"system "
 							"-> mark as already "
@@ -140,18 +140,18 @@ void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
 									ALREADY_DOWNLOADED); // TODO: scrap DlStatus::ALREADY_DOWNLOADED state
 					} else if (
 						access((fn +
-							       configcontainer::
+							       ConfigContainer::
 								       PARTIAL_FILE_SUFFIX)
 								.c_str(),
 							F_OK) == 0) {
 						LOG(Level::INFO,
-							"queueloader::reload: "
+							"QueueLoader::reload: "
 							"found `%s' on file "
 							"system "
 							"-> mark as partially "
 							"downloaded",
 							fn +
-								configcontainer::
+								ConfigContainer::
 									PARTIAL_FILE_SUFFIX);
 						d.set_status(DlStatus::
 								ALREADY_DOWNLOADED);
@@ -168,7 +168,7 @@ void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
 	f.open(queuefile.c_str(), std::fstream::out);
 	if (f.is_open()) {
 		for (const auto& dl : dltemp) {
-			f << dl.url() << " " << stfl::quote(dl.filename());
+			f << dl.url() << " " << Stfl::quote(dl.filename());
 			if (dl.status() == DlStatus::READY)
 				f << " downloaded";
 			if (dl.status() == DlStatus::PLAYED)
@@ -181,7 +181,7 @@ void queueloader::reload(std::vector<download>& downloads, bool remove_unplayed)
 	downloads = dltemp;
 }
 
-std::string queueloader::get_filename(const std::string& str)
+std::string QueueLoader::get_filename(const std::string& str)
 {
 	std::string fn = ctrl->get_dlpath();
 
@@ -199,7 +199,7 @@ std::string queueloader::get_filename(const std::string& str)
 			localtime(&t));
 		fn.append(lbuf);
 	} else {
-		fn.append(utils::replace_all(base, "'", "%27"));
+		fn.append(Utils::replace_all(base, "'", "%27"));
 	}
 	return fn;
 }

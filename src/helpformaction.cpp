@@ -13,16 +13,16 @@
 
 namespace newsboat {
 
-help_formaction::help_formaction(view* vv, std::string formstr)
-	: formaction(vv, formstr)
+HelpFormAction::HelpFormAction(View* vv, std::string formstr)
+	: Formaction(vv, formstr)
 	, quit(false)
 	, apply_search(false)
 {
 }
 
-help_formaction::~help_formaction() {}
+HelpFormAction::~HelpFormAction() {}
 
-void help_formaction::process_operation(Operation op ,
+void HelpFormAction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -55,13 +55,13 @@ void help_formaction::process_operation(Operation op ,
 	}
 }
 
-void help_formaction::prepare()
+void HelpFormAction::prepare()
 {
 	if (do_redraw) {
 		std::string listwidth = f->get("help_text:w");
-		unsigned int width = utils::to_u(listwidth);
+		unsigned int width = Utils::to_u(listwidth);
 
-		fmtstr_formatter fmt;
+		FmtStrFormatter fmt;
 		fmt.register_fmt('N', PROGRAM_NAME);
 		fmt.register_fmt('V', PROGRAM_VERSION);
 		f->set("head",
@@ -74,13 +74,13 @@ void help_formaction::prepare()
 			descs, v->get_keys()->get_flag_from_context(context));
 
 		std::string highlighted_searchphrase =
-			strprintf::fmt("<hl>%s</>", searchphrase);
+			StrPrintf::fmt("<hl>%s</>", searchphrase);
 		std::vector<std::string> colors =
-			utils::tokenize(v->get_cfg()->get_configvalue(
+			Utils::tokenize(v->get_cfg()->get_configvalue(
 						"search-highlight-colors"),
 				" ");
 		f->set("highlight", make_colorstring(colors));
-		listformatter listfmt;
+		ListFormatter listfmt;
 
 		unsigned int unbound_count = 0;
 		unsigned int syskey_count = 0;
@@ -138,7 +138,7 @@ void help_formaction::prepare()
 					switch (i) {
 					case 0:
 					case 1:
-						line = strprintf::fmt(
+						line = StrPrintf::fmt(
 							"%s%s%s%s%s",
 							desc.key,
 							tabs_1,
@@ -147,7 +147,7 @@ void help_formaction::prepare()
 							desc.desc);
 						break;
 					case 2:
-						line = strprintf::fmt(
+						line = StrPrintf::fmt(
 							"%s%s%s%s",
 							desc.cmd,
 							tabs_1,
@@ -156,23 +156,23 @@ void help_formaction::prepare()
 						break;
 					}
 					LOG(Level::DEBUG,
-						"help_formaction::prepare: "
+						"HelpFormAction::prepare: "
 						"step 1 "
 						"- line = %s",
 						line);
-					line = utils::quote_for_stfl(line);
+					line = Utils::quote_for_stfl(line);
 					LOG(Level::DEBUG,
-						"help_formaction::prepare: "
+						"HelpFormAction::prepare: "
 						"step 2 "
 						"- line = %s",
 						line);
 					if (apply_search &&
 						searchphrase.length() > 0) {
-						line = utils::replace_all(line,
+						line = Utils::replace_all(line,
 							searchphrase,
 							highlighted_searchphrase);
 						LOG(Level::DEBUG,
-							"help_formaction::"
+							"HelpFormAction::"
 							"prepare: "
 							"step 3 - line = %s",
 							line);
@@ -207,12 +207,12 @@ void help_formaction::prepare()
 	quit = false;
 }
 
-void help_formaction::init()
+void HelpFormAction::init()
 {
 	set_keymap_hints();
 }
 
-keymap_hint_entry* help_formaction::get_keymap_hint()
+keymap_hint_entry* HelpFormAction::get_keymap_hint()
 {
 	static keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_SEARCH, _("Search")},
@@ -221,7 +221,7 @@ keymap_hint_entry* help_formaction::get_keymap_hint()
 	return hints;
 }
 
-void help_formaction::finished_qna(Operation op )
+void HelpFormAction::finished_qna(Operation op )
 {
 	v->inside_qna(false);
 	switch (op) {
@@ -235,7 +235,7 @@ void help_formaction::finished_qna(Operation op )
 	}
 }
 
-void help_formaction::set_context(const std::string& ctx)
+void HelpFormAction::set_context(const std::string& ctx)
 {
 	if (context != ctx) {
 		do_redraw = true;
@@ -243,12 +243,12 @@ void help_formaction::set_context(const std::string& ctx)
 	}
 }
 
-std::string help_formaction::title()
+std::string HelpFormAction::title()
 {
 	return _("Help");
 }
 
-std::string help_formaction::make_colorstring(
+std::string HelpFormAction::make_colorstring(
 	const std::vector<std::string>& colors)
 {
 	std::string result;

@@ -5,32 +5,32 @@
 
 namespace newsboat {
 
-ttrss_urlreader::ttrss_urlreader(const std::string& url_file, remote_api* a)
+TtRssUrlReader::TtRssUrlReader(const std::string& url_file, RemoteApi* a)
 	: file(url_file)
 	, api(a)
 {
 }
 
-ttrss_urlreader::~ttrss_urlreader() {}
+TtRssUrlReader::~TtRssUrlReader() {}
 
-void ttrss_urlreader::write_config()
+void TtRssUrlReader::write_config()
 {
 	// NOTHING
 }
 
-void ttrss_urlreader::reload()
+void TtRssUrlReader::reload()
 {
 	urls.clear();
 	tags.clear();
 	alltags.clear();
 
-	file_urlreader ur(file);
+	FileUrlReader ur(file);
 	ur.reload();
 
 	// std::vector<std::string>& file_urls(ur.get_urls());
 	auto& file_urls(ur.get_urls());
 	for (const auto& url : file_urls) {
-		if (utils::is_query_url(url)) {
+		if (Utils::is_query_url(url)) {
 			urls.push_back(url);
 			std::vector<std::string>& file_tags(ur.get_tags(url));
 			tags[url] = ur.get_tags(url);
@@ -53,7 +53,7 @@ void ttrss_urlreader::reload()
 	}
 }
 
-std::string ttrss_urlreader::get_source()
+std::string TtRssUrlReader::get_source()
 {
 	return "Tiny Tiny RSS";
 }

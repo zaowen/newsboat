@@ -16,7 +16,7 @@
 
 namespace newsboat {
 
-htmlrenderer::htmlrenderer(bool raw)
+HtmlRenderer::HtmlRenderer(bool raw)
 	: raw_(raw)
 {
 	tags["a"] = HtmlTag::A;
@@ -55,7 +55,7 @@ htmlrenderer::htmlrenderer(bool raw)
 	tags["td"] = HtmlTag::TD;
 }
 
-void htmlrenderer::render(const std::string& source,
+void HtmlRenderer::render(const std::string& source,
 	std::vector<std::pair<LineType, std::string>>& lines,
 	std::vector<linkpair>& links,
 	const std::string& url)
@@ -64,7 +64,7 @@ void htmlrenderer::render(const std::string& source,
 	render(input, lines, links, url);
 }
 
-unsigned int htmlrenderer::add_link(std::vector<linkpair>& links,
+unsigned int HtmlRenderer::add_link(std::vector<linkpair>& links,
 	const std::string& link,
 	LinkType type)
 {
@@ -83,7 +83,7 @@ unsigned int htmlrenderer::add_link(std::vector<linkpair>& links,
 	return i;
 }
 
-void htmlrenderer::render(std::istream& input,
+void HtmlRenderer::render(std::istream& input,
 	std::vector<std::pair<LineType, std::string>>& lines,
 	std::vector<linkpair>& links,
 	const std::string& url)
@@ -110,15 +110,15 @@ void htmlrenderer::render(std::istream& input,
 	 *   - we then can iterate over all continuous elements, such as start
 	 * tag, close tag, text element, ...
 	 */
-	tagsouppullparser xpp;
+	TagSoupPullParser xpp;
 	xpp.set_input(input);
 
-	for (tagsouppullparser::Event e = xpp.next();
-		e != tagsouppullparser::Event::END_DOCUMENT;
+	for (TagSoupPullParser::Event e = xpp.next();
+		e != TagSoupPullParser::Event::END_DOCUMENT;
 		e = xpp.next()) {
 		std::string tagname;
 		switch (e) {
-		case tagsouppullparser::Event::START_TAG:
+		case TagSoupPullParser::Event::START_TAG:
 			tagname = xpp.get_text();
 			std::transform(tagname.begin(),
 				tagname.end(),
@@ -133,15 +133,15 @@ void htmlrenderer::render(std::istream& input,
 					link = xpp.get_attribute_value("href");
 				} catch (const std::invalid_argument&) {
 					LOG(Level::WARN,
-						"htmlrenderer::render: found a "
+						"HtmlRenderer::render: found a "
 						"tag "
 						"with no href attribute");
 					link = "";
 				}
 				if (link.length() > 0) {
 					link_num = add_link(links,
-						utils::censor_url(
-							utils::absolute_url(
+						Utils::censor_url(
+							Utils::absolute_url(
 								url, link)),
 						LinkType::HREF);
 					if (!raw_)
@@ -167,7 +167,7 @@ void htmlrenderer::render(std::istream& input,
 					type = xpp.get_attribute_value("type");
 				} catch (const std::invalid_argument&) {
 					LOG(Level::WARN,
-						"htmlrenderer::render: found "
+						"HtmlRenderer::render: found "
 						"embed "
 						"object without type "
 						"attribute");
@@ -180,7 +180,7 @@ void htmlrenderer::render(std::istream& input,
 							"src");
 					} catch (const std::invalid_argument&) {
 						LOG(Level::WARN,
-							"htmlrenderer::render: "
+							"HtmlRenderer::render: "
 							"found embed object "
 							"without src "
 							"attribute");
@@ -188,12 +188,12 @@ void htmlrenderer::render(std::istream& input,
 					}
 					if (link.length() > 0) {
 						link_num = add_link(links,
-							utils::censor_url(
-								utils::absolute_url(
+							Utils::censor_url(
+								Utils::absolute_url(
 									url,
 									link)),
 							LinkType::EMBED);
-						curline.append(strprintf::fmt(
+						curline.append(StrPrintf::fmt(
 							"[%s %u]",
 							_("embedded flash:"),
 							link_num));
@@ -225,7 +225,7 @@ void htmlrenderer::render(std::istream& input,
 					imgurl = xpp.get_attribute_value("src");
 				} catch (const std::invalid_argument&) {
 					LOG(Level::WARN,
-						"htmlrenderer::render: found "
+						"HtmlRenderer::render: found "
 						"img "
 						"tag with no src attribute");
 					imgurl = "";
@@ -243,20 +243,20 @@ void htmlrenderer::render(std::istream& input,
 							LinkType::IMG);
 					} else {
 						link_num = add_link(links,
-							utils::censor_url(
-								utils::absolute_url(
+							Utils::censor_url(
+								Utils::absolute_url(
 									url,
 									imgurl)),
 							LinkType::IMG);
 					}
 					if (imgtitle != "") {
-						curline.append(strprintf::fmt(
+						curline.append(StrPrintf::fmt(
 							"[%s %u: %s]",
 							_("image"),
 							link_num,
 							imgtitle));
 					} else {
-						curline.append(strprintf::fmt(
+						curline.append(StrPrintf::fmt(
 							"[%s %u]",
 							_("image"),
 							link_num));
@@ -306,7 +306,7 @@ void htmlrenderer::render(std::istream& input,
 					} catch (const std::invalid_argument&) {
 						ol_count_str = "1";
 					}
-					ol_count = utils::to_u(ol_count_str, 1);
+					ol_count = Utils::to_u(ol_count_str, 1);
 					ol_counts.push_back(ol_count);
 
 					std::string ol_type;
@@ -357,7 +357,7 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				indent_level += 2;
 				if (is_ol && ol_counts.size() != 0) {
-					curline.append(strprintf::fmt("%s. ",
+					curline.append(StrPrintf::fmt("%s. ",
 						format_ol_count(
 							ol_counts[ol_counts
 									  .size() -
@@ -424,7 +424,7 @@ void htmlrenderer::render(std::istream& input,
 				try {
 					std::string b = xpp.get_attribute_value(
 						"border");
-					has_border = (utils::to_u(b, 0) > 0);
+					has_border = (Utils::to_u(b, 0) > 0);
 				} catch (const std::invalid_argument&) {
 					// is ok, no border then
 				}
@@ -440,7 +440,7 @@ void htmlrenderer::render(std::istream& input,
 			case HtmlTag::TH: {
 				size_t span = 1;
 				try {
-					span = utils::to_u(
+					span = Utils::to_u(
 						xpp.get_attribute_value(
 							"colspan"),
 						1);
@@ -456,7 +456,7 @@ void htmlrenderer::render(std::istream& input,
 			case HtmlTag::TD: {
 				size_t span = 1;
 				try {
-					span = utils::to_u(
+					span = Utils::to_u(
 						xpp.get_attribute_value(
 							"colspan"),
 						1);
@@ -470,7 +470,7 @@ void htmlrenderer::render(std::istream& input,
 			}
 			break;
 
-		case tagsouppullparser::Event::END_TAG:
+		case TagSoupPullParser::Event::END_TAG:
 			tagname = xpp.get_text();
 			std::transform(tagname.begin(),
 				tagname.end(),
@@ -545,7 +545,7 @@ void htmlrenderer::render(std::istream& input,
 				if (line_is_nonempty(curline)) {
 					add_line(curline, tables, lines);
 					size_t llen =
-						utils::strwidth_stfl(curline);
+						Utils::strwidth_stfl(curline);
 					prepare_new_line(curline,
 						tables.size() ? 0
 							      : indent_level);
@@ -587,7 +587,7 @@ void htmlrenderer::render(std::istream& input,
 				if (link_num != -1) {
 					if (!raw_)
 						curline.append("</>");
-					curline.append(strprintf::fmt(
+					curline.append(StrPrintf::fmt(
 						"[%d]", link_num));
 					link_num = -1;
 				}
@@ -705,11 +705,11 @@ void htmlrenderer::render(std::istream& input,
 			}
 			break;
 
-		case tagsouppullparser::Event::TEXT: {
-			auto text = utils::quote_for_stfl(xpp.get_text());
+		case TagSoupPullParser::Event::TEXT: {
+			auto text = Utils::quote_for_stfl(xpp.get_text());
 			if (itunes_hack) {
 				std::vector<std::string> paragraphs =
-					utils::tokenize_nl(text);
+					Utils::tokenize_nl(text);
 				for (const auto& paragraph : paragraphs) {
 					if (paragraph != "\n") {
 						add_nonempty_line(
@@ -723,7 +723,7 @@ void htmlrenderer::render(std::istream& input,
 				}
 			} else if (inside_pre) {
 				std::vector<std::string> paragraphs =
-					utils::tokenize_nl(text);
+					Utils::tokenize_nl(text);
 				for (const auto& paragraph : paragraphs) {
 					if (paragraph == "\n") {
 						add_line_softwrappable(
@@ -751,7 +751,7 @@ void htmlrenderer::render(std::istream& input,
 					curline.append(" ");
 				}
 				// strip newlines
-				text = utils::replace_all(text, "\n", " ");
+				text = Utils::replace_all(text, "\n", " ");
 				curline.append(text);
 			}
 		} break;
@@ -782,7 +782,7 @@ void htmlrenderer::render(std::istream& input,
 		add_line("", tables, lines);
 		add_line(_("Links: "), tables, lines);
 		for (unsigned int i = 0; i < links.size(); ++i) {
-			auto link_text = strprintf::fmt("[%u]: %s (%s)",
+			auto link_text = StrPrintf::fmt("[%u]: %s (%s)",
 				i + 1,
 				links[i].first,
 				type2str(links[i].second));
@@ -791,7 +791,7 @@ void htmlrenderer::render(std::istream& input,
 	}
 }
 
-std::string htmlrenderer::render_hr(const unsigned int width)
+std::string HtmlRenderer::render_hr(const unsigned int width)
 {
 	std::string result = "\n ";
 	result += std::string(width - 2, '-');
@@ -800,7 +800,7 @@ std::string htmlrenderer::render_hr(const unsigned int width)
 	return result;
 }
 
-std::string htmlrenderer::type2str(LinkType type)
+std::string HtmlRenderer::type2str(LinkType type)
 {
 	switch (type) {
 	case LinkType::HREF:
@@ -814,7 +814,7 @@ std::string htmlrenderer::type2str(LinkType type)
 	}
 }
 
-void htmlrenderer::add_nonempty_line(const std::string& curline,
+void HtmlRenderer::add_nonempty_line(const std::string& curline,
 	std::vector<Table>& tables,
 	std::vector<std::pair<LineType, std::string>>& lines)
 {
@@ -822,12 +822,12 @@ void htmlrenderer::add_nonempty_line(const std::string& curline,
 		add_line(curline, tables, lines);
 }
 
-void htmlrenderer::add_hr(std::vector<std::pair<LineType, std::string>>& lines)
+void HtmlRenderer::add_hr(std::vector<std::pair<LineType, std::string>>& lines)
 {
 	lines.push_back(std::make_pair(LineType::hr, std::string("")));
 }
 
-void htmlrenderer::add_line(const std::string& curline,
+void HtmlRenderer::add_line(const std::string& curline,
 	std::vector<Table>& tables,
 	std::vector<std::pair<LineType, std::string>>& lines)
 {
@@ -837,25 +837,25 @@ void htmlrenderer::add_line(const std::string& curline,
 		lines.push_back(std::make_pair(LineType::wrappable, curline));
 }
 
-void htmlrenderer::add_line_softwrappable(const std::string& line,
+void HtmlRenderer::add_line_softwrappable(const std::string& line,
 	std::vector<std::pair<LineType, std::string>>& lines)
 {
 	lines.push_back(std::make_pair(LineType::softwrappable, line));
 }
 
-void htmlrenderer::add_line_nonwrappable(const std::string& line,
+void HtmlRenderer::add_line_nonwrappable(const std::string& line,
 	std::vector<std::pair<LineType, std::string>>& lines)
 {
 	lines.push_back(std::make_pair(LineType::nonwrappable, line));
 }
 
-void htmlrenderer::prepare_new_line(std::string& line, int indent_level)
+void HtmlRenderer::prepare_new_line(std::string& line, int indent_level)
 {
 	line = "";
 	line.append(indent_level * 2, ' ');
 }
 
-bool htmlrenderer::line_is_nonempty(const std::string& line)
+bool HtmlRenderer::line_is_nonempty(const std::string& line)
 {
 	for (std::string::size_type i = 0; i < line.length(); ++i) {
 		if (!isblank(line[i]) && line[i] != '\n' && line[i] != '\r')
@@ -864,7 +864,7 @@ bool htmlrenderer::line_is_nonempty(const std::string& line)
 	return false;
 }
 
-void htmlrenderer::TableRow::start_cell(size_t span)
+void HtmlRenderer::TableRow::start_cell(size_t span)
 {
 	inside = true;
 	if (span < 1)
@@ -872,7 +872,7 @@ void htmlrenderer::TableRow::start_cell(size_t span)
 	cells.push_back(TableCell(span));
 }
 
-void htmlrenderer::TableRow::add_text(const std::string& str)
+void HtmlRenderer::TableRow::add_text(const std::string& str)
 {
 	if (!inside)
 		start_cell(1); // colspan 1
@@ -880,26 +880,26 @@ void htmlrenderer::TableRow::add_text(const std::string& str)
 	cells.back().text.push_back(str);
 }
 
-void htmlrenderer::TableRow::complete_cell()
+void HtmlRenderer::TableRow::complete_cell()
 {
 	inside = false;
 }
 
-void htmlrenderer::Table::start_cell(size_t span)
+void HtmlRenderer::Table::start_cell(size_t span)
 {
 	if (!inside)
 		start_row();
 	rows.back().start_cell(span);
 }
 
-void htmlrenderer::Table::complete_cell()
+void HtmlRenderer::Table::complete_cell()
 {
 	if (rows.size()) {
 		rows.back().complete_cell();
 	}
 }
 
-void htmlrenderer::Table::start_row()
+void HtmlRenderer::Table::start_row()
 {
 	if (rows.size() && rows.back().inside)
 		rows.back().complete_cell();
@@ -907,19 +907,19 @@ void htmlrenderer::Table::start_row()
 	rows.push_back(TableRow());
 }
 
-void htmlrenderer::Table::add_text(const std::string& str)
+void HtmlRenderer::Table::add_text(const std::string& str)
 {
 	if (!inside)
 		start_row();
 	rows.back().add_text(str);
 }
 
-void htmlrenderer::Table::complete_row()
+void HtmlRenderer::Table::complete_row()
 {
 	inside = false;
 }
 
-void htmlrenderer::render_table(const htmlrenderer::Table& table,
+void HtmlRenderer::render_table(const HtmlRenderer::Table& table,
 	std::vector<std::pair<LineType, std::string>>& lines)
 {
 	// get number of rows
@@ -948,7 +948,7 @@ void htmlrenderer::render_table(const htmlrenderer::Table& table,
 					table.rows[row].cells[cell].text.size();
 					idx++)
 					width = std::max(width,
-						utils::strwidth_stfl(
+						Utils::strwidth_stfl(
 							table.rows[row]
 								.cells[cell]
 								.text[idx]));
@@ -1011,7 +1011,7 @@ void htmlrenderer::render_table(const htmlrenderer::Table& table,
 						table.rows[row]
 							.cells[cell]
 							.text[idx]);
-					cell_width = utils::strwidth_stfl(
+					cell_width = Utils::strwidth_stfl(
 						table.rows[row]
 							.cells[cell]
 							.text[idx]);
@@ -1053,7 +1053,7 @@ void htmlrenderer::render_table(const htmlrenderer::Table& table,
 	}
 }
 
-std::string htmlrenderer::get_char_numbering(unsigned int count)
+std::string HtmlRenderer::get_char_numbering(unsigned int count)
 {
 	std::string result;
 	do {
@@ -1065,7 +1065,7 @@ std::string htmlrenderer::get_char_numbering(unsigned int count)
 	return result;
 }
 
-std::string htmlrenderer::get_roman_numbering(unsigned int count)
+std::string HtmlRenderer::get_roman_numbering(unsigned int count)
 {
 	unsigned int values[] = {
 		1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
@@ -1093,7 +1093,7 @@ std::string htmlrenderer::get_roman_numbering(unsigned int count)
 	return result;
 }
 
-std::string htmlrenderer::format_ol_count(unsigned int count, char type)
+std::string HtmlRenderer::format_ol_count(unsigned int count, char type)
 {
 	switch (type) {
 	case 'a':
@@ -1113,7 +1113,7 @@ std::string htmlrenderer::format_ol_count(unsigned int count, char type)
 	}
 	case '1':
 	default:
-		return strprintf::fmt("%2u", count);
+		return StrPrintf::fmt("%2u", count);
 	}
 }
 

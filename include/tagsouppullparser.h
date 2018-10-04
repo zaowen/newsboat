@@ -7,7 +7,7 @@
 
 namespace newsboat {
 
-class tagsouppullparser {
+class TagSoupPullParser {
 public:
 	enum class Event {
 		START_DOCUMENT,
@@ -17,8 +17,8 @@ public:
 		TEXT
 	};
 
-	tagsouppullparser();
-	virtual ~tagsouppullparser();
+	TagSoupPullParser();
+	virtual ~TagSoupPullParser();
 	void set_input(std::istream& is);
 	std::string get_attribute_value(const std::string& name) const;
 	Event get_event_type() const;

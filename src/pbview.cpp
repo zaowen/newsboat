@@ -22,7 +22,7 @@ using namespace newsboat;
 
 namespace podboat {
 
-pb_view::pb_view(pb_controller* c)
+PbView::PbView(PbController* c)
 	: ctrl(c)
 	, dllist_form(dllist_str)
 	, help_form(help_str)
@@ -33,12 +33,12 @@ pb_view::pb_view(pb_controller* c)
 	}
 }
 
-pb_view::~pb_view()
+PbView::~PbView()
 {
-	stfl::reset();
+	Stfl::reset();
 }
 
-void pb_view::run(bool auto_download)
+void PbView::run(bool auto_download)
 {
 	bool quit = false;
 
@@ -71,7 +71,7 @@ void pb_view::run(bool auto_download)
 			dllist_form.set("head", buf);
 
 			LOG(Level::DEBUG,
-				"pb_view::run: updating view... "
+				"PbView::run: updating view... "
 				"downloads().size() "
 				"= %u",
 				ctrl->downloads().size());
@@ -79,15 +79,15 @@ void pb_view::run(bool auto_download)
 			std::string code = "{list";
 			std::string formatstring = ctrl->get_formatstr();
 
-			unsigned int width = utils::to_u(dllist_form.get("feeds:w"));
+			unsigned int width = Utils::to_u(dllist_form.get("feeds:w"));
 
 			unsigned int i = 0;
 			for (const auto& dl : ctrl->downloads()) {
 				auto lbuf = format_line(formatstring, dl, i, width);
 				code.append(
-					strprintf::fmt("{listitem[%u] text:%s}",
+					StrPrintf::fmt("{listitem[%u] text:%s}",
 						i,
-						stfl::quote(lbuf)));
+						Stfl::quote(lbuf)));
 				i++;
 			}
 
@@ -145,7 +145,7 @@ void pb_view::run(bool auto_download)
 			if (idx != -1) {
 				if (ctrl->downloads()[idx].status() !=
 					DlStatus::DOWNLOADING) {
-					std::thread t{poddlthread(
+					std::thread t{PoddlThread(
 						&ctrl->downloads()[idx],
 						ctrl->get_cfgcont())};
 					t.detach();
@@ -231,7 +231,7 @@ void pb_view::run(bool auto_download)
 	} while (!quit);
 }
 
-void pb_view::set_bindings()
+void PbView::set_bindings()
 {
 	if (keys) {
 		std::string upkey("** ");
@@ -263,7 +263,7 @@ void pb_view::set_bindings()
 	}
 }
 
-void pb_view::run_help()
+void PbView::run_help()
 {
 	set_help_keymap_hint();
 
@@ -283,7 +283,7 @@ void pb_view::run_help()
 		descline.append(desc.cmd);
 		descline.append(24 - desc.cmd.length(), ' ');
 		descline.append(desc.desc);
-		line.append(stfl::quote(descline));
+		line.append(Stfl::quote(descline));
 
 		line.append("}");
 
@@ -314,7 +314,7 @@ void pb_view::run_help()
 	} while (!quit);
 }
 
-std::string pb_view::prepare_keymaphint(keymap_hint_entry* hints)
+std::string PbView::prepare_keymaphint(keymap_hint_entry* hints)
 {
 	std::string keymap_hint;
 	for (int i = 0; hints[i].op != OP_NIL; ++i) {
@@ -326,14 +326,14 @@ std::string pb_view::prepare_keymaphint(keymap_hint_entry* hints)
 	return keymap_hint;
 }
 
-void pb_view::set_help_keymap_hint()
+void PbView::set_help_keymap_hint()
 {
 	keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")}, {OP_NIL, nullptr}};
 	std::string keymap_hint = prepare_keymaphint(hints);
 	help_form.set("help", keymap_hint);
 }
 
-void pb_view::set_dllist_keymap_hint()
+void PbView::set_dllist_keymap_hint()
 {
 	keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_PB_DOWNLOAD, _("Download")},
@@ -350,23 +350,23 @@ void pb_view::set_dllist_keymap_hint()
 	dllist_form.set("help", keymap_hint);
 }
 
-std::string pb_view::format_line(const std::string& podlist_format,
-	const download& dl,
+std::string PbView::format_line(const std::string& podlist_format,
+	const Download& dl,
 	unsigned int pos,
 	unsigned int width)
 {
-	fmtstr_formatter fmt;
+	FmtStrFormatter fmt;
 
-	fmt.register_fmt('i', strprintf::fmt("%u", pos + 1));
+	fmt.register_fmt('i', StrPrintf::fmt("%u", pos + 1));
 	fmt.register_fmt('d',
-		strprintf::fmt("%.1f", dl.current_size() / (1024 * 1024)));
+		StrPrintf::fmt("%.1f", dl.current_size() / (1024 * 1024)));
 	fmt.register_fmt(
-		't', strprintf::fmt("%.1f", dl.total_size() / (1024 * 1024)));
-	fmt.register_fmt('p', strprintf::fmt("%.1f", dl.percents_finished()));
-	fmt.register_fmt('k', strprintf::fmt("%.2f", dl.kbps()));
-	fmt.register_fmt('S', strprintf::fmt("%s", dl.status_text()));
-	fmt.register_fmt('u', strprintf::fmt("%s", dl.url()));
-	fmt.register_fmt('F', strprintf::fmt("%s", dl.filename()));
+		't', StrPrintf::fmt("%.1f", dl.total_size() / (1024 * 1024)));
+	fmt.register_fmt('p', StrPrintf::fmt("%.1f", dl.percents_finished()));
+	fmt.register_fmt('k', StrPrintf::fmt("%.2f", dl.kbps()));
+	fmt.register_fmt('S', StrPrintf::fmt("%s", dl.status_text()));
+	fmt.register_fmt('u', StrPrintf::fmt("%s", dl.url()));
+	fmt.register_fmt('F', StrPrintf::fmt("%s", dl.filename()));
 
 	auto formattedLine = fmt.do_format(podlist_format, width);
 	return formattedLine;

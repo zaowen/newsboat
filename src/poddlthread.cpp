@@ -24,7 +24,7 @@ static int progress_callback(void* clientp,
 	double ultotal,
 	double ulnow);
 
-poddlthread::poddlthread(download* dl_, newsboat::configcontainer* c)
+PoddlThread::PoddlThread(Download* dl_, newsboat::ConfigContainer* c)
 	: dl(dl_)
 	, f(new std::ofstream())
 	, bytecount(0)
@@ -35,14 +35,14 @@ poddlthread::poddlthread(download* dl_, newsboat::configcontainer* c)
 	tv2 = zero;
 }
 
-poddlthread::~poddlthread() {}
+PoddlThread::~PoddlThread() {}
 
-void poddlthread::operator()()
+void PoddlThread::operator()()
 {
 	run();
 }
 
-void poddlthread::run()
+void PoddlThread::run()
 {
 	// are we resuming previous download?
 	bool resumed_download = false;
@@ -51,7 +51,7 @@ void poddlthread::run()
 	++bytecount;
 
 	CURL* easyhandle = curl_easy_init();
-	utils::set_common_curl_options(easyhandle, cfg);
+	Utils::set_common_curl_options(easyhandle, cfg);
 
 	curl_easy_setopt(easyhandle, CURLOPT_URL, dl->url().c_str());
 	curl_easy_setopt(easyhandle, CURLOPT_TIMEOUT, 0);
@@ -75,25 +75,25 @@ void poddlthread::run()
 
 	struct stat sb;
 	std::string filename =
-		dl->filename() + newsboat::configcontainer::PARTIAL_FILE_SUFFIX;
+		dl->filename() + newsboat::ConfigContainer::PARTIAL_FILE_SUFFIX;
 
 	if (stat(filename.c_str(), &sb) == -1) {
 		LOG(Level::INFO,
-			"poddlthread::run: stat failed: starting normal "
+			"PoddlThread::run: stat failed: starting normal "
 			"download");
 
 		// Have to copy the string into a vector in order to be able to
 		// get a char* pointer. std::string::c_str() won't do because it
 		// returns const char*, whereas ::dirname() needs non-const.
 		std::vector<char> directory(filename.begin(), filename.end());
-		utils::mkdir_parents(dirname(&directory[0]));
+		Utils::mkdir_parents(dirname(&directory[0]));
 
 		f->open(filename, std::fstream::out);
 		dl->set_offset(0);
 		resumed_download = false;
 	} else {
 		LOG(Level::INFO,
-			"poddlthread::run: stat ok: starting download from %u",
+			"PoddlThread::run: stat ok: starting download from %u",
 			sb.st_size);
 		curl_easy_setopt(easyhandle, CURLOPT_RESUME_FROM, sb.st_size);
 		dl->set_offset(sb.st_size);
@@ -109,13 +109,13 @@ void poddlthread::run()
 		f->close();
 
 		LOG(Level::INFO,
-			"poddlthread::run: curl_easy_perform rc = %u (%s)",
+			"PoddlThread::run: curl_easy_perform rc = %u (%s)",
 			success,
 			curl_easy_strerror(success));
 
 		if (0 == success) {
 			LOG(Level::DEBUG,
-				"poddlthread::run: download complete, deleting "
+				"PoddlThread::run: download complete, deleting "
 				"temporary suffix");
 			rename(filename.c_str(), dl->filename().c_str());
 			dl->set_status(DlStatus::READY);
@@ -139,7 +139,7 @@ void poddlthread::run()
 static size_t
 my_write_data(void* buffer, size_t size, size_t nmemb, void* userp)
 {
-	poddlthread* thread = static_cast<poddlthread*>(userp);
+	PoddlThread* thread = static_cast<PoddlThread*>(userp);
 	return thread->write_data(buffer, size, nmemb);
 }
 
@@ -149,24 +149,24 @@ static int progress_callback(void* clientp,
 	double /* ultotal */,
 	double /*ulnow*/)
 {
-	poddlthread* thread = static_cast<poddlthread*>(clientp);
+	PoddlThread* thread = static_cast<PoddlThread*>(clientp);
 	return thread->progress(dlnow, dltotal);
 }
 
-size_t poddlthread::write_data(void* buffer, size_t size, size_t nmemb)
+size_t PoddlThread::write_data(void* buffer, size_t size, size_t nmemb)
 {
 	if (dl->status() == DlStatus::CANCELLED)
 		return 0;
 	f->write(static_cast<char*>(buffer), size * nmemb);
 	bytecount += (size * nmemb);
 	LOG(Level::DEBUG,
-		"poddlthread::write_data: bad = %u size = %u",
+		"PoddlThread::write_data: bad = %u size = %u",
 		f->bad(),
 		size * nmemb);
 	return f->bad() ? 0 : size * nmemb;
 }
 
-int poddlthread::progress(double dlnow, double dltotal)
+int PoddlThread::progress(double dlnow, double dltotal)
 {
 	if (dl->status() == DlStatus::CANCELLED)
 		return -1;
@@ -182,7 +182,7 @@ int poddlthread::progress(double dlnow, double dltotal)
 	return 0;
 }
 
-double poddlthread::compute_kbps()
+double PoddlThread::compute_kbps()
 {
 	double t1 = tv1.tv_sec + (tv1.tv_usec / 1000000.0);
 	double t2 = tv2.tv_sec + (tv2.tv_usec / 1000000.0);

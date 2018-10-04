@@ -13,22 +13,22 @@
 namespace newsboat {
 
 /*
- * The select_formaction is used both for the "select tag" dialog
+ * The SelectFormAction is used both for the "select tag" dialog
  * and the "select filter", as they do practically the same. That's
  * why there is the decision between SELECTTAG and SELECTFILTER on
  * a few places.
  */
 
-select_formaction::select_formaction(view* vv, std::string formstr)
-	: formaction(vv, formstr)
+SelectFormAction::SelectFormAction(View* vv, std::string formstr)
+	: Formaction(vv, formstr)
 	, quit(false)
 	, type(SelectionType::TAG)
 {
 }
 
-select_formaction::~select_formaction() {}
+SelectFormAction::~SelectFormAction() {}
 
-void select_formaction::handle_cmdline(const std::string& cmd)
+void SelectFormAction::handle_cmdline(const std::string& cmd)
 {
 	unsigned int idx = 0;
 	if (1 == sscanf(cmd.c_str(), "%u", &idx)) {
@@ -39,11 +39,11 @@ void select_formaction::handle_cmdline(const std::string& cmd)
 			f->set("tagpos", std::to_string(idx - 1));
 		}
 	} else {
-		formaction::handle_cmdline(cmd);
+		Formaction::handle_cmdline(cmd);
 	}
 }
 
-void select_formaction::process_operation(Operation op ,
+void SelectFormAction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -59,7 +59,7 @@ void select_formaction::process_operation(Operation op ,
 		break;
 	case OP_OPEN: {
 		std::string tagposname = f->get("tagposname");
-		unsigned int pos = utils::to_u(tagposname);
+		unsigned int pos = Utils::to_u(tagposname);
 		if (tagposname.length() > 0) {
 			switch (type) {
 			case SelectionType::TAG: {
@@ -92,15 +92,15 @@ void select_formaction::process_operation(Operation op ,
 	}
 }
 
-void select_formaction::prepare()
+void SelectFormAction::prepare()
 {
 	if (do_redraw) {
-		listformatter listfmt;
+		ListFormatter listfmt;
 		unsigned int i = 0;
 		switch (type) {
 		case SelectionType::TAG:
 			for (const auto& tag : tags) {
-				std::string tagstr = strprintf::fmt(
+				std::string tagstr = StrPrintf::fmt(
 					"%4u  %s (%u)",
 					i + 1,
 					tag,
@@ -113,7 +113,7 @@ void select_formaction::prepare()
 			break;
 		case SelectionType::FILTER:
 			for (const auto& filter : filters) {
-				std::string tagstr = strprintf::fmt(
+				std::string tagstr = StrPrintf::fmt(
 					"%4u  %s", i + 1, filter.first);
 				listfmt.add_line(tagstr, i);
 				i++;
@@ -128,7 +128,7 @@ void select_formaction::prepare()
 	}
 }
 
-void select_formaction::init()
+void SelectFormAction::init()
 {
 	std::string title;
 	do_redraw = true;
@@ -136,11 +136,11 @@ void select_formaction::init()
 	value = "";
 
 	std::string viewwidth = f->get("taglist:w");
-	unsigned int width = utils::to_u(viewwidth, 80);
+	unsigned int width = Utils::to_u(viewwidth, 80);
 
 	set_keymap_hints();
 
-	fmtstr_formatter fmt;
+	FmtStrFormatter fmt;
 	fmt.register_fmt('N', PROGRAM_NAME);
 	fmt.register_fmt('V', PROGRAM_VERSION);
 
@@ -161,7 +161,7 @@ void select_formaction::init()
 	f->set("head", title);
 }
 
-keymap_hint_entry* select_formaction::get_keymap_hint()
+keymap_hint_entry* SelectFormAction::get_keymap_hint()
 {
 	static keymap_hint_entry hints_tag[] = {{OP_QUIT, _("Cancel")},
 		{OP_OPEN, _("Select Tag")},
@@ -178,7 +178,7 @@ keymap_hint_entry* select_formaction::get_keymap_hint()
 	return nullptr;
 }
 
-std::string select_formaction::title()
+std::string SelectFormAction::title()
 {
 	switch (type) {
 	case SelectionType::TAG:

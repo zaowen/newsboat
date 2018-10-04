@@ -11,40 +11,40 @@
 
 namespace newsboat {
 
-dialogs_formaction::dialogs_formaction(view* vv, std::string formstr)
-	: formaction(vv, formstr)
+DialogsFormAction::DialogsFormAction(View* vv, std::string formstr)
+	: Formaction(vv, formstr)
 	, update_list(true)
 {
 }
 
-dialogs_formaction::~dialogs_formaction() {}
+DialogsFormAction::~DialogsFormAction() {}
 
-void dialogs_formaction::init()
+void DialogsFormAction::init()
 {
 	set_keymap_hints();
 
-	unsigned int width = utils::to_u(f->get("dialogs:w"));
+	unsigned int width = Utils::to_u(f->get("dialogs:w"));
 	std::string title_format =
 		v->get_cfg()->get_configvalue("dialogs-title-format");
-	fmtstr_formatter fmt;
+	FmtStrFormatter fmt;
 	fmt.register_fmt('N', PROGRAM_NAME);
 	fmt.register_fmt('V', PROGRAM_VERSION);
 	f->set("head", fmt.do_format(title_format, width));
 }
 
-void dialogs_formaction::prepare()
+void DialogsFormAction::prepare()
 {
 	if (update_list) {
-		listformatter listfmt;
+		ListFormatter listfmt;
 
 		unsigned int i = 1;
 		for (const auto& fa : v->get_formaction_names()) {
 			LOG(Level::DEBUG,
-				"dialogs_formaction::prepare: p1 = %p p2 = %p",
+				"DialogsFormAction::prepare: p1 = %p p2 = %p",
 				v->get_formaction(fa.first).get(),
 				get_parent_formaction().get());
 			listfmt.add_line(
-				strprintf::fmt("%4u %s %s",
+				StrPrintf::fmt("%4u %s %s",
 					i,
 					(v->get_formaction(fa.first).get() ==
 						get_parent_formaction().get())
@@ -61,7 +61,7 @@ void dialogs_formaction::prepare()
 	}
 }
 
-keymap_hint_entry* dialogs_formaction::get_keymap_hint()
+keymap_hint_entry* DialogsFormAction::get_keymap_hint()
 {
 	static keymap_hint_entry hints[] = {{OP_QUIT, _("Close")},
 		{OP_OPEN, _("Goto Dialog")},
@@ -70,7 +70,7 @@ keymap_hint_entry* dialogs_formaction::get_keymap_hint()
 	return hints;
 }
 
-void dialogs_formaction::process_operation(Operation op ,
+void DialogsFormAction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -78,7 +78,7 @@ void dialogs_formaction::process_operation(Operation op ,
 	case OP_OPEN: {
 		std::string dialogposname = f->get("dialogpos");
 		if (dialogposname.length() > 0) {
-			v->set_current_formaction(utils::to_u(dialogposname));
+			v->set_current_formaction(Utils::to_u(dialogposname));
 		} else {
 			v->show_error(_("No item selected!"));
 		}
@@ -86,7 +86,7 @@ void dialogs_formaction::process_operation(Operation op ,
 	case OP_CLOSEDIALOG: {
 		std::string dialogposname = f->get("dialogpos");
 		if (dialogposname.length() > 0) {
-			unsigned int dialogpos = utils::to_u(dialogposname);
+			unsigned int dialogpos = Utils::to_u(dialogposname);
 			if (dialogpos != 0) {
 				v->remove_formaction(dialogpos);
 				update_list = true;
@@ -107,12 +107,12 @@ void dialogs_formaction::process_operation(Operation op ,
 	}
 }
 
-std::string dialogs_formaction::title()
+std::string DialogsFormAction::title()
 {
 	return ""; // will never be displayed
 }
 
-void dialogs_formaction::handle_cmdline(const std::string& cmd)
+void DialogsFormAction::handle_cmdline(const std::string& cmd)
 {
 	unsigned int idx = 0;
 	if (1 == sscanf(cmd.c_str(), "%u", &idx)) {
@@ -122,7 +122,7 @@ void dialogs_formaction::handle_cmdline(const std::string& cmd)
 			v->show_error(_("Invalid position!"));
 		}
 	} else {
-		formaction::handle_cmdline(cmd);
+		Formaction::handle_cmdline(cmd);
 	}
 }
 

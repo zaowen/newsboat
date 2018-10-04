@@ -10,10 +10,10 @@
 
 namespace newsboat {
 
-class ocnews_api : public remote_api {
+class OcNewsApi : public RemoteApi {
 public:
-	explicit ocnews_api(configcontainer* cfg);
-	~ocnews_api() override;
+	explicit OcNewsApi(ConfigContainer* cfg);
+	~OcNewsApi() override;
 	bool authenticate() override;
 	std::vector<tagged_feedurl> get_subscribed_urls() override;
 	bool mark_all_read(const std::string& feedurl) override;
@@ -22,10 +22,10 @@ public:
 		const std::string& newflags,
 		const std::string& guid) override;
 	void add_custom_headers(curl_slist**) override;
-	rsspp::feed fetch_feed(const std::string& feed_id);
+	rsspp::Feed fetch_feed(const std::string& feed_id);
 
 private:
-	typedef std::map<std::string, std::pair<rsspp::feed, long>> feedmap;
+	typedef std::map<std::string, std::pair<rsspp::Feed, long>> feedmap;
 	std::string retrieve_auth();
 	bool query(const std::string& query,
 		json_object** result = nullptr,
@@ -36,17 +36,17 @@ private:
 	feedmap known_feeds;
 };
 
-class ocnews_urlreader : public urlreader {
+class OcNewsUrlReader : public UrlReader {
 public:
-	ocnews_urlreader(const std::string& url_file, remote_api* a);
-	~ocnews_urlreader() override;
+	OcNewsUrlReader(const std::string& url_file, RemoteApi* a);
+	~OcNewsUrlReader() override;
 	void write_config() override;
 	void reload() override;
 	std::string get_source() override;
 
 private:
 	std::string file;
-	remote_api* api;
+	RemoteApi* api;
 };
 
 } // namespace newsboat

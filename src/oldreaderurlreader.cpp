@@ -5,18 +5,18 @@
 
 namespace newsboat {
 
-oldreader_urlreader::oldreader_urlreader(configcontainer* c,
+OldReaderUrlReader::OldReaderUrlReader(ConfigContainer* c,
 	const std::string& url_file,
-	remote_api* a)
+	RemoteApi* a)
 	: cfg(c)
 	, file(url_file)
 	, api(a)
 {
 }
 
-oldreader_urlreader::~oldreader_urlreader() {}
+OldReaderUrlReader::~OldReaderUrlReader() {}
 
-void oldreader_urlreader::write_config()
+void OldReaderUrlReader::write_config()
 {
 	// NOTHING
 }
@@ -38,7 +38,7 @@ void oldreader_urlreader::write_config()
 		tags[(url)] = tmptags;        \
 	} while (0)
 
-void oldreader_urlreader::reload()
+void OldReaderUrlReader::reload()
 {
 	urls.clear();
 	tags.clear();
@@ -53,12 +53,12 @@ void oldreader_urlreader::reload()
 		ADD_URL(SHARED_ITEMS_URL, std::string("~") + _("Shared items"));
 	}
 
-	file_urlreader ur(file);
+	FileUrlReader ur(file);
 	ur.reload();
 
 	std::vector<std::string>& file_urls(ur.get_urls());
 	for (const auto& url : file_urls) {
-		if (utils::is_query_url(url)) {
+		if (Utils::is_query_url(url)) {
 			urls.push_back(url);
 			std::vector<std::string>& file_tags(ur.get_tags(url));
 			tags[url] = ur.get_tags(url);
@@ -80,7 +80,7 @@ void oldreader_urlreader::reload()
 	}
 }
 
-std::string oldreader_urlreader::get_source()
+std::string OldReaderUrlReader::get_source()
 {
 	return "The Old Reader";
 }

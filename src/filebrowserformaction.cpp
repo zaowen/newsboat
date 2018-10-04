@@ -22,20 +22,20 @@
 
 namespace newsboat {
 
-filebrowser_formaction::filebrowser_formaction(view* vv, std::string formstr)
-	: formaction(vv, formstr)
+FileBrowserFormAction::FileBrowserFormAction(View* vv, std::string formstr)
+	: Formaction(vv, formstr)
 	, quit(false)
 {
 	// In filebrowser, keyboard focus is at the input field, so user can't
 	// possibly use 'q' key to exit the dialog
-	keymap* keys = vv->get_keys();
+	Keymap* keys = vv->get_keys();
 	keys->set_key(OP_QUIT, "ESC", id());
 	vv->set_keymap(keys);
 }
 
-filebrowser_formaction::~filebrowser_formaction() {}
+FileBrowserFormAction::~FileBrowserFormAction() {}
 
-void filebrowser_formaction::process_operation(Operation op ,
+void FileBrowserFormAction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -49,7 +49,7 @@ void filebrowser_formaction::process_operation(Operation op ,
 		 *   - the focus is in the filename field, then the filename
 		 * needs to be returned.
 		 */
-		LOG(Level::DEBUG, "filebrowser_formaction: 'opening' item");
+		LOG(Level::DEBUG, "FileBrowserFormAction: 'opening' item");
 		std::string focus = f->get_focus();
 		if (focus.length() > 0) {
 			if (focus == "files") {
@@ -62,9 +62,9 @@ void filebrowser_formaction::process_operation(Operation op ,
 					std::string fileswidth =
 						f->get("files:w");
 					unsigned int width =
-						utils::to_u(fileswidth);
+						Utils::to_u(fileswidth);
 
-					fmtstr_formatter fmt;
+					FmtStrFormatter fmt;
 					fmt.register_fmt('N', PROGRAM_NAME);
 					fmt.register_fmt('V', PROGRAM_VERSION);
 					fmt.register_fmt('f', filename);
@@ -81,13 +81,13 @@ void filebrowser_formaction::process_operation(Operation op ,
 							width));
 					int status = ::chdir(filename.c_str());
 					LOG(Level::DEBUG,
-						"filebrowser_formaction:OP_"
+						"FileBrowserFormAction:OP_"
 						"OPEN: "
 						"chdir(%s) = %i",
 						filename,
 						status);
 					f->set("listpos", "0");
-					std::string fn = utils::getcwd();
+					std::string fn = Utils::getcwd();
 					fn.append(NEWSBEUTER_PATH_SEP);
 					std::string fnstr =
 						f->get("filenametext");
@@ -104,7 +104,7 @@ void filebrowser_formaction::process_operation(Operation op ,
 					do_redraw = true;
 				} break;
 				case '-': {
-					std::string fn = utils::getcwd();
+					std::string fn = Utils::getcwd();
 					fn.append(NEWSBEUTER_PATH_SEP);
 					fn.append(filename);
 					f->set("filenametext", fn);
@@ -126,7 +126,7 @@ void filebrowser_formaction::process_operation(Operation op ,
 				if (::stat(fn.c_str(), &sbuf) != -1) {
 					f->set_focus("files");
 					if (v->confirm(
-						    strprintf::fmt(
+						    StrPrintf::fmt(
 							    _("Do you really "
 							      "want to "
 							      "overwrite `%s' "
@@ -166,7 +166,7 @@ std::vector<std::string> get_sorted_filelist()
 {
 	std::vector<std::string> ret;
 
-	auto cwdtmp = utils::getcwd();
+	auto cwdtmp = Utils::getcwd();
 
 	DIR* dirp = ::opendir(cwdtmp.c_str());
 	if (dirp) {
@@ -188,7 +188,7 @@ std::vector<std::string> get_sorted_filelist()
 	return ret;
 }
 
-void filebrowser_formaction::prepare()
+void FileBrowserFormAction::prepare()
 {
 	/*
 	 * prepare is always called before an operation is processed,
@@ -218,7 +218,7 @@ void filebrowser_formaction::prepare()
 	}
 }
 
-void filebrowser_formaction::init()
+void FileBrowserFormAction::init()
 {
 	set_keymap_hints();
 
@@ -238,7 +238,7 @@ void filebrowser_formaction::init()
 	int status = ::chdir(dir.c_str());
 	LOG(Level::DEBUG, "view::filebrowser: chdir(%s) = %i", dir, status);
 
-	auto cwdtmp = utils::getcwd();
+	auto cwdtmp = Utils::getcwd();
 
 	f->set("filenametext", default_filename);
 
@@ -247,13 +247,13 @@ void filebrowser_formaction::init()
 	f->set("filenametext_pos", std::to_string(default_filename.length()));
 
 	f->set("head",
-		strprintf::fmt(_("%s %s - Save File - %s"),
+		StrPrintf::fmt(_("%s %s - Save File - %s"),
 			PROGRAM_NAME,
 			PROGRAM_VERSION,
 			cwdtmp));
 }
 
-keymap_hint_entry* filebrowser_formaction::get_keymap_hint()
+keymap_hint_entry* FileBrowserFormAction::get_keymap_hint()
 {
 	static keymap_hint_entry hints[] = {{OP_QUIT, _("Cancel")},
 		{OP_OPEN, _("Save")},
@@ -261,7 +261,7 @@ keymap_hint_entry* filebrowser_formaction::get_keymap_hint()
 	return hints;
 }
 
-std::string filebrowser_formaction::add_file(std::string filename)
+std::string FileBrowserFormAction::add_file(std::string filename)
 {
 	std::string retval;
 	struct stat sb;
@@ -274,23 +274,23 @@ std::string filebrowser_formaction::add_file(std::string filename)
 		std::string formattedfilename =
 			get_formatted_filename(filename, ftype, sb.st_mode);
 
-		std::string sizestr = strprintf::fmt("%12u", sb.st_size);
-		std::string line = strprintf::fmt("%c%s %s %s %s %s",
+		std::string sizestr = StrPrintf::fmt("%12u", sb.st_size);
+		std::string line = StrPrintf::fmt("%c%s %s %s %s %s",
 			ftype,
 			rwxbits,
 			owner,
 			group,
 			sizestr,
 			formattedfilename);
-		retval = strprintf::fmt("{listitem[%c%s] text:%s}",
+		retval = StrPrintf::fmt("{listitem[%c%s] text:%s}",
 			ftype,
-			stfl::quote(filename),
-			stfl::quote(line));
+			Stfl::quote(filename),
+			Stfl::quote(line));
 	}
 	return retval;
 }
 
-std::string filebrowser_formaction::get_formatted_filename(std::string filename,
+std::string FileBrowserFormAction::get_formatted_filename(std::string filename,
 	char ftype,
 	mode_t mode)
 {
@@ -314,10 +314,10 @@ std::string filebrowser_formaction::get_formatted_filename(std::string filename,
 			suffix = '*';
 	}
 
-	return strprintf::fmt("%s%c", filename, suffix);
+	return StrPrintf::fmt("%s%c", filename, suffix);
 }
 
-std::string filebrowser_formaction::get_rwx(unsigned short val)
+std::string FileBrowserFormAction::get_rwx(unsigned short val)
 {
 	std::string str;
 	const char* bitstrs[] = {
@@ -330,7 +330,7 @@ std::string filebrowser_formaction::get_rwx(unsigned short val)
 	return str;
 }
 
-char filebrowser_formaction::get_filetype(mode_t mode)
+char FileBrowserFormAction::get_filetype(mode_t mode)
 {
 	static struct flag_char {
 		mode_t flag;
@@ -350,7 +350,7 @@ char filebrowser_formaction::get_filetype(mode_t mode)
 	return '?';
 }
 
-std::string filebrowser_formaction::get_owner(uid_t uid)
+std::string FileBrowserFormAction::get_owner(uid_t uid)
 {
 	struct passwd* spw = getpwuid(uid);
 	if (spw) {
@@ -363,7 +363,7 @@ std::string filebrowser_formaction::get_owner(uid_t uid)
 	return "????????";
 }
 
-std::string filebrowser_formaction::get_group(gid_t gid)
+std::string FileBrowserFormAction::get_group(gid_t gid)
 {
 	struct group* sgr = getgrgid(gid);
 	if (sgr) {
@@ -376,9 +376,9 @@ std::string filebrowser_formaction::get_group(gid_t gid)
 	return "????????";
 }
 
-std::string filebrowser_formaction::title()
+std::string FileBrowserFormAction::title()
 {
-	return strprintf::fmt(_("Save File - %s"), utils::getcwd());
+	return StrPrintf::fmt(_("Save File - %s"), Utils::getcwd());
 }
 
 } // namespace newsboat

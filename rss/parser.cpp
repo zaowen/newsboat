@@ -24,7 +24,7 @@ my_write_data(void* buffer, size_t size, size_t nmemb, void* userp)
 
 namespace rsspp {
 
-parser::parser(unsigned int timeout,
+Parser::Parser(unsigned int timeout,
 	const std::string& user_agent,
 	const std::string& proxy,
 	const std::string& proxy_auth,
@@ -41,7 +41,7 @@ parser::parser(unsigned int timeout,
 {
 }
 
-parser::~parser()
+Parser::~Parser()
 {
 	if (doc)
 		xmlFreeDoc(doc);
@@ -83,7 +83,7 @@ static size_t handle_headers(void* ptr, size_t size, size_t nmemb, void* data)
 		}
 	} else if (!strncasecmp("ETag:", header, 5)) {
 		values->etag = std::string(header + 5);
-		utils::trim(values->etag);
+		Utils::trim(values->etag);
 		LOG(Level::DEBUG, "handle_headers: got etag %s", values->etag);
 	}
 
@@ -92,10 +92,10 @@ static size_t handle_headers(void* ptr, size_t size, size_t nmemb, void* data)
 	return size * nmemb;
 }
 
-feed parser::parse_url(const std::string& url,
+Feed Parser::parse_url(const std::string& url,
 	time_t lastmodified,
 	const std::string& etag,
-	newsboat::remote_api* api,
+	newsboat::RemoteApi* api,
 	const std::string& cookie_cache,
 	CURL* ehandle)
 {
@@ -107,7 +107,7 @@ feed parser::parse_url(const std::string& url,
 	if (!easyhandle) {
 		easyhandle = curl_easy_init();
 		if (!easyhandle) {
-			throw exception(_("couldn't initialize libcurl"));
+			throw Exception(_("couldn't initialize libcurl"));
 		}
 	}
 
@@ -164,7 +164,7 @@ feed parser::parse_url(const std::string& url,
 	}
 
 	if (etag.length() > 0) {
-		auto header = strprintf::fmt("If-None-Match: %s", etag);
+		auto header = StrPrintf::fmt("If-None-Match: %s", etag);
 		custom_headers =
 			curl_slist_append(custom_headers, header.c_str());
 	}
@@ -190,7 +190,7 @@ feed parser::parse_url(const std::string& url,
 	}
 
 	LOG(Level::DEBUG,
-		"rsspp::parser::parse_url: ret = %d (%s)",
+		"rsspp::Parser::parse_url: ret = %d (%s)",
 		ret,
 		curl_easy_strerror(ret));
 
@@ -209,37 +209,37 @@ feed parser::parse_url(const std::string& url,
 
 	if (ret != 0) {
 		LOG(Level::ERROR,
-			"rsspp::parser::parse_url: curl_easy_perform returned "
+			"rsspp::Parser::parse_url: curl_easy_perform returned "
 			"err "
 			"%d: %s",
 			ret,
 			curl_easy_strerror(ret));
 		std::string msg;
 		if (ret == CURLE_HTTP_RETURNED_ERROR && infoOk == CURLE_OK) {
-			msg = strprintf::fmt(
+			msg = StrPrintf::fmt(
 				"%s %li", curl_easy_strerror(ret), status);
 		} else {
 			msg = curl_easy_strerror(ret);
 		}
-		throw exception(msg);
+		throw Exception(msg);
 	}
 
 	LOG(Level::INFO,
-		"parser::parse_url: retrieved data for %s: %s",
+		"Parser::parse_url: retrieved data for %s: %s",
 		url,
 		buf);
 
 	if (buf.length() > 0) {
 		LOG(Level::DEBUG,
-			"parser::parse_url: handing over data to "
+			"Parser::parse_url: handing over data to "
 			"parse_buffer()");
 		return parse_buffer(buf, url);
 	}
 
-	return feed();
+	return Feed();
 }
 
-feed parser::parse_buffer(const std::string& buffer, const std::string& url)
+Feed Parser::parse_buffer(const std::string& buffer, const std::string& url)
 {
 	doc = xmlReadMemory(buffer.c_str(),
 		buffer.length(),
@@ -247,23 +247,23 @@ feed parser::parse_buffer(const std::string& buffer, const std::string& url)
 		nullptr,
 		XML_PARSE_RECOVER | XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
 	if (doc == nullptr) {
-		throw exception(_("could not parse buffer"));
+		throw Exception(_("could not parse buffer"));
 	}
 
 	xmlNode* root_element = xmlDocGetRootElement(doc);
 
-	feed f = parse_xmlnode(root_element);
+	Feed f = parse_xmlnode(root_element);
 
 	if (doc->encoding) {
 		f.encoding = (const char*)doc->encoding;
 	}
 
-	LOG(Level::INFO, "parser::parse_buffer: encoding = %s", f.encoding);
+	LOG(Level::INFO, "Parser::parse_buffer: encoding = %s", f.encoding);
 
 	return f;
 }
 
-feed parser::parse_file(const std::string& filename)
+Feed Parser::parse_file(const std::string& filename)
 {
 	doc = xmlReadFile(filename.c_str(),
 		nullptr,
@@ -271,23 +271,23 @@ feed parser::parse_file(const std::string& filename)
 	xmlNode* root_element = xmlDocGetRootElement(doc);
 
 	if (root_element == nullptr) {
-		throw exception(_("could not parse file"));
+		throw Exception(_("could not parse file"));
 	}
 
-	feed f = parse_xmlnode(root_element);
+	Feed f = parse_xmlnode(root_element);
 
 	if (doc->encoding) {
 		f.encoding = (const char*)doc->encoding;
 	}
 
-	LOG(Level::INFO, "parser::parse_file: encoding = %s", f.encoding);
+	LOG(Level::INFO, "Parser::parse_file: encoding = %s", f.encoding);
 
 	return f;
 }
 
-feed parser::parse_xmlnode(xmlNode* node)
+Feed Parser::parse_xmlnode(xmlNode* node)
 {
-	feed f;
+	Feed f;
 
 	if (node) {
 		if (node->name && node->type == XML_ELEMENT_NODE) {
@@ -295,7 +295,7 @@ feed parser::parse_xmlnode(xmlNode* node)
 				const char* version = (const char*)xmlGetProp(
 					node, (const xmlChar*)"version");
 				if (!version) {
-					throw exception(_("no RSS version"));
+					throw Exception(_("no RSS version"));
 				}
 				if (strcmp(version, "0.91") == 0)
 					f.rss_version = RSS_0_91;
@@ -310,7 +310,7 @@ feed parser::parse_xmlnode(xmlNode* node)
 					f.rss_version = RSS_0_91;
 				else {
 					xmlFree((void*)version);
-					throw exception(
+					throw Exception(
 						_("invalid RSS version"));
 				}
 				xmlFree((void*)version);
@@ -330,7 +330,7 @@ feed parser::parse_xmlnode(xmlNode* node)
 					} else {
 						const char * version = (const char *)xmlGetProp(node, (const xmlChar *)"version");
 						if (!version) {
-							throw exception(_(
+							throw Exception(_(
 								"invalid Atom "
 								"version"));
 						}
@@ -341,39 +341,39 @@ feed parser::parse_xmlnode(xmlNode* node)
 								ATOM_0_3_NONS;
 						} else {
 							xmlFree((void*)version);
-							throw exception(_(
+							throw Exception(_(
 								"invalid Atom "
 								"version"));
 						}
 					}
 				} else {
-					throw exception(_("no Atom version"));
+					throw Exception(_("no Atom version"));
 				}
 			}
 
-			std::shared_ptr<rss_parser> parser =
-				rss_parser_factory::get_object(f, doc);
+			std::shared_ptr<RssParser> parser =
+				RssParserFactory::get_object(f, doc);
 
 			try {
 				parser->parse_feed(f, node);
-			} catch (exception& e) {
+			} catch (Exception& e) {
 				throw;
 			}
 		}
 	} else {
-		throw exception(_("XML root node is NULL"));
+		throw Exception(_("XML root node is NULL"));
 	}
 
 	return f;
 }
 
-void parser::global_init()
+void Parser::global_init()
 {
 	LIBXML_TEST_VERSION
 	curl_global_init(CURL_GLOBAL_ALL);
 }
 
-void parser::global_cleanup()
+void Parser::global_cleanup()
 {
 	xmlCleanupParser();
 	curl_global_cleanup();

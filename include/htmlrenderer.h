@@ -48,9 +48,9 @@ enum class HtmlTag {
 
 typedef std::pair<std::string, LinkType> linkpair;
 
-class htmlrenderer {
+class HtmlRenderer {
 public:
-	explicit htmlrenderer(bool raw = false);
+	explicit HtmlRenderer(bool raw = false);
 	void render(const std::string& source,
 		std::vector<std::pair<LineType, std::string>>& lines,
 		std::vector<linkpair>& links,
