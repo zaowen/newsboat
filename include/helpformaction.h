@@ -18,11 +18,11 @@ public:
 	}
 	std::string title() override;
 
-	void finished_qna(operation op) override;
+	void finished_qna(Operation op ) override;
 	void set_context(const std::string& ctx);
 
 private:
-	void process_operation(operation op,
+	void process_operation(Operation op ,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) override;
 	std::string make_colorstring(const std::vector<std::string>& colors);

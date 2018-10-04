@@ -475,10 +475,10 @@ TEST_CASE(
 	configcontainer cfg;
 	cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
-	feeds[0]->set_status(dl_status::SUCCESS);
-	feeds[1]->set_status(dl_status::TO_BE_DOWNLOADED);
-	feeds[2]->set_status(dl_status::DURING_DOWNLOAD);
-	feeds[3]->set_status(dl_status::DL_ERROR);
+	feeds[0]->set_status(DlStatus::SUCCESS);
+	feeds[1]->set_status(DlStatus::TO_BE_DOWNLOADED);
+	feeds[2]->set_status(DlStatus::DURING_DOWNLOAD);
+	feeds[3]->set_status(DlStatus::DL_ERROR);
 	feedcontainer.set_feeds(feeds);
 
 	feedcontainer.reset_feeds_status();

@@ -29,7 +29,7 @@ itemlist_formaction::itemlist_formaction(view* vv, std::string formstr)
 	, rxman(0)
 	, old_width(0)
 	, old_itempos(-1)
-	, old_sort_strategy({art_sort_method_t::TITLE, sort_direction_t::DESC})
+	, old_sort_strategy({ArtSortMethod::TITLE, SortDirection::DESC})
 	, invalidated(false)
 	, invalidation_mode(InvalidationMode::COMPLETE)
 {
@@ -38,7 +38,7 @@ itemlist_formaction::itemlist_formaction(view* vv, std::string formstr)
 
 itemlist_formaction::~itemlist_formaction() {}
 
-void itemlist_formaction::process_operation(operation op,
+void itemlist_formaction::process_operation(Operation op ,
 	bool automatic,
 	std::vector<std::string>* args)
 {
@@ -56,7 +56,7 @@ void itemlist_formaction::process_operation(operation op,
 
 	switch (op) {
 	case OP_OPEN: {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"itemlist_formaction: opening item at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0 && visible_items.size() != 0) {
@@ -112,7 +112,7 @@ void itemlist_formaction::process_operation(operation op,
 		invalidate(InvalidationMode::COMPLETE);
 	} break;
 	case OP_OPENBROWSER_AND_MARK: {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"itemlist_formaction: opening item at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0 && visible_items.size() != 0) {
@@ -143,7 +143,7 @@ void itemlist_formaction::process_operation(operation op,
 		}
 	} break;
 	case OP_OPENINBROWSER: {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"itemlist_formaction: opening item at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0 && visible_items.size() != 0) {
@@ -159,7 +159,7 @@ void itemlist_formaction::process_operation(operation op,
 	} break;
 	case OP_OPENALLUNREADINBROWSER: {
 		if (feed) {
-			LOG(level::INFO,
+			LOG(Level::INFO,
 				"itemlist_formaction: opening all unread items "
 				"in "
 				"browser");
@@ -168,7 +168,7 @@ void itemlist_formaction::process_operation(operation op,
 	} break;
 	case OP_OPENALLUNREADINBROWSER_AND_MARK: {
 		if (feed) {
-			LOG(level::INFO,
+			LOG(Level::INFO,
 				"itemlist_formaction: opening all unread items "
 				"in "
 				"browser and marking read");
@@ -177,7 +177,7 @@ void itemlist_formaction::process_operation(operation op,
 		}
 	} break;
 	case OP_TOGGLEITEMREAD: {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"itemlist_formaction: toggling item read at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0) {
@@ -285,7 +285,7 @@ void itemlist_formaction::process_operation(operation op,
 		}
 		break;
 	case OP_BOOKMARK: {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"itemlist_formaction: bookmarking item at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0 && visible_items.size() != 0) {
@@ -344,7 +344,7 @@ void itemlist_formaction::process_operation(operation op,
 		}
 	} break;
 	case OP_SAVE: {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"itemlist_formaction: saving item at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0 && visible_items.size() != 0) {
@@ -369,7 +369,7 @@ void itemlist_formaction::process_operation(operation op,
 		break;
 	case OP_RELOAD:
 		if (!show_searchresult) {
-			LOG(level::INFO,
+			LOG(Level::INFO,
 				"itemlist_formaction: reloading current feed");
 			v->get_ctrl()->get_reloader()->reload(pos);
 			invalidate(InvalidationMode::COMPLETE);
@@ -379,20 +379,20 @@ void itemlist_formaction::process_operation(operation op,
 		}
 		break;
 	case OP_QUIT:
-		LOG(level::INFO, "itemlist_formaction: quitting");
+		LOG(Level::INFO, "itemlist_formaction: quitting");
 		v->feedlist_mark_pos_if_visible(pos);
 		feed->purge_deleted_items();
 		feed->unload();
 		quit = true;
 		break;
 	case OP_HARDQUIT:
-		LOG(level::INFO, "itemlist_formaction: hard quitting");
+		LOG(Level::INFO, "itemlist_formaction: hard quitting");
 		v->feedlist_mark_pos_if_visible(pos);
 		feed->purge_deleted_items();
 		hardquit = true;
 		break;
 	case OP_NEXTUNREAD:
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"itemlist_formaction: jumping to next unread item");
 		if (!jump_to_next_unread_item(false)) {
 			if (!v->get_next_unread(this)) {
@@ -401,7 +401,7 @@ void itemlist_formaction::process_operation(operation op,
 		}
 		break;
 	case OP_PREVUNREAD:
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"itemlist_formaction: jumping to previous unread item");
 		if (!jump_to_previous_unread_item(false)) {
 			if (!v->get_previous_unread(this)) {
@@ -410,7 +410,7 @@ void itemlist_formaction::process_operation(operation op,
 		}
 		break;
 	case OP_NEXT:
-		LOG(level::INFO, "itemlist_formaction: jumping to next item");
+		LOG(Level::INFO, "itemlist_formaction: jumping to next item");
 		if (!jump_to_next_item(false)) {
 			if (!v->get_next(this)) {
 				v->show_error(_("Already on last item."));
@@ -418,7 +418,7 @@ void itemlist_formaction::process_operation(operation op,
 		}
 		break;
 	case OP_PREV:
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"itemlist_formaction: jumping to previous item");
 		if (!jump_to_previous_item(false)) {
 			if (!v->get_previous(this)) {
@@ -454,7 +454,7 @@ void itemlist_formaction::process_operation(operation op,
 		}
 		break;
 	case OP_MARKFEEDREAD:
-		LOG(level::INFO, "itemlist_formaction: marking feed read");
+		LOG(Level::INFO, "itemlist_formaction: marking feed read");
 		v->set_status(_("Marking feed read..."));
 		try {
 			if (feed->rssurl() != "") {
@@ -463,7 +463,7 @@ void itemlist_formaction::process_operation(operation op,
 				{
 					std::lock_guard<std::mutex> lock(
 						feed->item_mutex);
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"itemlist_formaction: oh, it "
 						"looks "
 						"like I'm in a pseudo-feed "
@@ -492,7 +492,7 @@ void itemlist_formaction::process_operation(operation op,
 		}
 		break;
 	case OP_MARKALLABOVEASREAD:
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"itemlist_formaction: marking all above as read");
 		v->set_status(_("Marking all above as read..."));
 		if (itemposname.length() > 0 &&
@@ -516,7 +516,7 @@ void itemlist_formaction::process_operation(operation op,
 		break;
 	case OP_TOGGLESHOWREAD:
 		m.parse(FILTER_UNREAD_ITEMS);
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"itemlist_formaction: toggling show-read-articles");
 		if (v->get_cfg()->get_configvalue_as_bool(
 			    "show-read-articles")) {
@@ -578,7 +578,7 @@ void itemlist_formaction::process_operation(operation op,
 					v->get_ctrl()
 						->get_filters()
 						.get_filters());
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"itemlist_formaction::run: newfilters "
 					"= %s",
 					newfilter);
@@ -707,7 +707,7 @@ void itemlist_formaction::process_operation(operation op,
 	}
 }
 
-void itemlist_formaction::finished_qna(operation op)
+void itemlist_formaction::finished_qna(Operation op )
 {
 	formaction::finished_qna(op); // important!
 
@@ -780,7 +780,7 @@ void itemlist_formaction::qna_end_editflags()
 		visible_items[itempos].first->set_flags(qna_responses[0]);
 		v->get_ctrl()->update_flags(visible_items[itempos].first);
 		v->set_status(_("Flags updated."));
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"itemlist_formaction::finished_qna: updated flags");
 		invalidate(itempos);
 	}
@@ -855,7 +855,7 @@ void itemlist_formaction::do_update_visible_items()
 		i++;
 	}
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"itemlist_formaction::do_update_visible_items: size = %u",
 		visible_items.size());
 
@@ -932,7 +932,7 @@ void itemlist_formaction::prepare()
 			}
 			invalidated_itempos.clear();
 		} else {
-			LOG(level::ERROR,
+			LOG(Level::ERROR,
 				"invalidation_mode is neither COMPLETE nor "
 				"PARTIAL");
 		}
@@ -1053,7 +1053,7 @@ bool itemlist_formaction::jump_to_previous_unread_item(bool start_with_last)
 	std::istringstream is(f->get("itempos"));
 	is >> itempos;
 	for (int i = (start_with_last ? itempos : (itempos - 1)); i >= 0; --i) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"itemlist_formaction::jump_to_previous_unread_item: "
 			"visible_items[%u] unread = %s",
 			i,
@@ -1097,7 +1097,7 @@ bool itemlist_formaction::jump_to_random_unread_item()
 bool itemlist_formaction::jump_to_next_unread_item(bool start_with_first)
 {
 	unsigned int itempos = utils::to_u(f->get("itempos"));
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"itemlist_formaction::jump_to_next_unread_item: itempos = %u "
 		"visible_items.size = %u",
 		itempos,
@@ -1105,7 +1105,7 @@ bool itemlist_formaction::jump_to_next_unread_item(bool start_with_first)
 	for (unsigned int i = (start_with_first ? itempos : (itempos + 1));
 		i < visible_items.size();
 		++i) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"itemlist_formaction::jump_to_next_unread_item: i = %u",
 			i);
 		if (visible_items[i].first->unread()) {
@@ -1115,7 +1115,7 @@ bool itemlist_formaction::jump_to_next_unread_item(bool start_with_first)
 	}
 	for (unsigned int i = 0; i <= itempos && i < visible_items.size();
 		++i) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"itemlist_formaction::jump_to_next_unread_item: i = %u",
 			i);
 		if (visible_items[i].first->unread()) {
@@ -1134,7 +1134,7 @@ bool itemlist_formaction::jump_to_previous_item(bool start_with_last)
 
 	int i = (start_with_last ? itempos : (itempos - 1));
 	if (i >= 0) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"itemlist_formaction::jump_to_previous_item: "
 			"visible_items[%u]",
 			i);
@@ -1147,14 +1147,14 @@ bool itemlist_formaction::jump_to_previous_item(bool start_with_last)
 bool itemlist_formaction::jump_to_next_item(bool start_with_first)
 {
 	unsigned int itempos = utils::to_u(f->get("itempos"));
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"itemlist_formaction::jump_to_next_item: itempos = %u "
 		"visible_items.size = %u",
 		itempos,
 		visible_items.size());
 	unsigned int i = (start_with_first ? itempos : (itempos + 1));
 	if (i < visible_items.size()) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"itemlist_formaction::jump_to_next_item: i = %u",
 			i);
 		f->set("itempos", std::to_string(i));
@@ -1210,7 +1210,7 @@ void itemlist_formaction::handle_cmdline(const std::string& cmd)
 		if (tokens[0] == "save" && tokens.size() >= 2) {
 			std::string filename = utils::resolve_tilde(tokens[1]);
 			std::string itemposname = f->get("itempos");
-			LOG(level::INFO,
+			LOG(Level::INFO,
 				"itemlist_formaction::handle_cmdline: saving "
 				"item "
 				"at pos `%s' to `%s'",
@@ -1350,7 +1350,7 @@ void itemlist_formaction::prepare_set_filterpos()
 
 void itemlist_formaction::set_feed(std::shared_ptr<rss_feed> fd)
 {
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"itemlist_formaction::set_feed: fd pointer = %p title = `%s'",
 		fd.get(),
 		fd->title());

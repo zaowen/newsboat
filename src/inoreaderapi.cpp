@@ -39,7 +39,7 @@ inoreader_api::~inoreader_api()
 bool inoreader_api::authenticate()
 {
 	auth = retrieve_auth();
-	LOG(level::DEBUG, "inoreader_api::authenticate: Auth = %s", auth);
+	LOG(Level::DEBUG, "inoreader_api::authenticate: Auth = %s", auth);
 	return auth != "";
 }
 
@@ -85,7 +85,7 @@ std::string inoreader_api::retrieve_auth()
 
 	std::vector<std::string> lines = utils::tokenize(result);
 	for (const auto& line : lines) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"inoreader_api::retrieve_auth: line = %s",
 			line);
 		const std::string auth_string = "Auth=";
@@ -116,13 +116,13 @@ std::vector<tagged_feedurl> inoreader_api::get_subscribed_urls()
 	curl_easy_cleanup(handle);
 	curl_slist_free_all(custom_headers);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"inoreader_api::get_subscribed_urls: document = %s",
 		result);
 
 	json_object* reply = json_tokener_parse(result.c_str());
 	if (reply == nullptr) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"inoreader_api::get_subscribed_urls: failed to parse "
 			"response as JSON.");
 		return urls;
@@ -186,7 +186,7 @@ void inoreader_api::add_custom_headers(curl_slist** custom_headers)
 		auth_header = strprintf::fmt(
 			"Authorization: GoogleLogin auth=%s", auth);
 	}
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"inoreader_api::add_custom_headers header = %s",
 		auth_header);
 	*custom_headers =
@@ -242,7 +242,7 @@ bool inoreader_api::mark_article_read_with_token(const std::string& guid,
 	std::string result =
 		post_content(INOREADER_API_EDIT_TAG_URL, postcontent);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"inoreader_api::mark_article_read_with_token: postcontent = %s "
 		"result = %s",
 		postcontent,
@@ -267,7 +267,7 @@ std::string inoreader_api::get_new_token()
 	curl_easy_cleanup(handle);
 	curl_slist_free_all(custom_headers);
 
-	LOG(level::DEBUG, "inoreader_api::get_new_token: token = %s", result);
+	LOG(Level::DEBUG, "inoreader_api::get_new_token: token = %s", result);
 
 	return result;
 }
@@ -367,7 +367,7 @@ std::string inoreader_api::post_content(const std::string& url,
 	curl_easy_cleanup(handle);
 	curl_slist_free_all(custom_headers);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"inoreader_api::post_content: url = %s postdata = %s result = "
 		"%s",
 		url,

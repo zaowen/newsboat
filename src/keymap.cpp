@@ -12,7 +12,7 @@
 namespace newsboat {
 
 struct op_desc {
-	operation op;
+	Operation op ;
 	const char* opstr;
 	const char* default_key;
 	const char* help_text;
@@ -365,7 +365,7 @@ keymap::keymap(unsigned flags)
 	 * At startup, initialize the keymap with the default settings from the
 	 * list above.
 	 */
-	LOG(level::DEBUG, "keymap::keymap: flags = %x", flags);
+	LOG(Level::DEBUG, "keymap::keymap: flags = %x", flags);
 	for (unsigned int j = 1; contexts[j] != nullptr; j++) {
 		std::string ctx(contexts[j]);
 		for (int i = 0; opdescs[i].op != OP_NIL; ++i) {
@@ -397,7 +397,7 @@ void keymap::get_keymap_descriptions(std::vector<keymap_desc>& descs,
 		for (unsigned int j = 0; opdescs[j].op != OP_NIL; ++j) {
 			bool already_added = false;
 			for (const auto& keymap : keymap_[ctx]) {
-				operation op = keymap.second;
+				Operation op  = keymap.second;
 				if (op != OP_NIL) {
 					if (opdescs[j].op == op &&
 						opdescs[j].flags & flags) {
@@ -421,7 +421,7 @@ void keymap::get_keymap_descriptions(std::vector<keymap_desc>& descs,
 			}
 			if (!already_added) {
 				if (opdescs[j].flags & flags) {
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"keymap::get_keymap_"
 						"descriptions: "
 						"found unbound function: %s "
@@ -445,11 +445,11 @@ void keymap::get_keymap_descriptions(std::vector<keymap_desc>& descs,
 
 keymap::~keymap() {}
 
-void keymap::set_key(operation op,
+void keymap::set_key(Operation op ,
 	const std::string& key,
 	const std::string& context)
 {
-	LOG(level::DEBUG, "keymap::set_key(%d,%s) called", op, key);
+	LOG(Level::DEBUG, "keymap::set_key(%d,%s) called", op, key);
 	if (context == "all") {
 		for (unsigned int i = 0; contexts[i] != nullptr; i++) {
 			keymap_[contexts[i]][key] = op;
@@ -461,7 +461,7 @@ void keymap::set_key(operation op,
 
 void keymap::unset_key(const std::string& key, const std::string& context)
 {
-	LOG(level::DEBUG, "keymap::unset_key(%s) called", key);
+	LOG(Level::DEBUG, "keymap::unset_key(%s) called", key);
 	if (context == "all") {
 		for (unsigned int i = 0; contexts[i] != nullptr; i++) {
 			keymap_[contexts[i]][key] = OP_NIL;
@@ -471,7 +471,7 @@ void keymap::unset_key(const std::string& key, const std::string& context)
 	}
 }
 
-operation keymap::get_opcode(const std::string& opstr)
+Operation keymap::get_opcode(const std::string& opstr)
 {
 	for (int i = 0; opdescs[i].opstr; ++i) {
 		if (opstr == opdescs[i].opstr) {
@@ -496,11 +496,11 @@ char keymap::get_key(const std::string& keycode)
 	return 0;
 }
 
-operation keymap::get_operation(const std::string& keycode,
+Operation keymap::get_operation(const std::string& keycode,
 	const std::string& context)
 {
 	std::string key;
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"keymap::get_operation: keycode = %s context = %s",
 		keycode,
 		context);
@@ -516,7 +516,7 @@ void keymap::dump_config(std::vector<std::string>& config_output)
 {
 	for (unsigned int i = 1; contexts[i] != nullptr;
 		i++) { // TODO: optimize
-		std::map<std::string, operation>& x = keymap_[contexts[i]];
+		std::map<std::string, Operation>& x = keymap_[contexts[i]];
 		for (const auto& keymap : x) {
 			if (keymap.second < OP_INT_MIN) {
 				std::string configline = "bind-key ";
@@ -547,7 +547,7 @@ void keymap::dump_config(std::vector<std::string>& config_output)
 	}
 }
 
-std::string keymap::getopname(operation op)
+std::string keymap::getopname(Operation op )
 {
 	for (unsigned int i = 0; opdescs[i].op != OP_NIL; i++) {
 		if (opdescs[i].op == op)
@@ -563,18 +563,18 @@ void keymap::handle_action(const std::string& action,
 	 * The keymap acts as config_action_handler so that all the key-related
 	 * configuration is immediately handed to it.
 	 */
-	LOG(level::DEBUG, "keymap::handle_action(%s, ...) called", action);
+	LOG(Level::DEBUG, "keymap::handle_action(%s, ...) called", action);
 	if (action == "bind-key") {
 		if (params.size() < 2)
 			throw confighandlerexception(
-				action_handler_status::TOO_FEW_PARAMS);
+				ActionHandlerStatus::TOO_FEW_PARAMS);
 		std::string context = "all";
 		if (params.size() >= 3)
 			context = params[2];
 		if (!is_valid_context(context))
 			throw confighandlerexception(strprintf::fmt(
 				_("`%s' is not a valid context"), context));
-		operation op = get_opcode(params[1]);
+		Operation op  = get_opcode(params[1]);
 		if (op == OP_NIL) {
 			throw confighandlerexception(
 				strprintf::fmt(_("`%s' is not a valid "
@@ -587,7 +587,7 @@ void keymap::handle_action(const std::string& action,
 	} else if (action == "unbind-key") {
 		if (params.size() < 1)
 			throw confighandlerexception(
-				action_handler_status::TOO_FEW_PARAMS);
+				ActionHandlerStatus::TOO_FEW_PARAMS);
 		std::string context = "all";
 		if (params.size() >= 2)
 			context = params[1];
@@ -595,7 +595,7 @@ void keymap::handle_action(const std::string& action,
 	} else if (action == "macro") {
 		if (params.size() < 1)
 			throw confighandlerexception(
-				action_handler_status::TOO_FEW_PARAMS);
+				ActionHandlerStatus::TOO_FEW_PARAMS);
 		auto it = params.begin();
 		std::string macrokey = *it;
 		std::vector<macrocmd> cmds;
@@ -607,7 +607,7 @@ void keymap::handle_action(const std::string& action,
 		while (it != params.end()) {
 			if (first && *it != ";") {
 				tmpcmd.op = get_opcode(*it);
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"keymap::handle_action: new operation "
 					"`%s' "
 					"(op = %u)",
@@ -628,7 +628,7 @@ void keymap::handle_action(const std::string& action,
 					tmpcmd.args.clear();
 					first = true;
 				} else {
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"keymap::handle_action: new "
 						"parameter `%s' (op = %u)",
 						it);
@@ -643,10 +643,10 @@ void keymap::handle_action(const std::string& action,
 		macros_[macrokey] = cmds;
 	} else
 		throw confighandlerexception(
-			action_handler_status::INVALID_PARAMS);
+			ActionHandlerStatus::INVALID_PARAMS);
 }
 
-std::string keymap::getkey(operation op, const std::string& context)
+std::string keymap::getkey(Operation op , const std::string& context)
 {
 	if (context == "all") {
 		for (unsigned int i = 0; contexts[i] != nullptr; i++) {

@@ -12,7 +12,7 @@ void FeedContainer::sort_feeds(const FeedSortStrategy& sort_strategy)
 	std::lock_guard<std::mutex> feedslock(feeds_mutex);
 
 	switch (sort_strategy.sm) {
-	case feed_sort_method_t::NONE:
+	case FeedSortMethod::NONE:
 		std::stable_sort(feeds.begin(),
 			feeds.end(),
 			[](std::shared_ptr<rss_feed> a,
@@ -20,7 +20,7 @@ void FeedContainer::sort_feeds(const FeedSortStrategy& sort_strategy)
 				return a->get_order() < b->get_order();
 			});
 		break;
-	case feed_sort_method_t::FIRST_TAG:
+	case FeedSortMethod::FIRST_TAG:
 		std::stable_sort(feeds.begin(),
 			feeds.end(),
 			[](std::shared_ptr<rss_feed> a,
@@ -34,7 +34,7 @@ void FeedContainer::sort_feeds(const FeedSortStrategy& sort_strategy)
 					       b->get_firsttag().c_str()) < 0;
 			});
 		break;
-	case feed_sort_method_t::TITLE:
+	case FeedSortMethod::TITLE:
 		std::stable_sort(feeds.begin(),
 			feeds.end(),
 			[](std::shared_ptr<rss_feed> a,
@@ -43,7 +43,7 @@ void FeedContainer::sort_feeds(const FeedSortStrategy& sort_strategy)
 					       b->title().c_str()) < 0;
 			});
 		break;
-	case feed_sort_method_t::ARTICLE_COUNT:
+	case FeedSortMethod::ARTICLE_COUNT:
 		std::stable_sort(feeds.begin(),
 			feeds.end(),
 			[](std::shared_ptr<rss_feed> a,
@@ -52,7 +52,7 @@ void FeedContainer::sort_feeds(const FeedSortStrategy& sort_strategy)
 					b->total_item_count();
 			});
 		break;
-	case feed_sort_method_t::UNREAD_ARTICLE_COUNT:
+	case FeedSortMethod::UNREAD_ARTICLE_COUNT:
 		std::stable_sort(feeds.begin(),
 			feeds.end(),
 			[](std::shared_ptr<rss_feed> a,
@@ -61,7 +61,7 @@ void FeedContainer::sort_feeds(const FeedSortStrategy& sort_strategy)
 					b->unread_item_count();
 			});
 		break;
-	case feed_sort_method_t::LAST_UPDATED:
+	case FeedSortMethod::LAST_UPDATED:
 		std::stable_sort(feeds.begin(),
 			feeds.end(),
 			[](std::shared_ptr<rss_feed> a,
@@ -90,10 +90,10 @@ void FeedContainer::sort_feeds(const FeedSortStrategy& sort_strategy)
 	}
 
 	switch (sort_strategy.sd) {
-	case sort_direction_t::ASC:
+	case SortDirection::ASC:
 		std::reverse(feeds.begin(), feeds.end());
 		break;
-	case sort_direction_t::DESC:
+	case SortDirection::DESC:
 		break;
 	}
 }
@@ -115,7 +115,7 @@ void FeedContainer::mark_all_feed_items_read(const unsigned int feed_pos)
 	std::vector<std::shared_ptr<rss_item>>& items = feed->items();
 	if (items.size() > 0) {
 		bool notify = items[0]->feedurl() != feed->rssurl();
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"FeedContainer::mark_all_read: notify = %s",
 			notify ? "yes" : "no");
 		for (const auto& item : items) {
@@ -168,7 +168,7 @@ std::shared_ptr<rss_feed> FeedContainer::get_feed_by_url(
 		if (feedurl == feed->rssurl())
 			return feed;
 	}
-	LOG(level::ERROR,
+	LOG(Level::ERROR,
 		"FeedContainer:get_feed_by_url failed for %s",
 		feedurl);
 	return std::shared_ptr<rss_feed>();

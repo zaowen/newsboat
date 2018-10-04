@@ -15,7 +15,7 @@ namespace newsboat {
 
 typedef std::pair<std::string, matcher*> feedurl_expr_pair;
 
-enum class dl_status { SUCCESS, TO_BE_DOWNLOADED, DURING_DOWNLOAD, DL_ERROR };
+enum class DlStatus { SUCCESS, TO_BE_DOWNLOADED, DURING_DOWNLOAD, DL_ERROR };
 
 class cache;
 class rss_feed;
@@ -276,7 +276,7 @@ public:
 
 	void clear_items()
 	{
-		LOG(level::DEBUG, "rss_feed: clearing items");
+		LOG(Level::DEBUG, "rss_feed: clearing items");
 		items_.clear();
 		items_guid_map.clear();
 	}
@@ -380,9 +380,9 @@ public:
 
 	void reset_status()
 	{
-		status_ = dl_status::TO_BE_DOWNLOADED;
+		status_ = DlStatus::TO_BE_DOWNLOADED;
 	}
-	void set_status(dl_status st)
+	void set_status(DlStatus st)
 	{
 		status_ = st;
 	}
@@ -412,7 +412,7 @@ private:
 	bool is_rtl_;
 	unsigned int idx;
 	unsigned int order;
-	dl_status status_;
+	DlStatus status_;
 	std::mutex items_guid_map_mutex;
 };
 

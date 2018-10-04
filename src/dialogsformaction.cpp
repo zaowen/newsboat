@@ -39,7 +39,7 @@ void dialogs_formaction::prepare()
 
 		unsigned int i = 1;
 		for (const auto& fa : v->get_formaction_names()) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"dialogs_formaction::prepare: p1 = %p p2 = %p",
 				v->get_formaction(fa.first).get(),
 				get_parent_formaction().get());
@@ -70,7 +70,7 @@ keymap_hint_entry* dialogs_formaction::get_keymap_hint()
 	return hints;
 }
 
-void dialogs_formaction::process_operation(operation op,
+void dialogs_formaction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {

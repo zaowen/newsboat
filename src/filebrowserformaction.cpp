@@ -35,7 +35,7 @@ filebrowser_formaction::filebrowser_formaction(view* vv, std::string formstr)
 
 filebrowser_formaction::~filebrowser_formaction() {}
 
-void filebrowser_formaction::process_operation(operation op,
+void filebrowser_formaction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -49,7 +49,7 @@ void filebrowser_formaction::process_operation(operation op,
 		 *   - the focus is in the filename field, then the filename
 		 * needs to be returned.
 		 */
-		LOG(level::DEBUG, "filebrowser_formaction: 'opening' item");
+		LOG(Level::DEBUG, "filebrowser_formaction: 'opening' item");
 		std::string focus = f->get_focus();
 		if (focus.length() > 0) {
 			if (focus == "files") {
@@ -80,7 +80,7 @@ void filebrowser_formaction::process_operation(operation op,
 									"t"),
 							width));
 					int status = ::chdir(filename.c_str());
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"filebrowser_formaction:OP_"
 						"OPEN: "
 						"chdir(%s) = %i",
@@ -145,13 +145,13 @@ void filebrowser_formaction::process_operation(operation op,
 		}
 	} break;
 	case OP_QUIT:
-		LOG(level::DEBUG, "view::filebrowser: quitting");
+		LOG(Level::DEBUG, "view::filebrowser: quitting");
 		curs_set(0);
 		v->pop_current_formaction();
 		f->set("filenametext", "");
 		break;
 	case OP_HARDQUIT:
-		LOG(level::DEBUG, "view::filebrowser: hard quitting");
+		LOG(Level::DEBUG, "view::filebrowser: hard quitting");
 		while (v->formaction_stack_size() > 0) {
 			v->pop_current_formaction();
 		}
@@ -228,7 +228,7 @@ void filebrowser_formaction::init()
 		std::string save_path =
 			v->get_cfg()->get_configvalue("save-path");
 
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"view::filebrowser: save-path is '%s'",
 			save_path);
 
@@ -236,7 +236,7 @@ void filebrowser_formaction::init()
 	}
 
 	int status = ::chdir(dir.c_str());
-	LOG(level::DEBUG, "view::filebrowser: chdir(%s) = %i", dir, status);
+	LOG(Level::DEBUG, "view::filebrowser: chdir(%s) = %i", dir, status);
 
 	auto cwdtmp = utils::getcwd();
 

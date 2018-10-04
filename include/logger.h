@@ -11,7 +11,7 @@ namespace newsboat {
 
 /* Be sure to update loglevel_str array in src/logger.cpp if you change this
  * enum. */
-enum class level { NONE = 0, USERERROR, CRITICAL, ERROR, WARN, INFO, DEBUG };
+enum class Level { NONE = 0, USERERROR, CRITICAL, ERROR, WARN, INFO, DEBUG };
 
 class logger {
 public:
@@ -19,10 +19,10 @@ public:
 
 	void set_logfile(const std::string& logfile);
 	void set_errorlogfile(const std::string& logfile);
-	void set_loglevel(level l);
+	void set_loglevel(Level l);
 
 	template<typename... Args>
-	void log(level l, const std::string& format, Args... args)
+	void log(Level l, const std::string& format, Args... args)
 	{
 		const char* loglevel_str[] = {"NONE",
 			"USERERROR",
@@ -37,10 +37,10 @@ public:
 		 * logfile (if applicable).
 		 */
 		std::lock_guard<std::mutex> lock(logMutex);
-		if (l <= curlevel && curlevel > level::NONE &&
+		if (l <= curlevel && curlevel > Level::NONE &&
 			(f.is_open() || ef.is_open())) {
-			if (curlevel > level::DEBUG)
-				curlevel = level::DEBUG;
+			if (curlevel > Level::DEBUG)
+				curlevel = Level::DEBUG;
 
 			char date[128];
 			time_t t = time(nullptr);
@@ -57,7 +57,7 @@ public:
 				f << buf << std::endl;
 			}
 
-			if (level::USERERROR == l && ef.is_open()) {
+			if (Level::USERERROR == l && ef.is_open()) {
 				buf = strprintf::fmt(
 					"[%s] %s", date, logmsgbuf);
 				ef << buf << std::endl;
@@ -75,7 +75,7 @@ private:
 	}
 	~logger() {}
 
-	level curlevel;
+	Level curlevel;
 	std::mutex logMutex;
 	static std::mutex instanceMutex;
 	std::fstream f;

@@ -46,7 +46,7 @@ bool matcher::parse(const std::string& expr)
 	unsigned long diff =
 		(((tv2.tv_sec - tv1.tv_sec) * 1000000) + tv2.tv_usec) -
 		tv1.tv_usec;
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"matcher::parse: parsing `%s' took %lu µs (success = %d)",
 		expr,
 		diff,
@@ -85,7 +85,7 @@ bool matcher::matchop_lt(expression* e, matchable* item)
 {
 	if (!item->has_attribute(e->name))
 		throw matcherexception(
-			matcherexception::type::ATTRIB_UNAVAIL, e->name);
+			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
 	std::istringstream islit(e->literal);
 	std::istringstream isatt(item->get_attribute(e->name));
 	int ilit, iatt;
@@ -98,7 +98,7 @@ bool matcher::matchop_between(expression* e, matchable* item)
 {
 	if (!item->has_attribute(e->name))
 		throw matcherexception(
-			matcherexception::type::ATTRIB_UNAVAIL, e->name);
+			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
 	std::vector<std::string> lit = utils::tokenize(e->literal, ":");
 	std::istringstream isatt(item->get_attribute(e->name));
 	int att;
@@ -121,7 +121,7 @@ bool matcher::matchop_gt(expression* e, matchable* item)
 {
 	if (!item->has_attribute(e->name))
 		throw matcherexception(
-			matcherexception::type::ATTRIB_UNAVAIL, e->name);
+			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
 	std::istringstream islit(e->literal);
 	std::istringstream isatt(item->get_attribute(e->name));
 	int ilit, iatt;
@@ -134,7 +134,7 @@ bool matcher::matchop_rxeq(expression* e, matchable* item)
 {
 	if (!item->has_attribute(e->name))
 		throw matcherexception(
-			matcherexception::type::ATTRIB_UNAVAIL, e->name);
+			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
 	if (!e->regex) {
 		e->regex = new regex_t;
 		int err;
@@ -144,7 +144,7 @@ bool matcher::matchop_rxeq(expression* e, matchable* item)
 			char buf[1024];
 			regerror(err, e->regex, buf, sizeof(buf));
 			throw matcherexception(
-				matcherexception::type::INVALID_REGEX,
+				matcherexception::Type::INVALID_REGEX,
 				e->literal,
 				buf);
 		}
@@ -162,7 +162,7 @@ bool matcher::matchop_cont(expression* e, matchable* item)
 {
 	if (!item->has_attribute(e->name))
 		throw matcherexception(
-			matcherexception::type::ATTRIB_UNAVAIL, e->name);
+			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
 	std::vector<std::string> elements =
 		utils::tokenize(item->get_attribute(e->name), " ");
 	std::string literal = e->literal;
@@ -177,11 +177,11 @@ bool matcher::matchop_cont(expression* e, matchable* item)
 bool matcher::matchop_eq(expression* e, matchable* item)
 {
 	if (!item->has_attribute(e->name)) {
-		LOG(level::WARN,
+		LOG(Level::WARN,
 			"matcher::matches_r: attribute %s not available",
 			e->name);
 		throw matcherexception(
-			matcherexception::type::ATTRIB_UNAVAIL, e->name);
+			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
 	}
 	return (item->get_attribute(e->name) == e->literal);
 }

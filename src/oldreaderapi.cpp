@@ -39,7 +39,7 @@ oldreader_api::~oldreader_api()
 bool oldreader_api::authenticate()
 {
 	auth = retrieve_auth();
-	LOG(level::DEBUG, "oldreader_api::authenticate: Auth = %s", auth);
+	LOG(Level::DEBUG, "oldreader_api::authenticate: Auth = %s", auth);
 	return auth != "";
 }
 
@@ -85,7 +85,7 @@ std::string oldreader_api::retrieve_auth()
 
 	std::vector<std::string> lines = utils::tokenize(result);
 	for (const auto& line : lines) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"oldreader_api::retrieve_auth: line = %s",
 			line);
 		if (line.substr(0, 5) == "Auth=") {
@@ -115,13 +115,13 @@ std::vector<tagged_feedurl> oldreader_api::get_subscribed_urls()
 	curl_easy_cleanup(handle);
 	curl_slist_free_all(custom_headers);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"oldreader_api::get_subscribed_urls: document = %s",
 		result);
 
 	json_object* reply = json_tokener_parse(result.c_str());
 	if (reply == nullptr) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"oldreader_api::get_subscribed_urls: failed to parse "
 			"response as JSON.");
 		return urls;
@@ -195,7 +195,7 @@ void oldreader_api::add_custom_headers(curl_slist** custom_headers)
 		auth_header = strprintf::fmt(
 			"Authorization: GoogleLogin auth=%s", auth);
 	}
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"oldreader_api::add_custom_headers header = %s",
 		auth_header);
 	*custom_headers =
@@ -210,7 +210,7 @@ bool oldreader_api::mark_all_read(const std::string& feedurl)
 	try {
 		real_feedurl = utils::unescape_url(elems[0]);
 	} catch (const std::runtime_error& e) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"oldreader_api::mark_all_read: Failed to "
 			"unescape_url(%s): "
 			"%s",
@@ -259,7 +259,7 @@ bool oldreader_api::mark_article_read_with_token(const std::string& guid,
 	std::string result =
 		post_content(OLDREADER_API_EDIT_TAG_URL, postcontent);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"oldreader_api::mark_article_read_with_token: postcontent = %s "
 		"result = %s",
 		postcontent,
@@ -284,7 +284,7 @@ std::string oldreader_api::get_new_token()
 	curl_easy_cleanup(handle);
 	curl_slist_free_all(custom_headers);
 
-	LOG(level::DEBUG, "oldreader_api::get_new_token: token = %s", result);
+	LOG(Level::DEBUG, "oldreader_api::get_new_token: token = %s", result);
 
 	return result;
 }
@@ -384,7 +384,7 @@ std::string oldreader_api::post_content(const std::string& url,
 	curl_easy_cleanup(handle);
 	curl_slist_free_all(custom_headers);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"oldreader_api::post_content: url = %s postdata = %s result = "
 		"%s",
 		url,

@@ -55,14 +55,14 @@ namespace newsboat {
 
 void sighup_action(int /* sig */)
 {
-	LOG(level::DEBUG, "caught SIGHUP");
+	LOG(Level::DEBUG, "caught SIGHUP");
 	stfl::reset();
 	::exit(EXIT_FAILURE);
 }
 
 void ignore_signal(int sig)
 {
-	LOG(level::WARN, "caught signal %d but ignored it", sig);
+	LOG(Level::WARN, "caught signal %d but ignored it", sig);
 }
 
 void omg_a_child_died(int /* sig */)
@@ -132,7 +132,7 @@ int controller::run(const CLIArgsParser& args)
 	configpaths.process_args(args);
 
 	if (args.do_import) {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"Importing OPML file from %s",
 			args.importfile);
 		urlcfg = new file_urlreader(configpaths.url_file());
@@ -141,7 +141,7 @@ int controller::run(const CLIArgsParser& args)
 		return EXIT_SUCCESS;
 	}
 
-	LOG(level::INFO, "nl_langinfo(CODESET): %s", nl_langinfo(CODESET));
+	LOG(Level::INFO, "nl_langinfo(CODESET): %s", nl_langinfo(CODESET));
 
 	if (!configpaths.setup_dirs()) {
 		return EXIT_FAILURE;
@@ -194,7 +194,7 @@ int controller::run(const CLIArgsParser& args)
 		cfgparser.parse("/etc/" PROGRAM_NAME "/config");
 		cfgparser.parse(configpaths.config_file());
 	} catch (const configexception& ex) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"an exception occurred while parsing the configuration "
 			"file: %s",
 			ex.what());
@@ -295,7 +295,7 @@ int controller::run(const CLIArgsParser& args)
 		urlcfg = new inoreader_urlreader(
 			&cfg, configpaths.url_file(), api);
 	} else {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"unknown urls-source `%s'",
 			urlcfg->get_source());
 	}
@@ -317,7 +317,7 @@ int controller::run(const CLIArgsParser& args)
 	}
 
 	if (urlcfg->get_urls().size() == 0) {
-		LOG(level::ERROR, "no URLs configured.");
+		LOG(Level::ERROR, "no URLs configured.");
 		std::string msg;
 		if (type == "local") {
 			msg = strprintf::fmt(
@@ -429,7 +429,7 @@ int controller::run(const CLIArgsParser& args)
 	}
 
 	if (args.do_read_import) {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"Importing read information file from %s",
 			args.readinfofile);
 		std::cout << _("Importing list of read articles...");
@@ -440,7 +440,7 @@ int controller::run(const CLIArgsParser& args)
 	}
 
 	if (args.do_read_export) {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"Exporting read information file to %s",
 			args.readinfofile);
 		std::cout << _("Exporting list of read articles...");
@@ -475,7 +475,7 @@ int controller::run(const CLIArgsParser& args)
 
 	unsigned int history_limit =
 		cfg.get_configvalue_as_int("history-limit");
-	LOG(level::DEBUG, "controller::run: history-limit = %u", history_limit);
+	LOG(Level::DEBUG, "controller::run: history-limit = %u", history_limit);
 	formaction::save_histories(configpaths.search_file(),
 		configpaths.cmdline_file(),
 		history_limit);
@@ -491,7 +491,7 @@ int controller::run(const CLIArgsParser& args)
 			std::cout << _("done.") << std::endl;
 		}
 	} catch (const dbexception& e) {
-		LOG(level::USERERROR, "Cleaning up cache failed: %s", e.what());
+		LOG(Level::USERERROR, "Cleaning up cache failed: %s", e.what());
 		if (!args.silent) {
 			std::cout << _("failed: ") << e.what() << std::endl;
 			ret = EXIT_FAILURE;
@@ -583,16 +583,16 @@ void controller::replace_feed(std::shared_ptr<rss_feed> oldfeed,
 {
 	std::lock_guard<std::mutex> feedslock(feeds_mutex);
 
-	LOG(level::DEBUG, "controller::replace_feed: feed is nonempty, saving");
+	LOG(Level::DEBUG, "controller::replace_feed: feed is nonempty, saving");
 	rsscache->externalize_rssfeed(
 		newfeed, ign.matches_resetunread(newfeed->rssurl()));
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"controller::replace_feed: after externalize_rssfeed");
 
 	bool ignore_disp = (cfg.get_configvalue("ignore-mode") == "display");
 	std::shared_ptr<rss_feed> feed = rsscache->internalize_rssfeed(
 		oldfeed->rssurl(), ignore_disp ? &ign : nullptr);
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"controller::replace_feed: after internalize_rssfeed");
 
 	feed->set_tags(urlcfg->get_tags(oldfeed->rssurl()));
@@ -719,7 +719,7 @@ void controller::reload_urls_file()
 				new_feed->set_order(i);
 				new_feeds.push_back(new_feed);
 			} catch (const dbexception& e) {
-				LOG(level::ERROR,
+				LOG(Level::ERROR,
 					"controller::reload_urls_file: caught "
 					"exception: %s",
 					e.what());
@@ -765,7 +765,7 @@ int controller::execute_commands(const std::vector<std::string>& cmds)
 	if (v->formaction_stack_size() > 0)
 		v->pop_current_formaction();
 	for (const auto& cmd : cmds) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"controller::execute_commands: executing `%s'",
 			cmd);
 		if (cmd == "reload") {
@@ -864,14 +864,14 @@ void controller::enqueue_items(std::shared_ptr<rss_feed> feed)
 	std::lock_guard<std::mutex> lock(feed->item_mutex);
 	for (const auto& item : feed->items()) {
 		if (!item->enqueued() && item->enclosure_url().length() > 0) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"controller::enqueue_items: enclosure_url = "
 				"`%s' "
 				"enclosure_type = `%s'",
 				item->enclosure_url(),
 				item->enclosure_type());
 			if (utils::is_http_url(item->enclosure_url())) {
-				LOG(level::INFO,
+				LOG(Level::INFO,
 					"controller::enqueue_items: enqueuing "
 					"`%s'",
 					item->enclosure_url());

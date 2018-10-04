@@ -28,7 +28,7 @@ urlview_formaction::urlview_formaction(view* vv,
 
 urlview_formaction::~urlview_formaction() {}
 
-void urlview_formaction::process_operation(operation op,
+void urlview_formaction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {

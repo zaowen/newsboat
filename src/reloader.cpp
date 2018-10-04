@@ -31,7 +31,7 @@ void Reloader::spawn_reloadthread()
 
 void Reloader::start_reload_all_thread(std::vector<int>* indexes)
 {
-	LOG(level::INFO, "starting reload all thread");
+	LOG(Level::INFO, "starting reload all thread");
 	std::thread t(downloadthread(*this, indexes));
 	t.detach();
 }
@@ -39,10 +39,10 @@ void Reloader::start_reload_all_thread(std::vector<int>* indexes)
 bool Reloader::trylock_reload_mutex()
 {
 	if (reload_mutex.try_lock()) {
-		LOG(level::DEBUG, "Reloader::trylock_reload_mutex succeeded");
+		LOG(Level::DEBUG, "Reloader::trylock_reload_mutex succeeded");
 		return true;
 	}
-	LOG(level::DEBUG, "Reloader::trylock_reload_mutex failed");
+	LOG(Level::DEBUG, "Reloader::trylock_reload_mutex failed");
 	return false;
 }
 
@@ -51,7 +51,7 @@ void Reloader::reload(unsigned int pos,
 	bool unattended,
 	curl_handle* easyhandle)
 {
-	LOG(level::DEBUG, "Reloader::reload: pos = %u max = %u", pos, max);
+	LOG(Level::DEBUG, "Reloader::reload: pos = %u max = %u", pos, max);
 	if (pos < ctrl->get_feedcontainer()->feeds.size()) {
 		std::shared_ptr<rss_feed> oldfeed =
 			ctrl->get_feedcontainer()->feeds[pos];
@@ -72,18 +72,18 @@ void Reloader::reload(unsigned int pos,
 			ignore_dl ? ctrl->get_ignores() : nullptr,
 			ctrl->get_api());
 		parser.set_easyhandle(easyhandle);
-		LOG(level::DEBUG, "Reloader::reload: created parser");
+		LOG(Level::DEBUG, "Reloader::reload: created parser");
 		try {
-			oldfeed->set_status(dl_status::DURING_DOWNLOAD);
+			oldfeed->set_status(DlStatus::DURING_DOWNLOAD);
 			std::shared_ptr<rss_feed> newfeed = parser.parse();
 			if (newfeed->total_item_count() > 0) {
 				ctrl->replace_feed(
 					oldfeed, newfeed, pos, unattended);
 			} else {
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"Reloader::reload: feed is empty");
 			}
-			oldfeed->set_status(dl_status::SUCCESS);
+			oldfeed->set_status(DlStatus::SUCCESS);
 			ctrl->get_view()->set_status("");
 		} catch (const dbexception& e) {
 			errmsg = strprintf::fmt(
@@ -102,9 +102,9 @@ void Reloader::reload(unsigned int pos,
 				e.what());
 		}
 		if (errmsg != "") {
-			oldfeed->set_status(dl_status::DL_ERROR);
+			oldfeed->set_status(DlStatus::DL_ERROR);
 			ctrl->get_view()->set_status(errmsg);
-			LOG(level::USERERROR, "%s", errmsg);
+			LOG(Level::USERERROR, "%s", errmsg);
 		}
 	} else {
 		ctrl->get_view()->show_error(_("Error: invalid feed!"));
@@ -139,14 +139,14 @@ void Reloader::reload_all(bool unattended)
 
 	t1 = time(nullptr);
 
-	LOG(level::DEBUG, "Reloader::reload_all: starting with reload all...");
+	LOG(Level::DEBUG, "Reloader::reload_all: starting with reload all...");
 	if (num_threads == 1) {
 		reload_range(0, num_feeds - 1, num_feeds, unattended);
 	} else {
 		std::vector<std::pair<unsigned int, unsigned int>> partitions =
 			utils::partition_indexes(0, num_feeds - 1, num_threads);
 		std::vector<std::thread> threads;
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"Reloader::reload_all: starting reload threads...");
 		for (int i = 0; i < num_threads - 1; i++) {
 			threads.push_back(std::thread(reloadrangethread(*this,
@@ -155,13 +155,13 @@ void Reloader::reload_all(bool unattended)
 				num_feeds,
 				unattended)));
 		}
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"Reloader::reload_all: starting my own reload...");
 		reload_range(partitions[num_threads - 1].first,
 			partitions[num_threads - 1].second,
 			num_feeds,
 			unattended);
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"Reloader::reload_all: joining other threads...");
 		for (size_t i = 0; i < threads.size(); i++) {
 			threads[i].join();
@@ -169,7 +169,7 @@ void Reloader::reload_all(bool unattended)
 	}
 
 	// refresh query feeds (update and sort)
-	LOG(level::DEBUG, "Reloader::reload_all: refresh query feeds");
+	LOG(Level::DEBUG, "Reloader::reload_all: refresh query feeds");
 	for (const auto& feed : ctrl->get_feedcontainer()->feeds) {
 		ctrl->get_view()->prepare_query_feed(feed);
 	}
@@ -181,7 +181,7 @@ void Reloader::reload_all(bool unattended)
 
 	t2 = time(nullptr);
 	dt = t2 - t1;
-	LOG(level::INFO, "Reloader::reload_all: reload took %d seconds", dt);
+	LOG(Level::INFO, "Reloader::reload_all: reload took %d seconds", dt);
 
 	const auto unread_feeds2 =
 		ctrl->get_feedcontainer()->unread_feed_count();
@@ -194,8 +194,8 @@ void Reloader::reload_all(bool unattended)
 		int article_count = unread_articles2 - unread_articles;
 		int feed_count = unread_feeds2 - unread_feeds;
 
-		LOG(level::DEBUG, "unread article count: %d", article_count);
-		LOG(level::DEBUG, "unread feed count: %d", feed_count);
+		LOG(Level::DEBUG, "unread article count: %d", article_count);
+		LOG(Level::DEBUG, "unread feed count: %d", feed_count);
 
 		fmtstr_formatter fmt;
 		fmt.register_fmt('f', std::to_string(unread_feeds2));
@@ -275,7 +275,7 @@ void Reloader::reload_range(unsigned int start,
 	curl_handle easyhandle;
 
 	for (const auto& i : v) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"Reloader::reload_range: reloading feed #%u",
 			i);
 		reload(i, size, unattended, &easyhandle);
@@ -287,22 +287,22 @@ void Reloader::notify(const std::string& msg)
 	const auto cfg = ctrl->get_cfg();
 
 	if (cfg->get_configvalue_as_bool("notify-screen")) {
-		LOG(level::DEBUG, "reloader:notify: notifying screen");
+		LOG(Level::DEBUG, "reloader:notify: notifying screen");
 		std::cout << "\033^" << msg << "\033\\";
 		std::cout.flush();
 	}
 	if (cfg->get_configvalue_as_bool("notify-xterm")) {
-		LOG(level::DEBUG, "reloader:notify: notifying xterm");
+		LOG(Level::DEBUG, "reloader:notify: notifying xterm");
 		std::cout << "\033]2;" << msg << "\033\\";
 		std::cout.flush();
 	}
 	if (cfg->get_configvalue_as_bool("notify-beep")) {
-		LOG(level::DEBUG, "reloader:notify: notifying beep");
+		LOG(Level::DEBUG, "reloader:notify: notifying beep");
 		::beep();
 	}
 	if (cfg->get_configvalue("notify-program").length() > 0) {
 		std::string prog = cfg->get_configvalue("notify-program");
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"reloader:notify: notifying external program `%s'",
 			prog);
 		utils::run_command(prog, msg);

@@ -22,7 +22,7 @@ namespace newsboat {
 
 tagsouppullparser::tagsouppullparser()
 	: inputstream(0)
-	, current_event(event::START_DOCUMENT)
+	, current_event(Event::START_DOCUMENT)
 	, c('\0')
 {
 }
@@ -32,7 +32,7 @@ tagsouppullparser::~tagsouppullparser() {}
 void tagsouppullparser::set_input(std::istream& is)
 {
 	inputstream = &is;
-	current_event = event::START_DOCUMENT;
+	current_event = Event::START_DOCUMENT;
 }
 
 std::string tagsouppullparser::get_attribute_value(
@@ -46,7 +46,7 @@ std::string tagsouppullparser::get_attribute_value(
 	throw std::invalid_argument(_("attribute not found"));
 }
 
-tagsouppullparser::event tagsouppullparser::get_event_type() const
+tagsouppullparser::Event tagsouppullparser::get_event_type() const
 {
 	return current_event;
 }
@@ -56,7 +56,7 @@ std::string tagsouppullparser::get_text() const
 	return text;
 }
 
-tagsouppullparser::event tagsouppullparser::next()
+tagsouppullparser::Event tagsouppullparser::next()
 {
 	/*
 	 * the next() method returns the next event by parsing the
@@ -67,26 +67,26 @@ tagsouppullparser::event tagsouppullparser::next()
 	text = "";
 
 	if (inputstream->eof()) {
-		current_event = event::END_DOCUMENT;
+		current_event = Event::END_DOCUMENT;
 	}
 
 	switch (current_event) {
-	case event::START_DOCUMENT:
-	case event::START_TAG:
-	case event::END_TAG:
+	case Event::START_DOCUMENT:
+	case Event::START_TAG:
+	case Event::END_TAG:
 		skip_whitespace();
 		if (inputstream->eof()) {
-			current_event = event::END_DOCUMENT;
+			current_event = Event::END_DOCUMENT;
 		} else if (c != '<') {
 			handle_text();
 		} else {
 			handle_tag();
 		}
 		break;
-	case event::TEXT:
+	case Event::TEXT:
 		handle_tag();
 		break;
-	case event::END_DOCUMENT:
+	case Event::END_DOCUMENT:
 		break;
 	}
 	return get_event_type();
@@ -144,13 +144,13 @@ std::string tagsouppullparser::read_tag()
 	return s;
 }
 
-tagsouppullparser::event tagsouppullparser::determine_tag_type()
+tagsouppullparser::Event tagsouppullparser::determine_tag_type()
 {
 	if (text.length() > 0 && text[0] == '/') {
 		text.erase(0, 1);
-		return event::END_TAG;
+		return Event::END_TAG;
 	}
-	return event::START_TAG;
+	return Event::START_TAG;
 }
 
 std::string tagsouppullparser::decode_attribute(const std::string& s)
@@ -448,7 +448,7 @@ static struct {
 
 std::string tagsouppullparser::decode_entity(std::string s)
 {
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"tagsouppullparser::decode_entity: decoding '%s'...",
 		s);
 	if (s.length() > 1 && s[0] == '#') {
@@ -500,7 +500,7 @@ std::string tagsouppullparser::decode_entity(std::string s)
 			mbc[pos] = '\0';
 			result.append(mbc);
 		}
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"tagsouppullparser::decode_entity: wc = %u pos = %d "
 			"mbc = "
 			"'%s'",
@@ -531,7 +531,7 @@ void tagsouppullparser::parse_tag(const std::string& tagstr)
 	std::string::size_type pos = tagstr.find_first_of(" \r\n\t", last_pos);
 	unsigned int count = 0;
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"parse_tag: parsing '%s', pos = %d, last_pos = %d",
 		tagstr,
 		pos,
@@ -547,15 +547,15 @@ void tagsouppullparser::parse_tag(const std::string& tagstr)
 				// a kludge for <br/>
 				text.pop_back();
 			}
-			LOG(level::DEBUG, "parse_tag: tag name = %s", text);
+			LOG(Level::DEBUG, "parse_tag: tag name = %s", text);
 		} else {
 			pos = tagstr.find_first_of("= ", last_pos);
 			std::string attr;
 			if (pos != std::string::npos) {
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"parse_tag: found = or space");
 				if (tagstr[pos] == '=') {
-					LOG(level::DEBUG, "parse_tag: found =");
+					LOG(Level::DEBUG, "parse_tag: found =");
 					if (tagstr[pos + 1] == '\'' ||
 						tagstr[pos + 1] == '"') {
 						pos = tagstr.find_first_of(
@@ -563,7 +563,7 @@ void tagsouppullparser::parse_tag(const std::string& tagstr)
 							pos + 2);
 						if (pos != std::string::npos)
 							pos++;
-						LOG(level::DEBUG,
+						LOG(Level::DEBUG,
 							"parse_tag: finding "
 							"ending "
 							"quote, pos = %d",
@@ -571,7 +571,7 @@ void tagsouppullparser::parse_tag(const std::string& tagstr)
 					} else {
 						pos = tagstr.find_first_of(
 							" \r\n\t", pos + 1);
-						LOG(level::DEBUG,
+						LOG(Level::DEBUG,
 							"parse_tag: finding "
 							"end of "
 							"unquoted attribute");
@@ -579,13 +579,13 @@ void tagsouppullparser::parse_tag(const std::string& tagstr)
 				}
 			}
 			if (pos == std::string::npos) {
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"parse_tag: found end of string, "
 					"correcting end position");
 				pos = tagstr.length();
 			}
 			attr = tagstr.substr(last_pos, pos - last_pos);
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"parse_tag: extracted attribute is '%s', "
 				"adding",
 				attr);
@@ -602,7 +602,7 @@ void tagsouppullparser::handle_tag()
 	try {
 		s = read_tag();
 	} catch (const xmlexception&) {
-		current_event = event::END_DOCUMENT;
+		current_event = Event::END_DOCUMENT;
 		return;
 	}
 	parse_tag(s);
@@ -611,7 +611,7 @@ void tagsouppullparser::handle_tag()
 
 void tagsouppullparser::handle_text()
 {
-	if (current_event != event::START_DOCUMENT)
+	if (current_event != Event::START_DOCUMENT)
 		text.append(ws);
 	text.append(1, c);
 	std::string tmp;
@@ -619,7 +619,7 @@ void tagsouppullparser::handle_text()
 	text.append(tmp);
 	text = decode_entities(text);
 	utils::remove_soft_hyphens(text);
-	current_event = event::TEXT;
+	current_event = Event::TEXT;
 }
 
 } // namespace newsboat

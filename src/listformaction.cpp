@@ -9,7 +9,7 @@ list_formaction::list_formaction(view* v, std::string formstr)
 {
 }
 
-void list_formaction::process_operation(operation op,
+void list_formaction::process_operation(Operation op ,
 	bool,
 	std::vector<std::string>*)
 {

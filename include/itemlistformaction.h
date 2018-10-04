@@ -59,7 +59,7 @@ public:
 
 	void do_update_visible_items();
 
-	void finished_qna(operation op) override;
+	void finished_qna(Operation op ) override;
 
 	void set_show_searchresult(bool b)
 	{
@@ -75,7 +75,7 @@ public:
 	void set_regexmanager(regexmanager* r);
 
 private:
-	void process_operation(operation op,
+	void process_operation(Operation op ,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) override;
 	void set_head(const std::string& s,

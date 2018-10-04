@@ -33,13 +33,13 @@ void colormanager::register_commands(configparser& cfgparser)
 void colormanager::handle_action(const std::string& action,
 	const std::vector<std::string>& params)
 {
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"colormanager::handle_action(%s,...) was called",
 		action);
 	if (action == "color") {
 		if (params.size() < 3) {
 			throw confighandlerexception(
-				action_handler_status::TOO_FEW_PARAMS);
+				ActionHandlerStatus::TOO_FEW_PARAMS);
 		}
 
 		/*
@@ -83,7 +83,7 @@ void colormanager::handle_action(const std::string& action,
 
 	} else
 		throw confighandlerexception(
-			action_handler_status::INVALID_COMMAND);
+			ActionHandlerStatus::INVALID_COMMAND);
 }
 
 void colormanager::dump_config(std::vector<std::string>& config_output)
@@ -130,7 +130,7 @@ void colormanager::set_pb_colors(podboat::pb_view* v)
 			colorattr.append(attr);
 		}
 
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"colormanager::set_pb_colors: %s %s\n",
 			fgcit->first,
 			colorattr);

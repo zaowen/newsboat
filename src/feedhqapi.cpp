@@ -37,7 +37,7 @@ feedhq_api::~feedhq_api()
 bool feedhq_api::authenticate()
 {
 	auth = retrieve_auth();
-	LOG(level::DEBUG, "feedhq_api::authenticate: Auth = %s", auth);
+	LOG(Level::DEBUG, "feedhq_api::authenticate: Auth = %s", auth);
 	return auth != "";
 }
 
@@ -84,7 +84,7 @@ std::string feedhq_api::retrieve_auth()
 	curl_easy_cleanup(handle);
 
 	for (const auto& line : utils::tokenize(result)) {
-		LOG(level::DEBUG, "feedhq_api::retrieve_auth: line = %s", line);
+		LOG(Level::DEBUG, "feedhq_api::retrieve_auth: line = %s", line);
 		if (line.substr(0, 5) == "Auth=") {
 			std::string auth = line.substr(5, line.length() - 5);
 			return auth;
@@ -115,7 +115,7 @@ std::vector<tagged_feedurl> feedhq_api::get_subscribed_urls()
 	curl_easy_cleanup(handle);
 	curl_slist_free_all(custom_headers);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"feedhq_api::get_subscribed_urls: document = %s",
 		result);
 
@@ -123,7 +123,7 @@ std::vector<tagged_feedurl> feedhq_api::get_subscribed_urls()
 
 	json_object* reply = json_tokener_parse(result.c_str());
 	if (reply == nullptr) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"feedhq_api::get_subscribed_urls: failed to parse "
 			"response "
 			"as JSON.");
@@ -174,7 +174,7 @@ void feedhq_api::add_custom_headers(curl_slist** custom_headers)
 		auth_header = strprintf::fmt(
 			"Authorization: GoogleLogin auth=%s", auth);
 	}
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"feedhq_api::add_custom_headers header = %s",
 		auth_header);
 	*custom_headers =
@@ -191,7 +191,7 @@ bool feedhq_api::mark_all_read(const std::string& feedurl)
 	try {
 		real_feedurl = utils::unescape_url(elems[0]);
 	} catch (const std::runtime_error& e) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"feedhq_api::mark_all_read: Failed to "
 			"unescape_url(%s): %s",
 			elems[0],
@@ -241,7 +241,7 @@ bool feedhq_api::mark_article_read_with_token(const std::string& guid,
 		cfg->get_configvalue("feedhq-url") + FEEDHQ_API_EDIT_TAG_URL,
 		postcontent);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"feedhq_api::mark_article_read_with_token: postcontent = %s "
 		"result "
 		"= %s",
@@ -270,7 +270,7 @@ std::string feedhq_api::get_new_token()
 	curl_easy_cleanup(handle);
 	curl_slist_free_all(custom_headers);
 
-	LOG(level::DEBUG, "feedhq_api::get_new_token: token = %s", result);
+	LOG(Level::DEBUG, "feedhq_api::get_new_token: token = %s", result);
 
 	return result;
 }
@@ -372,7 +372,7 @@ std::string feedhq_api::post_content(const std::string& url,
 	curl_easy_cleanup(handle);
 	curl_slist_free_all(custom_headers);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"feedhq_api::post_content: url = %s postdata = %s result = %s",
 		url,
 		postdata,

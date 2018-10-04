@@ -23,7 +23,7 @@ ocnews_api::ocnews_api(configcontainer* c)
 	server = cfg->get_configvalue("ocnews-url");
 
 	if (server.empty())
-		LOG(level::CRITICAL,
+		LOG(Level::CRITICAL,
 			"ocnews_api::ocnews_api: No owncloud server set");
 }
 
@@ -42,7 +42,7 @@ std::string ocnews_api::retrieve_auth()
 {
 	credentials cred = get_credentials("ocnews", "ocNews");
 	if (cred.user.empty() || cred.pass.empty()) {
-		LOG(level::CRITICAL,
+		LOG(Level::CRITICAL,
 			"ocnews_api::retrieve_auth: No user and/or password "
 			"set");
 		return "";
@@ -202,7 +202,7 @@ rsspp::feed ocnews_api::fetch_feed(const std::string& feed_id)
 	json_object* items;
 	json_object_object_get_ex(response, "items", &items);
 	if (json_object_get_type(items) != json_type_array) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"ocnews_api::fetch_feed: items is not an array");
 		return feed;
 	}
@@ -321,7 +321,7 @@ bool ocnews_api::query(const std::string& query,
 	CURLcode res = curl_easy_perform(handle);
 
 	if (res != CURLE_OK && res != CURLE_HTTP_RETURNED_ERROR) {
-		LOG(level::CRITICAL,
+		LOG(Level::CRITICAL,
 			"ocnews_api::query: connection error code %i (%s)",
 			res,
 			curl_easy_strerror(res));
@@ -332,12 +332,12 @@ bool ocnews_api::query(const std::string& query,
 	curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
 	if (response_code != 200) {
 		if (response_code == 401)
-			LOG(level::CRITICAL,
+			LOG(Level::CRITICAL,
 				"ocnews_api::query: authentication error");
 		else {
 			std::string msg = "ocnews_api::query: error ";
 			msg += response_code;
-			LOG(level::CRITICAL, msg);
+			LOG(Level::CRITICAL, msg);
 		}
 		return false;
 	}

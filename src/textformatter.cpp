@@ -17,7 +17,7 @@ textformatter::~textformatter() {}
 
 void textformatter::add_line(LineType type, std::string line)
 {
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"textformatter::add_line: `%s' (line type %i)",
 		line,
 		type);
@@ -113,7 +113,7 @@ std::vector<std::string> format_text_plain_helper(
 	// if non-zero, softwrappable lines are wrapped at this width
 	const size_t total_width)
 {
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"textformatter::format_text_plain: rxman = %p, location = "
 		"`%s', "
 		"wrap_width = %zu, total_width = %zu, %u lines",
@@ -128,7 +128,7 @@ std::vector<std::string> format_text_plain_helper(
 	auto store_line = [&format_cache](std::string line) {
 		format_cache.push_back(line);
 
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"textformatter::format_text_plain: stored `%s'",
 			line);
 	};
@@ -137,7 +137,7 @@ std::vector<std::string> format_text_plain_helper(
 		auto type = line.first;
 		auto text = line.second;
 
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"textformatter::format_text_plain: got line `%s' type "
 			"%u",
 			text,

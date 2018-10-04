@@ -73,11 +73,11 @@ void inoreader_urlreader::reload()
 
 	std::vector<tagged_feedurl> feedurls = api->get_subscribed_urls();
 	for (const auto& url : feedurls) {
-		LOG(level::DEBUG, "added %s to URL list", url.first);
+		LOG(Level::DEBUG, "added %s to URL list", url.first);
 		urls.push_back(url.first);
 		tags[url.first] = url.second;
 		for (const auto& tag : url.second) {
-			LOG(level::DEBUG, "%s: added tag %s", url.first, tag);
+			LOG(Level::DEBUG, "%s: added tag %s", url.first, tag);
 			alltags.insert(tag);
 		}
 	}

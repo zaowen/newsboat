@@ -37,7 +37,7 @@ public:
 	}
 	std::string title() override;
 
-	void finished_qna(operation op) override;
+	void finished_qna(Operation op ) override;
 
 	std::vector<std::pair<LineType, std::string>> render_html(
 		const std::string& source,
@@ -49,7 +49,7 @@ public:
 	void update_percent();
 
 private:
-	void process_operation(operation op,
+	void process_operation(Operation op ,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) override;
 	void set_head(const std::string& s,

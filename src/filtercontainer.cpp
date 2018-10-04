@@ -22,7 +22,7 @@ void filtercontainer::handle_action(const std::string& action,
 	if (action == "define-filter") {
 		if (params.size() < 2)
 			throw confighandlerexception(
-				action_handler_status::TOO_FEW_PARAMS);
+				ActionHandlerStatus::TOO_FEW_PARAMS);
 		matcher m;
 		if (!m.parse(params[1]))
 			throw confighandlerexception(strprintf::fmt(
@@ -32,7 +32,7 @@ void filtercontainer::handle_action(const std::string& action,
 		filters.push_back(filter_name_expr_pair(params[0], params[1]));
 	} else
 		throw confighandlerexception(
-			action_handler_status::INVALID_COMMAND);
+			ActionHandlerStatus::INVALID_COMMAND);
 }
 
 void filtercontainer::dump_config(std::vector<std::string>& config_output)

@@ -26,11 +26,11 @@ const char* matcherexception::what() const throw()
 {
 	static std::string errmsg;
 	switch (type_) {
-	case type::ATTRIB_UNAVAIL:
+	case Type::ATTRIB_UNAVAIL:
 		errmsg = strprintf::fmt(
 			_("attribute `%s' is not available."), addinfo);
 		break;
-	case type::INVALID_REGEX:
+	case Type::INVALID_REGEX:
 		errmsg = strprintf::fmt(
 			_("regular expression '%s' is invalid: %s"),
 			addinfo,
@@ -40,21 +40,21 @@ const char* matcherexception::what() const throw()
 	return errmsg.c_str();
 }
 
-confighandlerexception::confighandlerexception(action_handler_status e)
+confighandlerexception::confighandlerexception(ActionHandlerStatus e)
 {
 	msg = get_errmsg(e);
 }
 
-const char* confighandlerexception::get_errmsg(action_handler_status status)
+const char* confighandlerexception::get_errmsg(ActionHandlerStatus status)
 {
 	switch (status) {
-	case action_handler_status::INVALID_PARAMS:
+	case ActionHandlerStatus::INVALID_PARAMS:
 		return _("invalid parameters.");
-	case action_handler_status::TOO_FEW_PARAMS:
+	case ActionHandlerStatus::TOO_FEW_PARAMS:
 		return _("too few parameters.");
-	case action_handler_status::INVALID_COMMAND:
+	case ActionHandlerStatus::INVALID_COMMAND:
 		return _("unknown command (bug).");
-	case action_handler_status::FILENOTFOUND:
+	case ActionHandlerStatus::FILENOTFOUND:
 		return _("file couldn't be opened.");
 	default:
 		return _("unknown error (bug).");

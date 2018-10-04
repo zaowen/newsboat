@@ -72,11 +72,11 @@ void feedhq_urlreader::reload()
 		std::string url = tagged.first;
 		std::vector<std::string> url_tags = tagged.second;
 
-		LOG(level::DEBUG, "added %s to URL list", url);
+		LOG(Level::DEBUG, "added %s to URL list", url);
 		urls.push_back(url);
 		tags[tagged.first] = url_tags;
 		for (const auto& tag : url_tags) {
-			LOG(level::DEBUG, "%s: added tag %s", url, tag);
+			LOG(Level::DEBUG, "%s: added tag %s", url, tag);
 			alltags.insert(tag);
 		}
 	}

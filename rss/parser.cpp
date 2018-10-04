@@ -68,7 +68,7 @@ static size_t handle_headers(void* ptr, size_t size, size_t nmemb, void* data)
 	if (!strncasecmp("Last-Modified:", header, 14)) {
 		time_t r = curl_getdate(header + 14, nullptr);
 		if (r == -1) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"handle_headers: last-modified %s "
 				"(curl_getdate "
 				"FAILED)",
@@ -76,7 +76,7 @@ static size_t handle_headers(void* ptr, size_t size, size_t nmemb, void* data)
 		} else {
 			values->lastmodified =
 				curl_getdate(header + 14, nullptr);
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"handle_headers: got last-modified %s (%d)",
 				header + 14,
 				values->lastmodified);
@@ -84,7 +84,7 @@ static size_t handle_headers(void* ptr, size_t size, size_t nmemb, void* data)
 	} else if (!strncasecmp("ETag:", header, 5)) {
 		values->etag = std::string(header + 5);
 		utils::trim(values->etag);
-		LOG(level::DEBUG, "handle_headers: got etag %s", values->etag);
+		LOG(Level::DEBUG, "handle_headers: got etag %s", values->etag);
 	}
 
 	delete[] header;
@@ -189,7 +189,7 @@ feed parser::parse_url(const std::string& url,
 		curl_slist_free_all(custom_headers);
 	}
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rsspp::parser::parse_url: ret = %d (%s)",
 		ret,
 		curl_easy_strerror(ret));
@@ -208,7 +208,7 @@ feed parser::parse_url(const std::string& url,
 		curl_easy_cleanup(easyhandle);
 
 	if (ret != 0) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"rsspp::parser::parse_url: curl_easy_perform returned "
 			"err "
 			"%d: %s",
@@ -224,13 +224,13 @@ feed parser::parse_url(const std::string& url,
 		throw exception(msg);
 	}
 
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"parser::parse_url: retrieved data for %s: %s",
 		url,
 		buf);
 
 	if (buf.length() > 0) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"parser::parse_url: handing over data to "
 			"parse_buffer()");
 		return parse_buffer(buf, url);
@@ -258,7 +258,7 @@ feed parser::parse_buffer(const std::string& buffer, const std::string& url)
 		f.encoding = (const char*)doc->encoding;
 	}
 
-	LOG(level::INFO, "parser::parse_buffer: encoding = %s", f.encoding);
+	LOG(Level::INFO, "parser::parse_buffer: encoding = %s", f.encoding);
 
 	return f;
 }
@@ -280,7 +280,7 @@ feed parser::parse_file(const std::string& filename)
 		f.encoding = (const char*)doc->encoding;
 	}
 
-	LOG(level::INFO, "parser::parse_file: encoding = %s", f.encoding);
+	LOG(Level::INFO, "parser::parse_file: encoding = %s", f.encoding);
 
 	return f;
 }

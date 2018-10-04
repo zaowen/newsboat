@@ -14,7 +14,7 @@ namespace newsboat {
 class view;
 
 struct keymap_hint_entry {
-	operation op;
+	Operation op ;
 	char* text;
 };
 
@@ -40,11 +40,11 @@ public:
 
 	virtual void handle_cmdline(const std::string& cmd);
 
-	void process_op(operation op,
+	void process_op(Operation op ,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr);
 
-	virtual void finished_qna(operation op);
+	virtual void finished_qna(Operation op );
 
 	void start_cmdline(std::string default_value = "");
 
@@ -56,7 +56,7 @@ public:
 							 : "";
 	}
 	void start_qna(const std::vector<qna_pair>& prompts,
-		operation finish_op,
+		Operation finish_op,
 		history* h = nullptr);
 
 	void set_parent_formaction(std::shared_ptr<formaction> fa)
@@ -85,7 +85,7 @@ public:
 		const std::string& feed_title);
 
 protected:
-	virtual void process_operation(operation op,
+	virtual void process_operation(Operation op ,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) = 0;
 	virtual void set_keymap_hints();
@@ -113,7 +113,7 @@ private:
 	void start_next_question();
 
 	std::vector<qna_pair> qna_prompts;
-	operation finish_operation;
+	Operation finish_operation;
 	history* qna_history;
 	std::shared_ptr<formaction> parent_formaction;
 };

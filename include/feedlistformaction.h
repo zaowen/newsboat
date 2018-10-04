@@ -45,7 +45,7 @@ public:
 
 	void handle_cmdline(const std::string& cmd) override;
 
-	void finished_qna(operation op) override;
+	void finished_qna(Operation op ) override;
 
 	void mark_pos_if_visible(unsigned int pos);
 
@@ -53,7 +53,7 @@ public:
 
 private:
 	int get_pos(unsigned int realidx);
-	void process_operation(operation op,
+	void process_operation(Operation op ,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) override;
 

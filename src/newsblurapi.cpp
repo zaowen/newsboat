@@ -23,7 +23,7 @@ newsblur_api::newsblur_api(configcontainer* c)
 		NEWSBLUR_ITEMS_PER_PAGE;
 
 	if (cfg->get_configvalue("cookie-cache").empty()) {
-		LOG(level::CRITICAL,
+		LOG(Level::CRITICAL,
 			"newsblur_api::newsblur_api: No cookie-cache has been "
 			"configured the login won't work.");
 	}
@@ -45,7 +45,7 @@ bool newsblur_api::authenticate()
 	json_object_object_get_ex(response, "authenticated", &status);
 	bool result = json_object_get_boolean(status);
 
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"newsblur_api::authenticate: authentication resulted in %u, "
 		"cached "
 		"in %s",
@@ -59,7 +59,7 @@ std::string newsblur_api::retrieve_auth()
 {
 	credentials cred = get_credentials("newsblur", "Newsblur");
 	if (cred.user.empty() || cred.pass.empty()) {
-		LOG(level::CRITICAL,
+		LOG(Level::CRITICAL,
 			"newsblur_api::retrieve_auth: No user and/or password "
 			"set");
 		return "";
@@ -106,7 +106,7 @@ std::vector<tagged_feedurl> newsblur_api::get_subscribed_urls()
 				feeds_to_tags[std_feed_id];
 			result.push_back(tagged_feedurl(std_feed_id, tags));
 		} else {
-			LOG(level::ERROR,
+			LOG(Level::ERROR,
 				"newsblur_api::get_subscribed_urls: feed fetch "
 				"for "
 				"%s failed, please check in NewsBlur",
@@ -224,7 +224,7 @@ rsspp::feed newsblur_api::fetch_feed(const std::string& id)
 {
 	rsspp::feed f = known_feeds[id];
 
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"newsblur_api::fetch_feed: about to fetch %u pages of feed %s",
 		min_pages,
 		id);
@@ -241,14 +241,14 @@ rsspp::feed newsblur_api::fetch_feed(const std::string& id)
 		json_object* stories{};
 		if (json_object_object_get_ex(
 			    query_result, "stories", &stories) == FALSE) {
-			LOG(level::ERROR,
+			LOG(Level::ERROR,
 				"newsblur_api::fetch_feed: request returned no "
 				"stories");
 			return f;
 		}
 
 		if (json_object_get_type(stories) != json_type_array) {
-			LOG(level::ERROR,
+			LOG(Level::ERROR,
 				"newsblur_api::fetch_feed: content is not an "
 				"array");
 			return f;
@@ -256,7 +256,7 @@ rsspp::feed newsblur_api::fetch_feed(const std::string& id)
 
 		struct array_list* items = json_object_get_array(stories);
 		int items_size = array_list_length(items);
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"newsblur_api::fetch_feed: %d items",
 			items_size);
 
@@ -344,7 +344,7 @@ json_object* newsblur_api::query_api(const std::string& endpoint,
 
 	json_object* result = json_tokener_parse(data.c_str());
 	if (!result)
-		LOG(level::WARN,
+		LOG(Level::WARN,
 			"newsblur_api::query_api: request to %s failed",
 			url);
 	return result;

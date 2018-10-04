@@ -19,40 +19,40 @@ namespace newsboat {
 htmlrenderer::htmlrenderer(bool raw)
 	: raw_(raw)
 {
-	tags["a"] = htmltag::A;
-	tags["embed"] = htmltag::EMBED;
-	tags["br"] = htmltag::BR;
-	tags["pre"] = htmltag::PRE;
-	tags["ituneshack"] = htmltag::ITUNESHACK;
-	tags["img"] = htmltag::IMG;
-	tags["blockquote"] = htmltag::BLOCKQUOTE;
-	tags["aside"] = htmltag::BLOCKQUOTE;
-	tags["p"] = htmltag::P;
-	tags["h1"] = htmltag::H1;
-	tags["h2"] = htmltag::H2;
-	tags["h3"] = htmltag::H3;
-	tags["h4"] = htmltag::H4;
-	tags["h5"] = htmltag::H5;
-	tags["h6"] = htmltag::H6;
-	tags["ol"] = htmltag::OL;
-	tags["ul"] = htmltag::UL;
-	tags["li"] = htmltag::LI;
-	tags["dt"] = htmltag::DT;
-	tags["dd"] = htmltag::DD;
-	tags["dl"] = htmltag::DL;
-	tags["sup"] = htmltag::SUP;
-	tags["sub"] = htmltag::SUB;
-	tags["hr"] = htmltag::HR;
-	tags["b"] = htmltag::STRONG;
-	tags["strong"] = htmltag::STRONG;
-	tags["u"] = htmltag::UNDERLINE;
-	tags["q"] = htmltag::QUOTATION;
-	tags["script"] = htmltag::SCRIPT;
-	tags["style"] = htmltag::STYLE;
-	tags["table"] = htmltag::TABLE;
-	tags["th"] = htmltag::TH;
-	tags["tr"] = htmltag::TR;
-	tags["td"] = htmltag::TD;
+	tags["a"] = HtmlTag::A;
+	tags["embed"] = HtmlTag::EMBED;
+	tags["br"] = HtmlTag::BR;
+	tags["pre"] = HtmlTag::PRE;
+	tags["ituneshack"] = HtmlTag::ITUNESHACK;
+	tags["img"] = HtmlTag::IMG;
+	tags["blockquote"] = HtmlTag::BLOCKQUOTE;
+	tags["aside"] = HtmlTag::BLOCKQUOTE;
+	tags["p"] = HtmlTag::P;
+	tags["h1"] = HtmlTag::H1;
+	tags["h2"] = HtmlTag::H2;
+	tags["h3"] = HtmlTag::H3;
+	tags["h4"] = HtmlTag::H4;
+	tags["h5"] = HtmlTag::H5;
+	tags["h6"] = HtmlTag::H6;
+	tags["ol"] = HtmlTag::OL;
+	tags["ul"] = HtmlTag::UL;
+	tags["li"] = HtmlTag::LI;
+	tags["dt"] = HtmlTag::DT;
+	tags["dd"] = HtmlTag::DD;
+	tags["dl"] = HtmlTag::DL;
+	tags["sup"] = HtmlTag::SUP;
+	tags["sub"] = HtmlTag::SUB;
+	tags["hr"] = HtmlTag::HR;
+	tags["b"] = HtmlTag::STRONG;
+	tags["strong"] = HtmlTag::STRONG;
+	tags["u"] = HtmlTag::UNDERLINE;
+	tags["q"] = HtmlTag::QUOTATION;
+	tags["script"] = HtmlTag::SCRIPT;
+	tags["style"] = HtmlTag::STYLE;
+	tags["table"] = HtmlTag::TABLE;
+	tags["th"] = HtmlTag::TH;
+	tags["tr"] = HtmlTag::TR;
+	tags["td"] = HtmlTag::TD;
 }
 
 void htmlrenderer::render(const std::string& source,
@@ -66,7 +66,7 @@ void htmlrenderer::render(const std::string& source,
 
 unsigned int htmlrenderer::add_link(std::vector<linkpair>& links,
 	const std::string& link,
-	link_type type)
+	LinkType type)
 {
 	bool found = false;
 	unsigned int i = 1;
@@ -97,7 +97,7 @@ void htmlrenderer::render(std::istream& input,
 	size_t inside_style = 0;
 	std::vector<unsigned int> ol_counts;
 	std::vector<char> ol_types;
-	htmltag current_tag;
+	HtmlTag current_tag;
 	int link_num = -1;
 	std::vector<Table> tables;
 
@@ -113,12 +113,12 @@ void htmlrenderer::render(std::istream& input,
 	tagsouppullparser xpp;
 	xpp.set_input(input);
 
-	for (tagsouppullparser::event e = xpp.next();
-		e != tagsouppullparser::event::END_DOCUMENT;
+	for (tagsouppullparser::Event e = xpp.next();
+		e != tagsouppullparser::Event::END_DOCUMENT;
 		e = xpp.next()) {
 		std::string tagname;
 		switch (e) {
-		case tagsouppullparser::event::START_TAG:
+		case tagsouppullparser::Event::START_TAG:
 			tagname = xpp.get_text();
 			std::transform(tagname.begin(),
 				tagname.end(),
@@ -127,12 +127,12 @@ void htmlrenderer::render(std::istream& input,
 			current_tag = tags[tagname];
 
 			switch (current_tag) {
-			case htmltag::A: {
+			case HtmlTag::A: {
 				std::string link;
 				try {
 					link = xpp.get_attribute_value("href");
 				} catch (const std::invalid_argument&) {
-					LOG(level::WARN,
+					LOG(Level::WARN,
 						"htmlrenderer::render: found a "
 						"tag "
 						"with no href attribute");
@@ -143,30 +143,30 @@ void htmlrenderer::render(std::istream& input,
 						utils::censor_url(
 							utils::absolute_url(
 								url, link)),
-						link_type::HREF);
+						LinkType::HREF);
 					if (!raw_)
 						curline.append("<u>");
 				}
 			} break;
-			case htmltag::STRONG:
+			case HtmlTag::STRONG:
 				if (!raw_)
 					curline.append("<b>");
 				break;
-			case htmltag::UNDERLINE:
+			case HtmlTag::UNDERLINE:
 				if (!raw_)
 					curline.append("<u>");
 				break;
-			case htmltag::QUOTATION:
+			case HtmlTag::QUOTATION:
 				if (!raw_)
 					curline.append("\"");
 				break;
 
-			case htmltag::EMBED: {
+			case HtmlTag::EMBED: {
 				std::string type;
 				try {
 					type = xpp.get_attribute_value("type");
 				} catch (const std::invalid_argument&) {
-					LOG(level::WARN,
+					LOG(Level::WARN,
 						"htmlrenderer::render: found "
 						"embed "
 						"object without type "
@@ -179,7 +179,7 @@ void htmlrenderer::render(std::istream& input,
 						link = xpp.get_attribute_value(
 							"src");
 					} catch (const std::invalid_argument&) {
-						LOG(level::WARN,
+						LOG(Level::WARN,
 							"htmlrenderer::render: "
 							"found embed object "
 							"without src "
@@ -192,7 +192,7 @@ void htmlrenderer::render(std::istream& input,
 								utils::absolute_url(
 									url,
 									link)),
-							link_type::EMBED);
+							LinkType::EMBED);
 						curline.append(strprintf::fmt(
 							"[%s %u]",
 							_("embedded flash:"),
@@ -201,30 +201,30 @@ void htmlrenderer::render(std::istream& input,
 				}
 			} break;
 
-			case htmltag::BR:
+			case HtmlTag::BR:
 				add_line(curline, tables, lines);
 				prepare_new_line(curline,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::PRE:
+			case HtmlTag::PRE:
 				inside_pre = true;
 				add_nonempty_line(curline, tables, lines);
 				prepare_new_line(curline,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::ITUNESHACK:
+			case HtmlTag::ITUNESHACK:
 				itunes_hack = true;
 				break;
 
-			case htmltag::IMG: {
+			case HtmlTag::IMG: {
 				std::string imgurl;
 				std::string imgtitle;
 				try {
 					imgurl = xpp.get_attribute_value("src");
 				} catch (const std::invalid_argument&) {
-					LOG(level::WARN,
+					LOG(Level::WARN,
 						"htmlrenderer::render: found "
 						"img "
 						"tag with no src attribute");
@@ -240,14 +240,14 @@ void htmlrenderer::render(std::istream& input,
 					if (imgurl.substr(0, 5) == "data:") {
 						link_num = add_link(links,
 							"inline image",
-							link_type::IMG);
+							LinkType::IMG);
 					} else {
 						link_num = add_link(links,
 							utils::censor_url(
 								utils::absolute_url(
 									url,
 									imgurl)),
-							link_type::IMG);
+							LinkType::IMG);
 					}
 					if (imgtitle != "") {
 						curline.append(strprintf::fmt(
@@ -265,7 +265,7 @@ void htmlrenderer::render(std::istream& input,
 				}
 			} break;
 
-			case htmltag::BLOCKQUOTE:
+			case HtmlTag::BLOCKQUOTE:
 				++indent_level;
 				add_nonempty_line(curline, tables, lines);
 				add_line("", tables, lines);
@@ -273,13 +273,13 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::H1:
-			case htmltag::H2:
-			case htmltag::H3:
-			case htmltag::H4:
-			case htmltag::H5:
-			case htmltag::H6:
-			case htmltag::P: {
+			case HtmlTag::H1:
+			case HtmlTag::H2:
+			case HtmlTag::H3:
+			case HtmlTag::H4:
+			case HtmlTag::H5:
+			case HtmlTag::H6:
+			case HtmlTag::P: {
 				add_nonempty_line(curline, tables, lines);
 				if (lines.size() > 0) {
 					std::string::size_type last_line_len =
@@ -294,7 +294,7 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 			} break;
 
-			case htmltag::OL:
+			case HtmlTag::OL:
 				is_ol = true;
 				{
 					unsigned int ol_count = 1;
@@ -332,7 +332,7 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::UL:
+			case HtmlTag::UL:
 				is_ol = false;
 				add_nonempty_line(curline, tables, lines);
 				add_line("", tables, lines);
@@ -340,7 +340,7 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::LI:
+			case HtmlTag::LI:
 				if (inside_li) {
 					indent_level -= 2;
 					if (indent_level < 0)
@@ -370,39 +370,39 @@ void htmlrenderer::render(std::istream& input,
 				}
 				break;
 
-			case htmltag::DT:
+			case HtmlTag::DT:
 				add_nonempty_line(curline, tables, lines);
 				prepare_new_line(curline,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::DD:
+			case HtmlTag::DD:
 				indent_level += 4;
 				add_nonempty_line(curline, tables, lines);
 				prepare_new_line(curline,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::DL:
+			case HtmlTag::DL:
 				// ignore tag
 				break;
 
-			case htmltag::SUP:
+			case HtmlTag::SUP:
 				curline.append("^");
 				break;
 
-			case htmltag::SUB:
+			case HtmlTag::SUB:
 				curline.append("[");
 				break;
 
-			case htmltag::HR:
+			case HtmlTag::HR:
 				add_nonempty_line(curline, tables, lines);
 				prepare_new_line(curline,
 					tables.size() ? 0 : indent_level);
 				add_hr(lines);
 				break;
 
-			case htmltag::SCRIPT:
+			case HtmlTag::SCRIPT:
 				add_nonempty_line(curline, tables, lines);
 				prepare_new_line(curline,
 					tables.size() ? 0 : indent_level);
@@ -411,11 +411,11 @@ void htmlrenderer::render(std::istream& input,
 				inside_script++;
 				break;
 
-			case htmltag::STYLE:
+			case HtmlTag::STYLE:
 				inside_style++;
 				break;
 
-			case htmltag::TABLE: {
+			case HtmlTag::TABLE: {
 				add_nonempty_line(curline, tables, lines);
 				prepare_new_line(
 					curline, 0); // no indent in tables
@@ -432,12 +432,12 @@ void htmlrenderer::render(std::istream& input,
 				break;
 			}
 
-			case htmltag::TR:
+			case HtmlTag::TR:
 				if (!tables.empty())
 					tables.back().start_row();
 				break;
 
-			case htmltag::TH: {
+			case HtmlTag::TH: {
 				size_t span = 1;
 				try {
 					span = utils::to_u(
@@ -453,7 +453,7 @@ void htmlrenderer::render(std::istream& input,
 				break;
 			}
 
-			case htmltag::TD: {
+			case HtmlTag::TD: {
 				size_t span = 1;
 				try {
 					span = utils::to_u(
@@ -470,7 +470,7 @@ void htmlrenderer::render(std::istream& input,
 			}
 			break;
 
-		case tagsouppullparser::event::END_TAG:
+		case tagsouppullparser::Event::END_TAG:
 			tagname = xpp.get_text();
 			std::transform(tagname.begin(),
 				tagname.end(),
@@ -479,7 +479,7 @@ void htmlrenderer::render(std::istream& input,
 			current_tag = tags[tagname];
 
 			switch (current_tag) {
-			case htmltag::BLOCKQUOTE:
+			case HtmlTag::BLOCKQUOTE:
 				--indent_level;
 				if (indent_level < 0)
 					indent_level = 0;
@@ -489,11 +489,11 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::OL:
+			case HtmlTag::OL:
 				ol_types.pop_back();
 				ol_counts.pop_back();
 			// fall-through
-			case htmltag::UL:
+			case HtmlTag::UL:
 				if (inside_li) {
 					indent_level -= 2;
 					if (indent_level < 0)
@@ -510,14 +510,14 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::DT:
+			case HtmlTag::DT:
 				add_nonempty_line(curline, tables, lines);
 				add_line("", tables, lines);
 				prepare_new_line(curline,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::DD:
+			case HtmlTag::DD:
 				indent_level -= 4;
 				if (indent_level < 0)
 					indent_level = 0;
@@ -527,11 +527,11 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::DL:
+			case HtmlTag::DL:
 				// ignore tag
 				break;
 
-			case htmltag::LI:
+			case HtmlTag::LI:
 				indent_level -= 2;
 				if (indent_level < 0)
 					indent_level = 0;
@@ -541,7 +541,7 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::H1:
+			case HtmlTag::H1:
 				if (line_is_nonempty(curline)) {
 					add_line(curline, tables, lines);
 					size_t llen =
@@ -557,33 +557,33 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::H2:
-			case htmltag::H3:
-			case htmltag::H4:
-			case htmltag::H5:
-			case htmltag::H6:
-			case htmltag::P:
+			case HtmlTag::H2:
+			case HtmlTag::H3:
+			case HtmlTag::H4:
+			case HtmlTag::H5:
+			case HtmlTag::H6:
+			case HtmlTag::P:
 				add_nonempty_line(curline, tables, lines);
 				prepare_new_line(curline,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::PRE:
+			case HtmlTag::PRE:
 				add_line_softwrappable(curline, lines);
 				prepare_new_line(curline,
 					tables.size() ? 0 : indent_level);
 				inside_pre = false;
 				break;
 
-			case htmltag::SUB:
+			case HtmlTag::SUB:
 				curline.append("]");
 				break;
 
-			case htmltag::SUP:
+			case HtmlTag::SUP:
 				// has closing tag, but we render nothing.
 				break;
 
-			case htmltag::A:
+			case HtmlTag::A:
 				if (link_num != -1) {
 					if (!raw_)
 						curline.append("</>");
@@ -593,30 +593,30 @@ void htmlrenderer::render(std::istream& input,
 				}
 				break;
 
-			case htmltag::UNDERLINE:
+			case HtmlTag::UNDERLINE:
 				if (!raw_)
 					curline.append("</>");
 				break;
 
-			case htmltag::STRONG:
+			case HtmlTag::STRONG:
 				if (!raw_)
 					curline.append("</>");
 				break;
 
-			case htmltag::QUOTATION:
+			case HtmlTag::QUOTATION:
 				if (!raw_)
 					curline.append("\"");
 				break;
 
-			case htmltag::EMBED:
-			case htmltag::BR:
-			case htmltag::ITUNESHACK:
-			case htmltag::IMG:
-			case htmltag::HR:
+			case HtmlTag::EMBED:
+			case HtmlTag::BR:
+			case HtmlTag::ITUNESHACK:
+			case HtmlTag::IMG:
+			case HtmlTag::HR:
 				// ignore closing tags
 				break;
 
-			case htmltag::SCRIPT:
+			case HtmlTag::SCRIPT:
 				// don't render scripts, ignore current line
 				if (inside_script)
 					inside_script--;
@@ -624,12 +624,12 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::STYLE:
+			case HtmlTag::STYLE:
 				if (inside_style)
 					inside_style--;
 				break;
 
-			case htmltag::TABLE:
+			case HtmlTag::TABLE:
 				add_nonempty_line(curline, tables, lines);
 				prepare_new_line(
 					curline, 0); // no indent in tables
@@ -671,7 +671,7 @@ void htmlrenderer::render(std::istream& input,
 					tables.size() ? 0 : indent_level);
 				break;
 
-			case htmltag::TR:
+			case HtmlTag::TR:
 				add_nonempty_line(curline, tables, lines);
 				prepare_new_line(
 					curline, 0); // no indent in tables
@@ -680,7 +680,7 @@ void htmlrenderer::render(std::istream& input,
 					tables.back().complete_row();
 				break;
 
-			case htmltag::TH:
+			case HtmlTag::TH:
 				if (!tables.empty()) {
 					curline.append("</>");
 				}
@@ -694,7 +694,7 @@ void htmlrenderer::render(std::istream& input,
 				}
 				break;
 
-			case htmltag::TD:
+			case HtmlTag::TD:
 				add_nonempty_line(curline, tables, lines);
 				prepare_new_line(
 					curline, 0); // no indent in tables
@@ -705,7 +705,7 @@ void htmlrenderer::render(std::istream& input,
 			}
 			break;
 
-		case tagsouppullparser::event::TEXT: {
+		case tagsouppullparser::Event::TEXT: {
 			auto text = utils::quote_for_stfl(xpp.get_text());
 			if (itunes_hack) {
 				std::vector<std::string> paragraphs =
@@ -800,14 +800,14 @@ std::string htmlrenderer::render_hr(const unsigned int width)
 	return result;
 }
 
-std::string htmlrenderer::type2str(link_type type)
+std::string htmlrenderer::type2str(LinkType type)
 {
 	switch (type) {
-	case link_type::HREF:
+	case LinkType::HREF:
 		return _("link");
-	case link_type::IMG:
+	case LinkType::IMG:
 		return _("image");
-	case link_type::EMBED:
+	case LinkType::EMBED:
 		return _("embedded flash");
 	default:
 		return _("unknown (bug)");
@@ -1004,7 +1004,7 @@ void htmlrenderer::render_table(const htmlrenderer::Table& table,
 				if (idx < table.rows[row]
 						  .cells[cell]
 						  .text.size()) {
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"row = %d cell = %d text = %s",
 						row,
 						cell,
@@ -1029,7 +1029,7 @@ void htmlrenderer::render_table(const htmlrenderer::Table& table,
 						reference_width +=
 							cell_widths[ic] + 1;
 				}
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"cell_width = %d reference_width = %d",
 					cell_width,
 					reference_width);

@@ -25,12 +25,12 @@ inline void cache::run_sql_impl(const std::string& query,
 	void* callback_argument,
 	bool do_throw)
 {
-	LOG(level::DEBUG, "running query: %s", query);
+	LOG(Level::DEBUG, "running query: %s", query);
 	int rc = sqlite3_exec(
 		db, query.c_str(), callback, callback_argument, nullptr);
 	if (rc != SQLITE_OK) {
 		const std::string message = "query \"%s\" failed: (%d) %s";
-		LOG(level::CRITICAL, message, query, rc, sqlite3_errstr(rc));
+		LOG(Level::CRITICAL, message, query, rc, sqlite3_errstr(rc));
 		if (do_throw) {
 			throw dbexception(db);
 		}
@@ -115,7 +115,7 @@ rssfeed_callback(void* myfeed, int argc, char** argv, char** /* azColName */)
 	(*feed)->set_title(argv[0]);
 	(*feed)->set_link(argv[1]);
 	(*feed)->set_rtl(strcmp(argv[2], "1") == 0);
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"rssfeed_callback: title = %s link = %s is_rtl = %s",
 		argv[0],
 		argv[1],
@@ -142,7 +142,7 @@ static int lastmodified_callback(void* handler,
 	} else {
 		result->etag = "";
 	}
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"lastmodified_callback: lastmodified = %d etag = %s",
 		result->lastmodified,
 		result->etag);
@@ -157,7 +157,7 @@ vectorofstring_callback(void* vp, int argc, char** argv, char** /* azColName */)
 	assert(argc == 1);
 	assert(argv[0] != nullptr);
 	vectorptr->push_back(std::string(argv[0]));
-	LOG(level::INFO, "vectorofstring_callback: element = %s", argv[0]);
+	LOG(Level::INFO, "vectorofstring_callback: element = %s", argv[0]);
 	return 0;
 }
 
@@ -257,7 +257,7 @@ cache::cache(const std::string& cachefile, configcontainer* c)
 {
 	int error = sqlite3_open(cachefile.c_str(), &db);
 	if (error != SQLITE_OK) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"couldn't sqlite3_open(%s): error = %d",
 			cachefile,
 			error);
@@ -374,7 +374,7 @@ static const schema_patches schemaPatches{
 void cache::populate_tables()
 {
 	const schema_version version = get_schema_version();
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"cache::populate_tables: DB schema version %u.%u",
 		version.major,
 		version.minor);
@@ -382,7 +382,7 @@ void cache::populate_tables()
 	if (version.major > NEWSBOAT_VERSION_MAJOR) {
 		const std::string msg =
 			"Database schema isn't supported because it's too new";
-		LOG(level::ERROR, msg);
+		LOG(Level::ERROR, msg);
 		throw std::runtime_error(msg);
 	}
 
@@ -396,7 +396,7 @@ void cache::populate_tables()
 
 	for (; patches_it != schemaPatches.cend(); ++patches_it) {
 		const schema_version patch_version = patches_it->first;
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"cache::populate_tables: applying DB schema patches "
 			"for version %u.%u",
 			patch_version.major,
@@ -419,7 +419,7 @@ void cache::fetch_lastmodified(const std::string& feedurl,
 	run_sql(query, lastmodified_callback, &result);
 	t = result.lastmodified;
 	etag = result.etag;
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"cache::fetch_lastmodified: t = %d etag = %s",
 		t,
 		etag);
@@ -430,7 +430,7 @@ void cache::update_lastmodified(const std::string& feedurl,
 	const std::string& etag)
 {
 	if (t == 0 && etag.length() == 0) {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"cache::update_lastmodified: both time and etag are "
 			"empty, not updating anything");
 		return;
@@ -488,7 +488,7 @@ void cache::externalize_rssfeed(std::shared_ptr<rss_feed> feed,
 	run_sql(query, count_callback, &count_cbh);
 
 	int count = count_cbh.count();
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"cache::externalize_rss_feed: rss_feeds with rssurl = '%s': "
 		"found "
 		"%d",
@@ -517,7 +517,7 @@ void cache::externalize_rssfeed(std::shared_ptr<rss_feed> feed,
 
 	unsigned int max_items = cfg->get_configvalue_as_int("max-items");
 
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"cache::externalize_feed: max_items = %u "
 		"feed.total_item_count() = "
 		"%u",
@@ -597,7 +597,7 @@ std::shared_ptr<rss_feed> cache::internalize_rssfeed(std::string rssurl,
 				filtered_items.push_back(item);
 			}
 		} catch (const matcherexception& ex) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"oops, matcher exception: %s",
 				ex.what());
 		}
@@ -729,7 +729,7 @@ void cache::cleanup_cache(std::vector<std::shared_ptr<rss_feed>>& feeds)
 	 * the configuration file.
 	 */
 	if (cfg->get_configvalue_as_bool("cleanup-on-quit")) {
-		LOG(level::DEBUG, "cache::cleanup_cache: cleaning up cache...");
+		LOG(Level::DEBUG, "cache::cleanup_cache: cleaning up cache...");
 		std::string list = "(";
 
 		for (const auto& feed : feeds) {
@@ -764,7 +764,7 @@ void cache::cleanup_cache(std::vector<std::shared_ptr<rss_feed>>& feeds)
 		// PURPOSE! It's missing so that no database operation can occur
 		// after the cache cleanup! mtx->unlock();
 	} else {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"cache::cleanup_cache: NOT cleaning up cache...");
 	}
 }
@@ -787,7 +787,7 @@ void cache::update_rssitem_unlocked(std::shared_ptr<rss_item> item,
 				item->guid());
 			run_sql(query, single_string_callback, &content);
 			if (content != item->description_raw()) {
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"cache::update_rssitem_unlocked: '%s' "
 					"is "
 					"different from '%s'",
@@ -975,7 +975,7 @@ void cache::remove_old_deleted_items(const std::string& rssurl,
 {
 	scope_measure m1("cache::remove_old_deleted_items");
 	if (guids.size() == 0) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"cache::remove_old_deleted_items: not cleaning up "
 			"anything because last reload brought no new items "
 			"(detected "
@@ -1007,7 +1007,7 @@ unsigned int cache::get_unread_count()
 	cb_handler count_cbh;
 	run_sql(countquery, count_callback, &count_cbh);
 	unsigned int count = static_cast<unsigned int>(count_cbh.count());
-	LOG(level::DEBUG, "cache::get_unread_count: count = %u", count);
+	LOG(Level::DEBUG, "cache::get_unread_count: count = %u", count);
 	return count;
 }
 
@@ -1050,13 +1050,13 @@ void cache::clean_old_articles()
 
 		std::string query(prepare_query(
 			"DELETE FROM rss_item WHERE pubDate < %d", old_date));
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"cache::clean_old_articles: about to delete articles "
 			"with a pubDate older than %d",
 			old_date);
 		run_sql(query);
 	} else {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"cache::clean_old_articles, days == 0, not cleaning up "
 			"anything");
 	}

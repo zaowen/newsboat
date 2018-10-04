@@ -29,7 +29,7 @@ private:
 	friend class newsboat::colormanager;
 
 	struct keymap_hint_entry {
-		operation op;
+		Operation op ;
 		char* text;
 	};
 

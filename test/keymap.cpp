@@ -59,7 +59,7 @@ TEST_CASE("getkey()", "[keymap]")
 	{
 		REQUIRE(k.getkey(OP_OPEN, "all") == "ENTER");
 		REQUIRE(k.getkey(OP_TOGGLEITEMREAD, "all") == "N");
-		REQUIRE(k.getkey(static_cast<operation>(30000), "all") ==
+		REQUIRE(k.getkey(static_cast<Operation>(30000), "all") ==
 			"<none>");
 	}
 

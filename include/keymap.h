@@ -29,7 +29,7 @@ enum { KM_FEEDLIST = 1 << 0,
 
 namespace newsboat {
 
-enum operation {
+enum Operation {
 	OP_NIL = 0,
 	// general and newsboat-specific operations:
 	OP_NB_MIN,
@@ -151,7 +151,7 @@ struct keymap_desc {
 };
 
 struct macrocmd {
-	operation op;
+	Operation op ;
 	std::vector<std::string> args;
 };
 
@@ -159,16 +159,16 @@ class keymap : public config_action_handler {
 public:
 	explicit keymap(unsigned int flags);
 	~keymap() override;
-	void set_key(operation op,
+	void set_key(Operation op ,
 		const std::string& key,
 		const std::string& context);
 	void unset_key(const std::string& key, const std::string& context);
-	operation get_opcode(const std::string& opstr);
-	operation get_operation(const std::string& keycode,
+	Operation get_opcode(const std::string& opstr);
+	Operation get_operation(const std::string& keycode,
 		const std::string& context);
 	std::vector<macrocmd> get_macro(const std::string& key);
 	char get_key(const std::string& keycode);
-	std::string getkey(operation op, const std::string& context);
+	std::string getkey(Operation op , const std::string& context);
 	void handle_action(const std::string& action,
 		const std::vector<std::string>& params) override;
 	void dump_config(std::vector<std::string>& config_output) override;
@@ -178,8 +178,8 @@ public:
 
 private:
 	bool is_valid_context(const std::string& context);
-	std::string getopname(operation op);
-	std::map<std::string, std::map<std::string, operation>> keymap_;
+	std::string getopname(Operation op );
+	std::map<std::string, std::map<std::string, Operation>> keymap_;
 	std::map<std::string, std::vector<macrocmd>> macros_;
 };
 

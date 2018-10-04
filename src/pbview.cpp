@@ -70,7 +70,7 @@ void pb_view::run(bool auto_download)
 
 			dllist_form.set("head", buf);
 
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"pb_view::run: updating view... "
 				"downloads().size() "
 				"= %u",
@@ -110,7 +110,7 @@ void pb_view::run(bool auto_download)
 		if (!event || strcmp(event, "TIMEOUT") == 0)
 			continue;
 
-		operation op = keys->get_operation(event, "podbeuter");
+		Operation op  = keys->get_operation(event, "podbeuter");
 
 		if (dllist_form.get("msg").length() > 0) {
 			dllist_form.set("msg", "");
@@ -144,7 +144,7 @@ void pb_view::run(bool auto_download)
 			os >> idx;
 			if (idx != -1) {
 				if (ctrl->downloads()[idx].status() !=
-					dlstatus::DOWNLOADING) {
+					DlStatus::DOWNLOADING) {
 					std::thread t{poddlthread(
 						&ctrl->downloads()[idx],
 						ctrl->get_cfgcont())};
@@ -157,15 +157,15 @@ void pb_view::run(bool auto_download)
 			int idx = -1;
 			os >> idx;
 			if (idx != -1) {
-				dlstatus status =
+				DlStatus status =
 					ctrl->downloads()[idx].status();
-				if (status == dlstatus::FINISHED ||
-					status == dlstatus::PLAYED ||
-					status == dlstatus::READY) {
+				if (status == DlStatus::FINISHED ||
+					status == DlStatus::PLAYED ||
+					status == DlStatus::READY) {
 					ctrl->play_file(ctrl->downloads()[idx]
 								.filename());
 					ctrl->downloads()[idx].set_status(
-						dlstatus::PLAYED);
+						DlStatus::PLAYED);
 				} else {
 					dllist_form.set("msg",
 						_("Error: download needs to be "
@@ -179,11 +179,11 @@ void pb_view::run(bool auto_download)
 			int idx = -1;
 			os >> idx;
 			if (idx != -1) {
-				dlstatus status =
+				DlStatus status =
 					ctrl->downloads()[idx].status();
-				if (status == dlstatus::PLAYED) {
+				if (status == DlStatus::PLAYED) {
 					ctrl->downloads()[idx].set_status(
-						dlstatus::FINISHED);
+						DlStatus::FINISHED);
 				}
 			}
 		} break;
@@ -193,9 +193,9 @@ void pb_view::run(bool auto_download)
 			os >> idx;
 			if (idx != -1) {
 				if (ctrl->downloads()[idx].status() ==
-					dlstatus::DOWNLOADING) {
+					DlStatus::DOWNLOADING) {
 					ctrl->downloads()[idx].set_status(
-						dlstatus::CANCELLED);
+						DlStatus::CANCELLED);
 				}
 			}
 		} break;
@@ -205,9 +205,9 @@ void pb_view::run(bool auto_download)
 			os >> idx;
 			if (idx != -1) {
 				if (ctrl->downloads()[idx].status() !=
-					dlstatus::DOWNLOADING) {
+					DlStatus::DOWNLOADING) {
 					ctrl->downloads()[idx].set_status(
-						dlstatus::DELETED);
+						DlStatus::DELETED);
 				}
 			}
 		} break;
@@ -301,7 +301,7 @@ void pb_view::run_help()
 		if (!event)
 			continue;
 
-		operation op = keys->get_operation(event, "help");
+		Operation op  = keys->get_operation(event, "help");
 
 		switch (op) {
 		case OP_HARDQUIT:

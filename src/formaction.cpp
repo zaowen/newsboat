@@ -92,13 +92,13 @@ void formaction::start_cmdline(std::string default_value)
 	this->start_qna(qna, OP_INT_END_CMDLINE, &formaction::cmdlinehistory);
 }
 
-void formaction::process_op(operation op,
+void formaction::process_op(Operation op ,
 	bool automatic,
 	std::vector<std::string>* args)
 {
 	switch (op) {
 	case OP_REDRAW:
-		LOG(level::DEBUG, "formaction::process_op: redrawing screen");
+		LOG(Level::DEBUG, "formaction::process_op: redrawing screen");
 		stfl::reset();
 		break;
 	case OP_CMDLINE:
@@ -113,13 +113,13 @@ void formaction::process_op(operation op,
 						"%s ", stfl::quote(arg)));
 				}
 			}
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"formaction::process_op: running commandline "
 				"`%s'",
 				cmdline);
 			this->handle_cmdline(cmdline);
 		} else {
-			LOG(level::WARN,
+			LOG(Level::WARN,
 				"formaction::process_op: got OP_INT_SET, but "
 				"not "
 				"automatic");
@@ -172,17 +172,17 @@ void formaction::process_op(operation op,
 std::vector<std::string> formaction::get_suggestions(
 	const std::string& fragment)
 {
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"formaction::get_suggestions: fragment = %s",
 		fragment);
 	std::vector<std::string> result;
 	// first check all formaction command suggestions
 	for (const auto& cmd : valid_cmds) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"formaction::get_suggestions: extracted part: %s",
 			cmd.substr(0, fragment.length()));
 		if (cmd.substr(0, fragment.length()) == fragment) {
-			LOG(level::DEBUG, "...and it matches.");
+			LOG(Level::DEBUG, "...and it matches.");
 			result.push_back(cmd);
 		}
 	}
@@ -210,7 +210,7 @@ std::vector<std::string> formaction::get_suggestions(
 									variable_fragment
 										.length());
 						result.push_back(line);
-						LOG(level::DEBUG,
+						LOG(Level::DEBUG,
 							"formaction::get_"
 							"suggestions: "
 							"suggested %s",
@@ -220,7 +220,7 @@ std::vector<std::string> formaction::get_suggestions(
 			}
 		}
 	}
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"formaction::get_suggestions: %u suggestions",
 		result.size());
 	return result;
@@ -319,7 +319,7 @@ void formaction::handle_cmdline(const std::string& cmdline)
 }
 
 void formaction::start_qna(const std::vector<qna_pair>& prompts,
-	operation finish_op,
+	Operation finish_op,
 	history* h)
 {
 	/*
@@ -345,7 +345,7 @@ void formaction::start_qna(const std::vector<qna_pair>& prompts,
 	start_next_question();
 }
 
-void formaction::finished_qna(operation op)
+void formaction::finished_qna(Operation op )
 {
 	v->inside_qna(false);
 	v->inside_cmdline(false);
@@ -373,7 +373,7 @@ void formaction::finished_qna(operation op)
 		} else {
 			v->set_status(
 				_s("Error while saving bookmark: ") + retval);
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"formaction::finished_qna: error while saving "
 				"bookmark, retval = `%s'",
 				retval);
@@ -383,7 +383,7 @@ void formaction::finished_qna(operation op)
 		f->set_focus("feeds");
 		std::string cmdline = qna_responses[0];
 		formaction::cmdlinehistory.add_line(cmdline);
-		LOG(level::DEBUG, "formaction: commandline = `%s'", cmdline);
+		LOG(Level::DEBUG, "formaction: commandline = `%s'", cmdline);
 		this->handle_cmdline(cmdline);
 	} break;
 	default:
@@ -396,7 +396,7 @@ void formaction::start_bookmark_qna(const std::string& default_title,
 	const std::string& default_desc,
 	const std::string& default_feed_title)
 {
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"formaction::start_bookmark_qna: starting bookmark Q&A... "
 		"default_title = %s default_url = %s default_desc = %s "
 		"default_feed_title = %s",
@@ -448,7 +448,7 @@ void formaction::start_bookmark_qna(const std::string& default_title,
 				v->set_status(
 					_s("Error while saving bookmark: ") +
 					retval);
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"formaction::finished_qna: error while "
 					"saving bookmark, retval = `%s'",
 					retval);
@@ -531,7 +531,7 @@ std::string formaction::bookmark(const std::string& url,
 			utils::replace_all(description, "'", "%27"),
 			utils::replace_all(feed_title, "'", "%27"));
 
-		LOG(level::DEBUG, "formaction::bookmark: cmd = %s", cmdline);
+		LOG(Level::DEBUG, "formaction::bookmark: cmd = %s", cmdline);
 
 		if (is_interactive) {
 			v->push_empty_formaction();

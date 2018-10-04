@@ -26,7 +26,7 @@ void opml_urlreader::reload()
 		utils::tokenize_quoted(this->get_source(), " ");
 
 	for (const auto& url : urls) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"opml_urlreader::reload: downloading `%s'",
 			url);
 		std::string urlcontent = utils::retrieve_url(url, cfg);
@@ -35,7 +35,7 @@ void opml_urlreader::reload()
 			xmlParseMemory(urlcontent.c_str(), urlcontent.length());
 
 		if (doc == nullptr) {
-			LOG(level::ERROR,
+			LOG(Level::ERROR,
 				"opml_urlreader::reload: parsing XML file `%s'"
 				"failed", url);
 			continue;
@@ -48,7 +48,7 @@ void opml_urlreader::reload()
 				node = node->next) {
 				if (strcmp((const char*)node->name, "body") ==
 					0) {
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"opml_urlreader::reload: found "
 						"body");
 					rec_find_rss_outlines(

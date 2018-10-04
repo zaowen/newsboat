@@ -97,7 +97,7 @@ TEST_CASE(
 		p(LineType::softwrappable, "[1]: http://slashdot.org/ (link)"));
 
 	REQUIRE(links[0].first == "http://slashdot.org/");
-	REQUIRE(links[0].second == link_type::HREF);
+	REQUIRE(links[0].second == LinkType::HREF);
 }
 
 TEST_CASE("<br>, <br/> and <br /> result in a line break", "[htmlrenderer]")
@@ -214,7 +214,7 @@ TEST_CASE("links with same URL are coalesced under one number",
 	REQUIRE_NOTHROW(r.render(input, lines, links, url));
 	REQUIRE(links.size() == 1);
 	REQUIRE(links[0].first == "http://example.com/about");
-	REQUIRE(links[0].second == link_type::HREF);
+	REQUIRE(links[0].second == LinkType::HREF);
 }
 
 TEST_CASE("links with different URLs have different numbers", "[htmlrenderer]")
@@ -230,9 +230,9 @@ TEST_CASE("links with different URLs have different numbers", "[htmlrenderer]")
 	REQUIRE_NOTHROW(r.render(input, lines, links, url));
 	REQUIRE(links.size() == 2);
 	REQUIRE(links[0].first == "http://example.com/one");
-	REQUIRE(links[0].second == link_type::HREF);
+	REQUIRE(links[0].second == LinkType::HREF);
 	REQUIRE(links[1].first == "http://example.com/two");
-	REQUIRE(links[1].second == link_type::HREF);
+	REQUIRE(links[1].second == LinkType::HREF);
 }
 
 TEST_CASE("link without `href' is neither highlighted nor added to links list",
@@ -326,7 +326,7 @@ TEST_CASE("Flash <embed>s are added to links if `src' is set", "[htmlrenderer]")
 			"[1]: http://example.com/game.swf (embedded flash)"));
 	REQUIRE(links.size() == 1);
 	REQUIRE(links[0].first == "http://example.com/game.swf");
-	REQUIRE(links[0].second == link_type::EMBED);
+	REQUIRE(links[0].second == LinkType::EMBED);
 }
 
 TEST_CASE("Flash <embed>s are ignored if `src' is not set", "[htmlrenderer]")
@@ -430,7 +430,7 @@ TEST_CASE("<img> results in a placeholder and a link", "[htmlrenderer]")
 			"[1]: http://example.com/image.png (image)"));
 	REQUIRE(links.size() == 1);
 	REQUIRE(links[0].first == "http://example.com/image.png");
-	REQUIRE(links[0].second == link_type::IMG);
+	REQUIRE(links[0].second == LinkType::IMG);
 }
 
 TEST_CASE("<img>s without `src' are ignored", "[htmlrenderer]")
@@ -468,7 +468,7 @@ TEST_CASE("title is mentioned in placeholder if <img> has `title'",
 			"[1]: http://example.com/image.png (image)"));
 	REQUIRE(links.size() == 1);
 	REQUIRE(links[0].first == "http://example.com/image.png");
-	REQUIRE(links[0].second == link_type::IMG);
+	REQUIRE(links[0].second == LinkType::IMG);
 }
 
 TEST_CASE(
@@ -494,7 +494,7 @@ TEST_CASE(
 		p(LineType::softwrappable, "[1]: inline image (image)"));
 	REQUIRE(links.size() == 1);
 	REQUIRE(links[0].first == "inline image");
-	REQUIRE(links[0].second == link_type::IMG);
+	REQUIRE(links[0].second == LinkType::IMG);
 }
 
 TEST_CASE("<blockquote> is indented and is separated by empty lines",

@@ -21,59 +21,59 @@ const std::string configcontainer::PARTIAL_FILE_SUFFIX = ".part";
 configcontainer::configcontainer()
 	// create the config options and set their resp. default value and type
 	: config_data{{"always-display-description",
-			      configdata("false", configdata_t::BOOL)},
+			      configdata("false", ConfigData::BOOL)},
 		  {"article-sort-order",
-			  configdata("date-asc", configdata_t::STR)},
+			  configdata("date-asc", ConfigData::STR)},
 		  {"articlelist-format",
 			  configdata("%4i %f %D %6L  %?T?|%-17T|  &?%t",
-				  configdata_t::STR)},
-		  {"auto-reload", configdata("no", configdata_t::BOOL)},
+				  ConfigData::STR)},
+		  {"auto-reload", configdata("no", ConfigData::BOOL)},
 		  {"bookmark-autopilot",
-			  configdata("false", configdata_t::BOOL)},
-		  {"bookmark-cmd", configdata("", configdata_t::STR)},
+			  configdata("false", ConfigData::BOOL)},
+		  {"bookmark-cmd", configdata("", ConfigData::STR)},
 		  {"bookmark-interactive",
-			  configdata("false", configdata_t::BOOL)},
+			  configdata("false", ConfigData::BOOL)},
 		  {"browser",
 			  configdata(utils::get_default_browser(),
-				  configdata_t::PATH)},
-		  {"cache-file", configdata("", configdata_t::PATH)},
-		  {"cleanup-on-quit", configdata("yes", configdata_t::BOOL)},
-		  {"confirm-exit", configdata("no", configdata_t::BOOL)},
-		  {"cookie-cache", configdata("", configdata_t::PATH)},
-		  {"datetime-format", configdata("%b %d", configdata_t::STR)},
+				  ConfigData::PATH)},
+		  {"cache-file", configdata("", ConfigData::PATH)},
+		  {"cleanup-on-quit", configdata("yes", ConfigData::BOOL)},
+		  {"confirm-exit", configdata("no", ConfigData::BOOL)},
+		  {"cookie-cache", configdata("", ConfigData::PATH)},
+		  {"datetime-format", configdata("%b %d", ConfigData::STR)},
 		  {"delete-read-articles-on-quit",
-			  configdata("false", configdata_t::BOOL)},
+			  configdata("false", ConfigData::BOOL)},
 		  {"display-article-progress",
-			  configdata("yes", configdata_t::BOOL)},
+			  configdata("yes", ConfigData::BOOL)},
 		  {"download-filename-format",
 			  configdata("%?u?%u&%Y-%b-%d-%H%M%S.unknown?",
-				  configdata_t::STR)},
+				  ConfigData::STR)},
 		  {"download-full-page",
-			  configdata("false", configdata_t::BOOL)},
-		  {"download-path", configdata("~/", configdata_t::PATH)},
-		  {"download-retries", configdata("1", configdata_t::INT)},
-		  {"download-timeout", configdata("30", configdata_t::INT)},
-		  {"error-log", configdata("", configdata_t::PATH)},
-		  {"external-url-viewer", configdata("", configdata_t::PATH)},
+			  configdata("false", ConfigData::BOOL)},
+		  {"download-path", configdata("~/", ConfigData::PATH)},
+		  {"download-retries", configdata("1", ConfigData::INT)},
+		  {"download-timeout", configdata("30", ConfigData::INT)},
+		  {"error-log", configdata("", ConfigData::PATH)},
+		  {"external-url-viewer", configdata("", ConfigData::PATH)},
 		  {"feed-sort-order",
-			  configdata("none-desc", configdata_t::STR)},
-		  {"feedhq-flag-share", configdata("", configdata_t::STR)},
-		  {"feedhq-flag-star", configdata("", configdata_t::STR)},
-		  {"feedhq-login", configdata("", configdata_t::STR)},
-		  {"feedhq-min-items", configdata("20", configdata_t::INT)},
-		  {"feedhq-password", configdata("", configdata_t::STR)},
-		  {"feedhq-passwordfile", configdata("", configdata_t::PATH)},
-		  {"feedhq-passwordeval", configdata("", configdata_t::STR)},
+			  configdata("none-desc", ConfigData::STR)},
+		  {"feedhq-flag-share", configdata("", ConfigData::STR)},
+		  {"feedhq-flag-star", configdata("", ConfigData::STR)},
+		  {"feedhq-login", configdata("", ConfigData::STR)},
+		  {"feedhq-min-items", configdata("20", ConfigData::INT)},
+		  {"feedhq-password", configdata("", ConfigData::STR)},
+		  {"feedhq-passwordfile", configdata("", ConfigData::PATH)},
+		  {"feedhq-passwordeval", configdata("", ConfigData::STR)},
 		  {"feedhq-show-special-feeds",
-			  configdata("true", configdata_t::BOOL)},
+			  configdata("true", ConfigData::BOOL)},
 		  {"feedhq-url",
-			  configdata("https://feedhq.org/", configdata_t::STR)},
+			  configdata("https://feedhq.org/", ConfigData::STR)},
 		  {"feedlist-format",
-			  configdata("%4i %n %11u %t", configdata_t::STR)},
-		  {"goto-first-unread", configdata("true", configdata_t::BOOL)},
-		  {"goto-next-feed", configdata("yes", configdata_t::BOOL)},
-		  {"history-limit", configdata("100", configdata_t::INT)},
-		  {"html-renderer", configdata("internal", configdata_t::PATH)},
+			  configdata("%4i %n %11u %t", ConfigData::STR)},
+		  {"goto-first-unread", configdata("true", ConfigData::BOOL)},
+		  {"goto-next-feed", configdata("yes", ConfigData::BOOL)},
+		  {"history-limit", configdata("100", ConfigData::INT)},
+		  {"html-renderer", configdata("internal", ConfigData::PATH)},
 		  {"http-auth-method",
 			  configdata("any",
 				  std::unordered_set<std::string>({"any",
@@ -87,67 +87,67 @@ configcontainer::configcontainer()
 			  configdata("download",
 				  std::unordered_set<std::string>(
 					  {"download", "display"}))},
-		  {"inoreader-login", configdata("", configdata_t::STR)},
-		  {"inoreader-password", configdata("", configdata_t::STR)},
+		  {"inoreader-login", configdata("", ConfigData::STR)},
+		  {"inoreader-password", configdata("", ConfigData::STR)},
 		  {"inoreader-passwordfile",
-			  configdata("", configdata_t::PATH)},
-		  {"inoreader-passwordeval", configdata("", configdata_t::STR)},
+			  configdata("", ConfigData::PATH)},
+		  {"inoreader-passwordeval", configdata("", ConfigData::STR)},
 		  {"inoreader-show-special-feeds",
-			  configdata("true", configdata_t::BOOL)},
-		  {"inoreader-flag-share", configdata("", configdata_t::STR)},
-		  {"inoreader-flag-star", configdata("", configdata_t::STR)},
-		  {"inoreader-min-items", configdata("20", configdata_t::INT)},
-		  {"keep-articles-days", configdata("0", configdata_t::INT)},
+			  configdata("true", ConfigData::BOOL)},
+		  {"inoreader-flag-share", configdata("", ConfigData::STR)},
+		  {"inoreader-flag-star", configdata("", ConfigData::STR)},
+		  {"inoreader-min-items", configdata("20", ConfigData::INT)},
+		  {"keep-articles-days", configdata("0", ConfigData::INT)},
 		  {"mark-as-read-on-hover",
-			  configdata("false", configdata_t::BOOL)},
-		  {"max-browser-tabs", configdata("10", configdata_t::INT)},
+			  configdata("false", ConfigData::BOOL)},
+		  {"max-browser-tabs", configdata("10", ConfigData::INT)},
 		  {"markfeedread-jumps-to-next-unread",
-			  configdata("false", configdata_t::BOOL)},
-		  {"max-download-speed", configdata("0", configdata_t::INT)},
-		  {"max-downloads", configdata("1", configdata_t::INT)},
-		  {"max-items", configdata("0", configdata_t::INT)},
-		  {"newsblur-login", configdata("", configdata_t::STR)},
-		  {"newsblur-min-items", configdata("20", configdata_t::INT)},
-		  {"newsblur-password", configdata("", configdata_t::STR)},
-		  {"newsblur-passwordfile", configdata("", configdata_t::PATH)},
-		  {"newsblur-passwordeval", configdata("", configdata_t::STR)},
+			  configdata("false", ConfigData::BOOL)},
+		  {"max-download-speed", configdata("0", ConfigData::INT)},
+		  {"max-downloads", configdata("1", ConfigData::INT)},
+		  {"max-items", configdata("0", ConfigData::INT)},
+		  {"newsblur-login", configdata("", ConfigData::STR)},
+		  {"newsblur-min-items", configdata("20", ConfigData::INT)},
+		  {"newsblur-password", configdata("", ConfigData::STR)},
+		  {"newsblur-passwordfile", configdata("", ConfigData::PATH)},
+		  {"newsblur-passwordeval", configdata("", ConfigData::STR)},
 		  {"newsblur-url",
 			  configdata("https://newsblur.com",
-				  configdata_t::STR)},
-		  {"notify-always", configdata("no", configdata_t::BOOL)},
-		  {"notify-beep", configdata("no", configdata_t::BOOL)},
+				  ConfigData::STR)},
+		  {"notify-always", configdata("no", ConfigData::BOOL)},
+		  {"notify-beep", configdata("no", ConfigData::BOOL)},
 		  {"notify-format",
 			  configdata(_("newsboat: finished reload, %f unread "
 				       "feeds (%n unread articles total)"),
-				  configdata_t::STR)},
-		  {"notify-program", configdata("", configdata_t::PATH)},
-		  {"notify-screen", configdata("no", configdata_t::BOOL)},
-		  {"notify-xterm", configdata("no", configdata_t::BOOL)},
-		  {"oldreader-flag-share", configdata("", configdata_t::STR)},
-		  {"oldreader-flag-star", configdata("", configdata_t::STR)},
-		  {"oldreader-login", configdata("", configdata_t::STR)},
-		  {"oldreader-min-items", configdata("20", configdata_t::INT)},
-		  {"oldreader-password", configdata("", configdata_t::STR)},
+				  ConfigData::STR)},
+		  {"notify-program", configdata("", ConfigData::PATH)},
+		  {"notify-screen", configdata("no", ConfigData::BOOL)},
+		  {"notify-xterm", configdata("no", ConfigData::BOOL)},
+		  {"oldreader-flag-share", configdata("", ConfigData::STR)},
+		  {"oldreader-flag-star", configdata("", ConfigData::STR)},
+		  {"oldreader-login", configdata("", ConfigData::STR)},
+		  {"oldreader-min-items", configdata("20", ConfigData::INT)},
+		  {"oldreader-password", configdata("", ConfigData::STR)},
 		  {"oldreader-passwordfile",
-			  configdata("", configdata_t::PATH)},
-		  {"oldreader-passwordeval", configdata("", configdata_t::STR)},
+			  configdata("", ConfigData::PATH)},
+		  {"oldreader-passwordeval", configdata("", ConfigData::STR)},
 		  {"oldreader-show-special-feeds",
-			  configdata("true", configdata_t::BOOL)},
+			  configdata("true", ConfigData::BOOL)},
 		  {"openbrowser-and-mark-jumps-to-next-unread",
-			  configdata("false", configdata_t::BOOL)},
-		  {"opml-url", configdata("", configdata_t::STR, true)},
-		  {"pager", configdata("internal", configdata_t::PATH)},
-		  {"player", configdata("", configdata_t::PATH)},
+			  configdata("false", ConfigData::BOOL)},
+		  {"opml-url", configdata("", ConfigData::STR, true)},
+		  {"pager", configdata("internal", ConfigData::PATH)},
+		  {"player", configdata("", ConfigData::PATH)},
 		  {"podcast-auto-enqueue",
-			  configdata("no", configdata_t::BOOL)},
+			  configdata("no", ConfigData::BOOL)},
 		  {"podlist-format",
-			  configdata( "%4i [%6dMB/%6tMB] [%5p %%] [%7k kb/s] %-20S %u -> %F", configdata_t::STR)},
+			  configdata( "%4i [%6dMB/%6tMB] [%5p %%] [%7k kb/s] %-20S %u -> %F", ConfigData::STR)},
 		  {"prepopulate-query-feeds",
-			  configdata("false", configdata_t::BOOL)},
-		  {"ssl-verifyhost", configdata("true", configdata_t::BOOL)},
-		  {"ssl-verifypeer", configdata("true", configdata_t::BOOL)},
-		  {"proxy", configdata("", configdata_t::STR)},
-		  {"proxy-auth", configdata("", configdata_t::STR)},
+			  configdata("false", ConfigData::BOOL)},
+		  {"ssl-verifyhost", configdata("true", ConfigData::BOOL)},
+		  {"ssl-verifypeer", configdata("true", ConfigData::BOOL)},
+		  {"proxy", configdata("", ConfigData::STR)},
+		  {"proxy-auth", configdata("", ConfigData::STR)},
 		  {"proxy-auth-method",
 			  configdata("any",
 				  std::unordered_set<std::string>({"any",
@@ -164,43 +164,43 @@ configcontainer::configcontainer()
 					  "socks4a",
 					  "socks5",
 					  "socks5h"}))},
-		  {"refresh-on-startup", configdata("no", configdata_t::BOOL)},
+		  {"refresh-on-startup", configdata("no", ConfigData::BOOL)},
 		  {"reload-only-visible-feeds",
-			  configdata("false", configdata_t::BOOL)},
-		  {"reload-threads", configdata("1", configdata_t::INT)},
-		  {"reload-time", configdata("60", configdata_t::INT)},
-		  {"save-path", configdata("~/", configdata_t::PATH)},
+			  configdata("false", ConfigData::BOOL)},
+		  {"reload-threads", configdata("1", ConfigData::INT)},
+		  {"reload-time", configdata("60", ConfigData::INT)},
+		  {"save-path", configdata("~/", ConfigData::PATH)},
 		  {"search-highlight-colors",
 			  configdata("black yellow bold",
-				  configdata_t::STR,
+				  ConfigData::STR,
 				  true)},
-		  {"show-keymap-hint", configdata("yes", configdata_t::BOOL)},
-		  {"show-read-articles", configdata("yes", configdata_t::BOOL)},
-		  {"show-read-feeds", configdata("yes", configdata_t::BOOL)},
+		  {"show-keymap-hint", configdata("yes", ConfigData::BOOL)},
+		  {"show-read-articles", configdata("yes", ConfigData::BOOL)},
+		  {"show-read-feeds", configdata("yes", ConfigData::BOOL)},
 		  {"suppress-first-reload",
-			  configdata("no", configdata_t::BOOL)},
+			  configdata("no", ConfigData::BOOL)},
 		  {"swap-title-and-hints",
-			  configdata("no", configdata_t::BOOL)},
-		  {"text-width", configdata("0", configdata_t::INT)},
+			  configdata("no", ConfigData::BOOL)},
+		  {"text-width", configdata("0", ConfigData::INT)},
 		  {"toggleitemread-jumps-to-next-unread",
-			  configdata("false", configdata_t::BOOL)},
-		  {"ttrss-flag-publish", configdata("", configdata_t::STR)},
-		  {"ttrss-flag-star", configdata("", configdata_t::STR)},
-		  {"ttrss-login", configdata("", configdata_t::STR)},
+			  configdata("false", ConfigData::BOOL)},
+		  {"ttrss-flag-publish", configdata("", ConfigData::STR)},
+		  {"ttrss-flag-star", configdata("", ConfigData::STR)},
+		  {"ttrss-login", configdata("", ConfigData::STR)},
 		  {"ttrss-mode",
 			  configdata("multi",
 				  std::unordered_set<std::string>(
 					  {"single", "multi"}))},
-		  {"ttrss-password", configdata("", configdata_t::STR)},
-		  {"ttrss-passwordfile", configdata("", configdata_t::PATH)},
-		  {"ttrss-passwordeval", configdata("", configdata_t::STR)},
-		  {"ttrss-url", configdata("", configdata_t::STR)},
-		  {"ocnews-login", configdata("", configdata_t::STR)},
-		  {"ocnews-password", configdata("", configdata_t::STR)},
-		  {"ocnews-passwordfile", configdata("", configdata_t::PATH)},
-		  {"ocnews-passwordeval", configdata("", configdata_t::STR)},
-		  {"ocnews-flag-star", configdata("", configdata_t::STR)},
-		  {"ocnews-url", configdata("", configdata_t::STR)},
+		  {"ttrss-password", configdata("", ConfigData::STR)},
+		  {"ttrss-passwordfile", configdata("", ConfigData::PATH)},
+		  {"ttrss-passwordeval", configdata("", ConfigData::STR)},
+		  {"ttrss-url", configdata("", ConfigData::STR)},
+		  {"ocnews-login", configdata("", ConfigData::STR)},
+		  {"ocnews-password", configdata("", ConfigData::STR)},
+		  {"ocnews-passwordfile", configdata("", ConfigData::PATH)},
+		  {"ocnews-passwordeval", configdata("", ConfigData::STR)},
+		  {"ocnews-flag-star", configdata("", ConfigData::STR)},
+		  {"ocnews-url", configdata("", ConfigData::STR)},
 		  {"urls-source",
 			  configdata("local",
 				  std::unordered_set<std::string>({"local",
@@ -211,43 +211,43 @@ configcontainer::configcontainer()
 					  "feedhq",
 					  "ocnews",
 					  "inoreader"}))},
-		  {"use-proxy", configdata("no", configdata_t::BOOL)},
-		  {"user-agent", configdata("", configdata_t::STR)},
+		  {"use-proxy", configdata("no", ConfigData::BOOL)},
+		  {"user-agent", configdata("", ConfigData::STR)},
 
 		  /* title formats: */
 		  {"articlelist-title-format",
 			  configdata(_("%N %V - Articles in feed '%T' (%u "
 				       "unread, %t "
 				       "total) - %U"),
-				  configdata_t::STR)},
+				  ConfigData::STR)},
 		  {"dialogs-title-format",
-			  configdata(_("%N %V - Dialogs"), configdata_t::STR)},
+			  configdata(_("%N %V - Dialogs"), ConfigData::STR)},
 		  {"feedlist-title-format",
 			  configdata(_("%N %V - Your feeds (%u unread, %t "
 				       "total)%?T? - "
 				       "tag `%T'&?"),
-				  configdata_t::STR)},
+				  ConfigData::STR)},
 		  {"filebrowser-title-format",
 			  configdata(_("%N %V - %?O?Open File&Save File? - %f"),
-				  configdata_t::STR)},
+				  ConfigData::STR)},
 		  {"help-title-format",
-			  configdata(_("%N %V - Help"), configdata_t::STR)},
+			  configdata(_("%N %V - Help"), ConfigData::STR)},
 		  {"itemview-title-format",
 			  configdata(_("%N %V - Article '%T' (%u unread, %t "
 				       "total)"),
-				  configdata_t::STR)},
+				  ConfigData::STR)},
 		  {"searchresult-title-format",
 			  configdata(_("%N %V - Search result (%u unread, %t "
 				       "total)"),
-				  configdata_t::STR)},
+				  ConfigData::STR)},
 		  {"selectfilter-title-format",
 			  configdata(_("%N %V - Select Filter"),
-				  configdata_t::STR)},
+				  ConfigData::STR)},
 		  {"selecttag-title-format",
 			  configdata(_("%N %V - Select Tag"),
-				  configdata_t::STR)},
+				  ConfigData::STR)},
 		  {"urlview-title-format",
-			  configdata(_("%N %V - URLs"), configdata_t::STR)}}
+			  configdata(_("%N %V - URLs"), ConfigData::STR)}}
 {
 }
 
@@ -269,28 +269,28 @@ void configcontainer::handle_action(const std::string& action,
 {
 	configdata& cfgdata = config_data[action];
 
-	// configdata_t::INVALID indicates that the action didn't exist, and
+	// ConfigData::INVALID indicates that the action didn't exist, and
 	// that the returned object was created ad-hoc.
-	if (cfgdata.type == configdata_t::INVALID) {
-		LOG(level::WARN,
+	if (cfgdata.type == ConfigData::INVALID) {
+		LOG(Level::WARN,
 			"configcontainer::handle_action: unknown action %s",
 			action);
 		throw confighandlerexception(
-			action_handler_status::INVALID_COMMAND);
+			ActionHandlerStatus::INVALID_COMMAND);
 	}
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"configcontainer::handle_action: action = %s, type = %u",
 		action,
 		cfgdata.type);
 
 	if (params.size() < 1) {
 		throw confighandlerexception(
-			action_handler_status::TOO_FEW_PARAMS);
+			ActionHandlerStatus::TOO_FEW_PARAMS);
 	}
 
 	switch (cfgdata.type) {
-	case configdata_t::BOOL:
+	case ConfigData::BOOL:
 		if (!is_bool(params[0]))
 			throw confighandlerexception(strprintf::fmt(
 				_("expected boolean value, found `%s' instead"),
@@ -298,7 +298,7 @@ void configcontainer::handle_action(const std::string& action,
 		cfgdata.value = params[0];
 		break;
 
-	case configdata_t::INT:
+	case ConfigData::INT:
 		if (!is_int(params[0]))
 			throw confighandlerexception(strprintf::fmt(
 				_("expected integer value, found `%s' instead"),
@@ -306,22 +306,22 @@ void configcontainer::handle_action(const std::string& action,
 		cfgdata.value = params[0];
 		break;
 
-	case configdata_t::ENUM:
+	case ConfigData::ENUM:
 		if (cfgdata.enum_values.find(params[0]) ==
 			cfgdata.enum_values.end())
 			throw confighandlerexception(strprintf::fmt(
 				_("invalid configuration value `%s'"),
 				params[0]));
 	// fall-through
-	case configdata_t::STR:
-	case configdata_t::PATH:
+	case ConfigData::STR:
+	case ConfigData::PATH:
 		if (cfgdata.multi_option)
 			cfgdata.value = utils::join(params, " ");
 		else
 			cfgdata.value = params[0];
 		break;
 
-	case configdata_t::INVALID:
+	case ConfigData::INVALID:
 		// we already handled this at the beginning of the function
 		break;
 	}
@@ -342,7 +342,7 @@ bool configcontainer::is_int(const std::string& s)
 std::string configcontainer::get_configvalue(const std::string& key)
 {
 	std::string retval = config_data[key].value;
-	if (config_data[key].type == configdata_t::PATH) {
+	if (config_data[key].type == ConfigData::PATH) {
 		retval = utils::resolve_tilde(retval);
 	}
 	return retval;
@@ -365,7 +365,7 @@ bool configcontainer::get_configvalue_as_bool(const std::string& key)
 void configcontainer::set_configvalue(const std::string& key,
 	const std::string& value)
 {
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"configcontainer::set_configvalue(%s, %s) called",
 		key,
 		value);
@@ -379,7 +379,7 @@ void configcontainer::reset_to_default(const std::string& key)
 
 void configcontainer::toggle(const std::string& key)
 {
-	if (config_data[key].type == configdata_t::BOOL) {
+	if (config_data[key].type == ConfigData::BOOL) {
 		set_configvalue(key,
 			std::string(get_configvalue_as_bool(key) ? "false"
 								 : "true"));
@@ -390,19 +390,19 @@ void configcontainer::dump_config(std::vector<std::string>& config_output)
 {
 	for (const auto& cfg : config_data) {
 		std::string configline = cfg.first + " ";
-		assert(cfg.second.type != configdata_t::INVALID);
+		assert(cfg.second.type != ConfigData::INVALID);
 		switch (cfg.second.type) {
-		case configdata_t::BOOL:
-		case configdata_t::INT:
+		case ConfigData::BOOL:
+		case ConfigData::INT:
 			configline.append(cfg.second.value);
 			if (cfg.second.value != cfg.second.default_value)
 				configline.append(
 					strprintf::fmt(" # default: %s",
 						cfg.second.default_value));
 			break;
-		case configdata_t::ENUM:
-		case configdata_t::STR:
-		case configdata_t::PATH:
+		case ConfigData::ENUM:
+		case ConfigData::STR:
+		case ConfigData::PATH:
 			if (cfg.second.multi_option) {
 				std::vector<std::string> tokens =
 					utils::tokenize(cfg.second.value, " ");
@@ -421,7 +421,7 @@ void configcontainer::dump_config(std::vector<std::string>& config_output)
 				}
 			}
 			break;
-		case configdata_t::INVALID:
+		case ConfigData::INVALID:
 			// can't happen because we already checked this case
 			// before the `switch`
 			break;
@@ -455,23 +455,23 @@ FeedSortStrategy configcontainer::get_feed_sort_strategy()
 	}
 
 	if (sortmethod == "none") {
-		ss.sm = feed_sort_method_t::NONE;
+		ss.sm = FeedSortMethod::NONE;
 	} else if (sortmethod == "firsttag") {
-		ss.sm = feed_sort_method_t::FIRST_TAG;
+		ss.sm = FeedSortMethod::FIRST_TAG;
 	} else if (sortmethod == "title") {
-		ss.sm = feed_sort_method_t::TITLE;
+		ss.sm = FeedSortMethod::TITLE;
 	} else if (sortmethod == "articlecount") {
-		ss.sm = feed_sort_method_t::ARTICLE_COUNT;
+		ss.sm = FeedSortMethod::ARTICLE_COUNT;
 	} else if (sortmethod == "unreadarticlecount") {
-		ss.sm = feed_sort_method_t::UNREAD_ARTICLE_COUNT;
+		ss.sm = FeedSortMethod::UNREAD_ARTICLE_COUNT;
 	} else if (sortmethod == "lastupdated") {
-		ss.sm = feed_sort_method_t::LAST_UPDATED;
+		ss.sm = FeedSortMethod::LAST_UPDATED;
 	}
 
 	if (direction == "asc") {
-		ss.sd = sort_direction_t::ASC;
+		ss.sd = SortDirection::ASC;
 	} else if (direction == "desc") {
-		ss.sd = sort_direction_t::DESC;
+		ss.sd = SortDirection::DESC;
 	}
 
 	return ss;
@@ -485,29 +485,29 @@ ArticleSortStrategy configcontainer::get_article_sort_strategy()
 
 	if (!methods.empty() &&
 		methods[0] == "date") { // date is descending by default
-		ss.sm = art_sort_method_t::DATE;
-		ss.sd = sort_direction_t::DESC;
+		ss.sm = ArtSortMethod::DATE;
+		ss.sd = SortDirection::DESC;
 		if (methods.size() > 1 && methods[1] == "asc") {
-			ss.sd = sort_direction_t::ASC;
+			ss.sd = SortDirection::ASC;
 		}
 	} else { // all other sort methods are ascending by default
-		ss.sd = sort_direction_t::ASC;
+		ss.sd = SortDirection::ASC;
 		if (methods.size() > 1 && methods[1] == "desc") {
-			ss.sd = sort_direction_t::DESC;
+			ss.sd = SortDirection::DESC;
 		}
 	}
 
 	if (!methods.empty()) {
 		if (methods[0] == "title") {
-			ss.sm = art_sort_method_t::TITLE;
+			ss.sm = ArtSortMethod::TITLE;
 		} else if (methods[0] == "flags") {
-			ss.sm = art_sort_method_t::FLAGS;
+			ss.sm = ArtSortMethod::FLAGS;
 		} else if (methods[0] == "author") {
-			ss.sm = art_sort_method_t::AUTHOR;
+			ss.sm = ArtSortMethod::AUTHOR;
 		} else if (methods[0] == "link") {
-			ss.sm = art_sort_method_t::LINK;
+			ss.sm = ArtSortMethod::LINK;
 		} else if (methods[0] == "guid") {
-			ss.sm = art_sort_method_t::GUID;
+			ss.sm = ArtSortMethod::GUID;
 		}
 	}
 

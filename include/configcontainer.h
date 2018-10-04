@@ -7,9 +7,9 @@
 
 namespace newsboat {
 
-enum class configdata_t { INVALID, BOOL, INT, STR, PATH, ENUM };
+enum class ConfigData { INVALID, BOOL, INT, STR, PATH, ENUM };
 
-enum class feed_sort_method_t {
+enum class FeedSortMethod {
 	NONE,
 	FIRST_TAG,
 	TITLE,
@@ -18,18 +18,18 @@ enum class feed_sort_method_t {
 	LAST_UPDATED
 };
 
-enum class art_sort_method_t { TITLE, FLAGS, AUTHOR, LINK, GUID, DATE };
+enum class ArtSortMethod { TITLE, FLAGS, AUTHOR, LINK, GUID, DATE };
 
-enum class sort_direction_t { ASC, DESC };
+enum class SortDirection { ASC, DESC };
 
 struct FeedSortStrategy {
-	feed_sort_method_t sm;
-	sort_direction_t sd;
+	FeedSortMethod sm;
+	SortDirection sd;
 };
 
 struct ArticleSortStrategy {
-	art_sort_method_t sm;
-	sort_direction_t sd;
+	ArtSortMethod sm;
+	SortDirection sd;
 
 	bool operator==(const ArticleSortStrategy& other) const
 	{
@@ -44,7 +44,7 @@ struct ArticleSortStrategy {
 
 struct configdata {
 	configdata(const std::string& v = "",
-		configdata_t t = configdata_t::INVALID,
+		ConfigData t = ConfigData::INVALID,
 		bool m = false)
 		: value(v)
 		, default_value(v)
@@ -58,7 +58,7 @@ struct configdata {
 		const std::unordered_set<std::string>& values)
 		: value(v)
 		, default_value(v)
-		, type(configdata_t::ENUM)
+		, type(ConfigData::ENUM)
 		, enum_values(values)
 		, multi_option(false)
 	{
@@ -66,7 +66,7 @@ struct configdata {
 
 	std::string value;
 	std::string default_value;
-	configdata_t type;
+	ConfigData type;
 	const std::unordered_set<std::string> enum_values;
 	bool multi_option;
 };

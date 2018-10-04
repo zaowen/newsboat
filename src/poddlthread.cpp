@@ -78,7 +78,7 @@ void poddlthread::run()
 		dl->filename() + newsboat::configcontainer::PARTIAL_FILE_SUFFIX;
 
 	if (stat(filename.c_str(), &sb) == -1) {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"poddlthread::run: stat failed: starting normal "
 			"download");
 
@@ -92,7 +92,7 @@ void poddlthread::run()
 		dl->set_offset(0);
 		resumed_download = false;
 	} else {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"poddlthread::run: stat ok: starting download from %u",
 			sb.st_size);
 		curl_easy_setopt(easyhandle, CURLOPT_RESUME_FROM, sb.st_size);
@@ -102,35 +102,35 @@ void poddlthread::run()
 	}
 
 	if (f->is_open()) {
-		dl->set_status(dlstatus::DOWNLOADING);
+		dl->set_status(DlStatus::DOWNLOADING);
 
 		CURLcode success = curl_easy_perform(easyhandle);
 
 		f->close();
 
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"poddlthread::run: curl_easy_perform rc = %u (%s)",
 			success,
 			curl_easy_strerror(success));
 
 		if (0 == success) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"poddlthread::run: download complete, deleting "
 				"temporary suffix");
 			rename(filename.c_str(), dl->filename().c_str());
-			dl->set_status(dlstatus::READY);
-		} else if (dl->status() != dlstatus::CANCELLED) {
+			dl->set_status(DlStatus::READY);
+		} else if (dl->status() != DlStatus::CANCELLED) {
 			// attempt complete re-download
 			if (resumed_download) {
 				::unlink(filename.c_str());
 				this->run();
 			} else {
-				dl->set_status(dlstatus::FAILED);
+				dl->set_status(DlStatus::FAILED);
 				::unlink(filename.c_str());
 			}
 		}
 	} else {
-		dl->set_status(dlstatus::FAILED);
+		dl->set_status(DlStatus::FAILED);
 	}
 
 	curl_easy_cleanup(easyhandle);
@@ -155,11 +155,11 @@ static int progress_callback(void* clientp,
 
 size_t poddlthread::write_data(void* buffer, size_t size, size_t nmemb)
 {
-	if (dl->status() == dlstatus::CANCELLED)
+	if (dl->status() == DlStatus::CANCELLED)
 		return 0;
 	f->write(static_cast<char*>(buffer), size * nmemb);
 	bytecount += (size * nmemb);
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"poddlthread::write_data: bad = %u size = %u",
 		f->bad(),
 		size * nmemb);
@@ -168,7 +168,7 @@ size_t poddlthread::write_data(void* buffer, size_t size, size_t nmemb)
 
 int poddlthread::progress(double dlnow, double dltotal)
 {
-	if (dl->status() == dlstatus::CANCELLED)
+	if (dl->status() == DlStatus::CANCELLED)
 		return -1;
 	gettimeofday(&tv2, nullptr);
 	double kbps = compute_kbps();

@@ -9,7 +9,7 @@ namespace newsboat {
 std::mutex logger::instanceMutex;
 
 logger::logger()
-	: curlevel(level::NONE)
+	: curlevel(Level::NONE)
 {
 }
 
@@ -41,16 +41,16 @@ void logger::set_errorlogfile(const std::string& logfile)
 	if (!ef.is_open()) {
 		throw exception(errno);
 	}
-	if (level::NONE == curlevel) {
-		curlevel = level::USERERROR;
+	if (Level::NONE == curlevel) {
+		curlevel = Level::USERERROR;
 	}
 }
 
-void logger::set_loglevel(level l)
+void logger::set_loglevel(Level l)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 	curlevel = l;
-	if (curlevel == level::NONE)
+	if (curlevel == Level::NONE)
 		f.close();
 }
 

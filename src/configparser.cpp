@@ -32,15 +32,15 @@ void configparser::handle_action(const std::string& action,
 	if (action == "include") {
 		if (params.size() < 1) {
 			throw confighandlerexception(
-				action_handler_status::TOO_FEW_PARAMS);
+				ActionHandlerStatus::TOO_FEW_PARAMS);
 		}
 
 		if (!this->parse(utils::resolve_tilde(params[0])))
 			throw confighandlerexception(
-				action_handler_status::FILENOTFOUND);
+				ActionHandlerStatus::FILENOTFOUND);
 	} else
 		throw confighandlerexception(
-			action_handler_status::INVALID_COMMAND);
+			ActionHandlerStatus::INVALID_COMMAND);
 }
 
 bool configparser::parse(const std::string& filename, bool double_include)
@@ -61,7 +61,7 @@ bool configparser::parse(const std::string& filename, bool double_include)
 	 */
 	if (!double_include &&
 		included_files.find(filename) != included_files.end()) {
-		LOG(level::WARN,
+		LOG(Level::WARN,
 			"configparser::parse: file %s has already been "
 			"included",
 			filename);
@@ -73,7 +73,7 @@ bool configparser::parse(const std::string& filename, bool double_include)
 	std::ifstream f(filename.c_str());
 	std::string line;
 	if (!f.is_open()) {
-		LOG(level::WARN,
+		LOG(Level::WARN,
 			"configparser::parse: file %s couldn't be opened",
 			filename);
 		return false;
@@ -81,7 +81,7 @@ bool configparser::parse(const std::string& filename, bool double_include)
 	while (f.is_open() && !f.eof()) {
 		getline(f, line);
 		++linecounter;
-		LOG(level::DEBUG, "configparser::parse: tokenizing %s", line);
+		LOG(Level::DEBUG, "configparser::parse: tokenizing %s", line);
 		std::vector<std::string> tokens = utils::tokenize_quoted(line);
 		if (!tokens.empty()) {
 			std::string cmd = tokens[0];

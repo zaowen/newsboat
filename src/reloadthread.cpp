@@ -13,7 +13,7 @@ reloadthread::reloadthread(controller* c, configcontainer* cf)
 	, suppressed_first(false)
 	, cfg(cf)
 {
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"reloadthread: waiting %u seconds between reloads",
 		waittime_sec);
 }
@@ -24,7 +24,7 @@ void reloadthread::operator()()
 {
 	for (;;) {
 		oldtime = time(nullptr);
-		LOG(level::INFO, "reloadthread: starting reload");
+		LOG(Level::INFO, "reloadthread: starting reload");
 
 		waittime_sec = 60 * cfg->get_configvalue_as_int("reload-time");
 		if (waittime_sec == 0)

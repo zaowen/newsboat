@@ -43,7 +43,7 @@ void regexmanager::handle_action(const std::string& action,
 	if (action == "highlight") {
 		if (params.size() < 3)
 			throw confighandlerexception(
-				action_handler_status::TOO_FEW_PARAMS);
+				ActionHandlerStatus::TOO_FEW_PARAMS);
 
 		std::string location = params[0];
 		if (location != "all" && location != "article" &&
@@ -104,7 +104,7 @@ void regexmanager::handle_action(const std::string& action,
 			}
 		}
 		if (location != "all") {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"regexmanager::handle_action: adding rx = %s "
 				"colorstr = %s to location %s",
 				params[1],
@@ -115,7 +115,7 @@ void regexmanager::handle_action(const std::string& action,
 		} else {
 			delete rx;
 			for (auto& location : locations) {
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"regexmanager::handle_action: adding "
 					"rx = "
 					"%s colorstr = %s to location %s",
@@ -141,7 +141,7 @@ void regexmanager::handle_action(const std::string& action,
 	} else if (action == "highlight-article") {
 		if (params.size() < 3)
 			throw confighandlerexception(
-				action_handler_status::TOO_FEW_PARAMS);
+				ActionHandlerStatus::TOO_FEW_PARAMS);
 
 		std::string expr = params[0];
 		std::string fgcolor = params[1];
@@ -200,7 +200,7 @@ void regexmanager::handle_action(const std::string& action,
 
 	} else
 		throw confighandlerexception(
-			action_handler_status::INVALID_COMMAND);
+			ActionHandlerStatus::INVALID_COMMAND);
 }
 
 int regexmanager::article_matches(matchable* item)

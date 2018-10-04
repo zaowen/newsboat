@@ -10,8 +10,8 @@
 
 namespace newsboat {
 
-enum class link_type { HREF, IMG, EMBED };
-enum class htmltag {
+enum class LinkType { HREF, IMG, EMBED };
+enum class HtmlTag {
 	A = 1,
 	EMBED,
 	BR,
@@ -46,7 +46,7 @@ enum class htmltag {
 	TD
 };
 
-typedef std::pair<std::string, link_type> linkpair;
+typedef std::pair<std::string, LinkType> linkpair;
 
 class htmlrenderer {
 public:
@@ -109,12 +109,12 @@ private:
 	bool line_is_nonempty(const std::string& line);
 	unsigned int add_link(std::vector<linkpair>& links,
 		const std::string& link,
-		link_type type);
+		LinkType type);
 	std::string quote_for_stfl(std::string str);
 	std::string absolute_url(const std::string& url,
 		const std::string& link);
-	std::string type2str(link_type type);
-	std::map<std::string, htmltag> tags;
+	std::string type2str(LinkType type);
+	std::map<std::string, HtmlTag> tags;
 	void render_table(const Table& table,
 		std::vector<std::pair<LineType, std::string>>& lines);
 	void add_nonempty_line(const std::string& curline,

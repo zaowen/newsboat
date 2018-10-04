@@ -243,7 +243,7 @@ std::vector<std::string> utils::tokenize_nl(const std::string& str,
 	std::string::size_type pos = str.find_first_of(delimiters, last_pos);
 	unsigned int i;
 
-	LOG(level::DEBUG, "utils::tokenize_nl: last_pos = %u", last_pos);
+	LOG(Level::DEBUG, "utils::tokenize_nl: last_pos = %u", last_pos);
 	if (last_pos != std::string::npos) {
 		for (i = 0; i < last_pos; ++i) {
 			tokens.push_back(std::string("\n"));
@@ -252,11 +252,11 @@ std::vector<std::string> utils::tokenize_nl(const std::string& str,
 
 	while (std::string::npos != pos || std::string::npos != last_pos) {
 		tokens.push_back(str.substr(last_pos, pos - last_pos));
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"utils::tokenize_nl: substr = %s",
 			str.substr(last_pos, pos - last_pos));
 		last_pos = str.find_first_not_of(delimiters, pos);
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"utils::tokenize_nl: pos - last_pos = %u",
 			last_pos - pos);
 		for (i = 0; last_pos != std::string::npos &&
@@ -275,15 +275,15 @@ std::string utils::translit(const std::string& tocode,
 {
 	std::string tlit = "//TRANSLIT";
 
-	enum class translit_state { UNKNOWN, SUPPORTED, UNSUPPORTED };
+	enum class TranslitState { UNKNOWN, SUPPORTED, UNSUPPORTED };
 
-	static translit_state state = translit_state::UNKNOWN;
+	static TranslitState state = TranslitState::UNKNOWN;
 
 	// TRANSLIT is not needed when converting to unicode encodings
 	if (tocode == "utf-8" || tocode == "WCHAR_T")
 		return tocode;
 
-	if (state == translit_state::UNKNOWN) {
+	if (state == TranslitState::UNKNOWN) {
 		iconv_t cd = ::iconv_open(
 			(tocode + "//TRANSLIT").c_str(), fromcode.c_str());
 
@@ -292,7 +292,7 @@ std::string utils::translit(const std::string& tocode,
 				iconv_t cd = ::iconv_open(
 					tocode.c_str(), fromcode.c_str());
 				if (cd != reinterpret_cast<iconv_t>(-1)) {
-					state = translit_state::UNSUPPORTED;
+					state = TranslitState::UNSUPPORTED;
 				} else {
 					fprintf(stderr,
 						"iconv_open('%s', '%s') "
@@ -312,13 +312,13 @@ std::string utils::translit(const std::string& tocode,
 				abort();
 			}
 		} else {
-			state = translit_state::SUPPORTED;
+			state = TranslitState::SUPPORTED;
 		}
 
 		iconv_close(cd);
 	}
 
-	return ((state == translit_state::SUPPORTED) ? (tocode + tlit)
+	return ((state == TranslitState::SUPPORTED) ? (tocode + tlit)
 						     : (tocode));
 }
 
@@ -418,7 +418,7 @@ void utils::extract_filter(const std::string& line,
 	filter = line.substr(pos + 1, pos1 - pos - 1);
 	pos = pos1;
 	url = line.substr(pos + 1, line.length() - pos);
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"utils::extract_filter: %s -> filter: %s url: %s",
 		line,
 		filter,
@@ -472,13 +472,13 @@ std::string utils::retrieve_url(const std::string& url,
 	}
 
 	if (postdata != nullptr) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"utils::retrieve_url(%s)[%s]: %s",
 			url,
 			postdata,
 			buf);
 	} else {
-		LOG(level::DEBUG, "utils::retrieve_url(%s)[-]: %s", url, buf);
+		LOG(Level::DEBUG, "utils::retrieve_url(%s)[-]: %s", url, buf);
 	}
 
 	return buf;
@@ -493,7 +493,7 @@ void utils::run_command(const std::string& cmd, const std::string& input)
 	case 0: { // child:
 		int fd = ::open("/dev/null", O_RDWR);
 		if (fd == -1) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"utils::run_command: error opening /dev/null: "
 				"(%i) "
 				"%s",
@@ -507,9 +507,9 @@ void utils::run_command(const std::string& cmd, const std::string& input)
 		dup2(fd, 0);
 		dup2(fd, 1);
 		dup2(fd, 2);
-		LOG(level::DEBUG, "utils::run_command: %s '%s'", cmd, input);
+		LOG(Level::DEBUG, "utils::run_command: %s '%s'", cmd, input);
 		execlp(cmd.c_str(), cmd.c_str(), input.c_str(), nullptr);
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"utils::run_command: execlp of %s failed: %s",
 			cmd,
 			strerror(errno));
@@ -693,7 +693,7 @@ unsigned int utils::to_u(const std::string& str,
 	return u;
 }
 
-scope_measure::scope_measure(const std::string& func, level ll)
+scope_measure::scope_measure(const std::string& func, Level ll)
 	: funcname(func)
 	, lvl(ll)
 {
@@ -722,7 +722,7 @@ scope_measure::~scope_measure()
 	unsigned long diff =
 		(((tv2.tv_sec - tv1.tv_sec) * 1000000) + tv2.tv_usec) -
 		tv1.tv_usec;
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"scope_measure: function `%s' took %lu.%06lu s",
 		funcname,
 		diff / 1000000,
@@ -887,7 +887,7 @@ size_t utils::wcswidth_stfl(const std::wstring& str, size_t size)
 
 	int width = wcswidth(str.c_str(), size);
 	if (width < 0) {
-		LOG(level::ERROR, "oh, oh, wcswidth just failed");
+		LOG(Level::ERROR, "oh, oh, wcswidth just failed");
 		return str.length() - reduce_count;
 	}
 
@@ -1105,7 +1105,7 @@ void utils::set_common_curl_options(CURL* handle, configcontainer* cfg)
 			const std::string proxytype =
 				cfg->get_configvalue("proxy-type");
 			if (proxytype != "") {
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"utils::set_common_curl_options: "
 					"proxytype "
 					"= %s",
@@ -1213,7 +1213,7 @@ unsigned long utils::get_auth_method(const std::string& type)
 	if (type == "anysafe")
 		return CURLAUTH_ANYSAFE;
 	if (type != "") {
-		LOG(level::USERERROR,
+		LOG(Level::USERERROR,
 			"you configured an invalid proxy authentication "
 			"method: %s",
 			type);
@@ -1237,7 +1237,7 @@ curl_proxytype utils::get_proxy_type(const std::string& type)
 #endif
 
 	if (type != "") {
-		LOG(level::USERERROR,
+		LOG(Level::USERERROR,
 			"you configured an invalid proxy type: %s",
 			type);
 	}
@@ -1249,7 +1249,7 @@ std::string utils::escape_url(const std::string& url)
 	CURL* easyhandle = curl_easy_init();
 	char* output = curl_easy_escape(easyhandle, url.c_str(), 0);
 	if (!output) {
-		LOG(level::DEBUG, "Libcurl failed to escape url: %s", url);
+		LOG(Level::DEBUG, "Libcurl failed to escape url: %s", url);
 		throw std::runtime_error("escaping url failed");
 	}
 	std::string s = output;
@@ -1263,7 +1263,7 @@ std::string utils::unescape_url(const std::string& url)
 	CURL* easyhandle = curl_easy_init();
 	char* output = curl_easy_unescape(easyhandle, url.c_str(), 0, NULL);
 	if (!output) {
-		LOG(level::DEBUG, "Libcurl failed to escape url: %s", url);
+		LOG(Level::DEBUG, "Libcurl failed to escape url: %s", url);
 		throw std::runtime_error("escaping url failed");
 	}
 	std::string s = output;
@@ -1376,16 +1376,16 @@ std::string utils::make_title(const std::string& const_url)
 int utils::run_interactively(const std::string& command,
 	const std::string& caller)
 {
-	LOG(level::DEBUG, "%s: running `%s'", caller, command);
+	LOG(Level::DEBUG, "%s: running `%s'", caller, command);
 
 	int status = ::system(command.c_str());
 
 	if (status == -1) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"%s: couldn't create a child process",
 			caller);
 	} else if (status == 127) {
-		LOG(level::DEBUG, "%s: couldn't run shell", caller);
+		LOG(Level::DEBUG, "%s: couldn't run shell", caller);
 	}
 
 	return status;
@@ -1458,7 +1458,7 @@ static void
 openssl_mth_locking_function(int mode, int n, const char* file, int line)
 {
 	if (n < 0 || n >= openssl_mutexes_size) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"openssl_mth_locking_function: index is out of bounds "
 			"(called by %s:%d)",
 			file,
@@ -1466,10 +1466,10 @@ openssl_mth_locking_function(int mode, int n, const char* file, int line)
 		return;
 	}
 	if (mode & CRYPTO_LOCK) {
-		LOG(level::DEBUG, "OpenSSL lock %d: %s:%d", n, file, line);
+		LOG(Level::DEBUG, "OpenSSL lock %d: %s:%d", n, file, line);
 		openssl_mutexes[n].lock();
 	} else {
-		LOG(level::DEBUG, "OpenSSL unlock %d: %s:%d", n, file, line);
+		LOG(Level::DEBUG, "OpenSSL unlock %d: %s:%d", n, file, line);
 		openssl_mutexes[n].unlock();
 	}
 }

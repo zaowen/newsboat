@@ -68,7 +68,7 @@ std::string ttrss_api::retrieve_sid()
 	try {
 		sid = content["session_id"];
 	} catch (json::exception& e) {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"ttrss_api::retrieve_sid: couldn't extract session_id: "
 			"%s",
 			e.what());
@@ -77,13 +77,13 @@ std::string ttrss_api::retrieve_sid()
 	try {
 		api_level = content["api_level"];
 	} catch (json::exception& e) {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"ttrss_api::retrieve_sid: couldn't determine api_level "
 			"from response: %s",
 			e.what());
 	}
 
-	LOG(level::DEBUG, "ttrss_api::retrieve_sid: sid = '%s'", sid);
+	LOG(Level::DEBUG, "ttrss_api::retrieve_sid: sid = '%s'", sid);
 
 	return sid;
 }
@@ -97,7 +97,7 @@ unsigned int ttrss_api::query_api_level()
 
 		try {
 			api_level = content["level"];
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"ttrss_api::query_api_level: determined level: "
 				"%d",
 				api_level);
@@ -107,7 +107,7 @@ unsigned int ttrss_api::query_api_level()
 			// "Whether tt-rss returns error for this method (e.g.
 			//  version:1.5.7 and below) client should assume API
 			//  level 0."
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"ttrss_api::query_api_level: failed to "
 				"determine "
 				"level, assuming 0");
@@ -149,7 +149,7 @@ json ttrss_api::run_op(const std::string& op,
 	std::string result = utils::retrieve_url(
 		url, cfg, auth_info, &req_data, cached_handle);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"ttrss_api::run_op(%s,...): post=%s reply = %s",
 		op,
 		req_data,
@@ -159,7 +159,7 @@ json ttrss_api::run_op(const std::string& op,
 	try {
 		reply = json::parse(result);
 	} catch (json::parse_error& e) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"ttrss_api::run_op: reply failed to parse: %s",
 			result);
 		return json(nullptr);
@@ -169,7 +169,7 @@ json ttrss_api::run_op(const std::string& op,
 	try {
 		status = reply.at("status");
 	} catch (json::exception& e) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"ttrss_api::run_op: no status code: %s",
 			e.what());
 		return json(nullptr);
@@ -179,7 +179,7 @@ json ttrss_api::run_op(const std::string& op,
 	try {
 		content = reply.at("content");
 	} catch (json::exception& e) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"ttrss_api::run_op: no content part in answer from "
 			"server");
 		return json(nullptr);
@@ -192,7 +192,7 @@ json ttrss_api::run_op(const std::string& op,
 			else
 				return json(nullptr);
 		} else {
-			LOG(level::ERROR,
+			LOG(Level::ERROR,
 				"ttrss_api::run_op: status: %d, error: '%s'",
 				status,
 				content["error"].dump());
@@ -259,7 +259,7 @@ std::vector<tagged_feedurl> ttrss_api::get_subscribed_urls()
 		json feedlist = run_op("getFeeds", args);
 
 		if (feedlist.is_null()) {
-			LOG(level::ERROR,
+			LOG(Level::ERROR,
 				"ttrss_api::get_subscribed_urls: Failed to "
 				"retrieve feedlist");
 			return feeds;
@@ -284,7 +284,7 @@ std::vector<tagged_feedurl> ttrss_api::get_subscribed_urls()
 				fetch_feeds_per_category(i, feeds);
 			}
 		} catch (json::exception& e) {
-			LOG(level::ERROR,
+			LOG(Level::ERROR,
 				"ttrss_api::get_subscribed_urls:"
 				" Failed to determine subscribed urls: %s",
 				e.what());
@@ -317,7 +317,7 @@ bool ttrss_api::mark_article_read(const std::string& guid, bool read)
 	// Do this in a thread, as we don't care about the result enough to wait
 	// for it.
 	std::thread t{[=]() {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"ttrss_api::mark_article_read: inside thread, marking "
 			"thread as read...");
 
@@ -376,12 +376,12 @@ rsspp::feed ttrss_api::fetch_feed(const std::string& id, CURL* cached_handle)
 		return f;
 
 	if (!content.is_array()) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"ttrss_api::fetch_feed: content is not an array");
 		return f;
 	}
 
-	LOG(level::DEBUG, "ttrss_api::fetch_feed: %d items", content.size());
+	LOG(Level::DEBUG, "ttrss_api::fetch_feed: %d items", content.size());
 
 	try {
 		for (const auto& item_obj : content) {
@@ -441,7 +441,7 @@ rsspp::feed ttrss_api::fetch_feed(const std::string& id, CURL* cached_handle)
 			f.items.push_back(item);
 		}
 	} catch (json::exception& e) {
-		LOG(level::ERROR,
+		LOG(Level::ERROR,
 			"Exception occurred while parsing feeed: ",
 			e.what());
 	}
@@ -483,7 +483,7 @@ void ttrss_api::fetch_feeds_per_category(const json& cat,
 		return;
 
 	cat_name = cat["title"];
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"ttrss_api::fetch_feeds_per_category: fetching id = %s title = "
 		"%s",
 		cat_id,

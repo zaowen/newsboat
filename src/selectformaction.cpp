@@ -22,7 +22,7 @@ namespace newsboat {
 select_formaction::select_formaction(view* vv, std::string formstr)
 	: formaction(vv, formstr)
 	, quit(false)
-	, type(selection_type::TAG)
+	, type(SelectionType::TAG)
 {
 }
 
@@ -33,7 +33,7 @@ void select_formaction::handle_cmdline(const std::string& cmd)
 	unsigned int idx = 0;
 	if (1 == sscanf(cmd.c_str(), "%u", &idx)) {
 		if (idx > 0 &&
-			idx <= ((type == selection_type::TAG)
+			idx <= ((type == SelectionType::TAG)
 					       ? tags.size()
 					       : filters.size())) {
 			f->set("tagpos", std::to_string(idx - 1));
@@ -43,7 +43,7 @@ void select_formaction::handle_cmdline(const std::string& cmd)
 	}
 }
 
-void select_formaction::process_operation(operation op,
+void select_formaction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -62,13 +62,13 @@ void select_formaction::process_operation(operation op,
 		unsigned int pos = utils::to_u(tagposname);
 		if (tagposname.length() > 0) {
 			switch (type) {
-			case selection_type::TAG: {
+			case SelectionType::TAG: {
 				if (pos < tags.size()) {
 					value = tags[pos];
 					quit = true;
 				}
 			} break;
-			case selection_type::FILTER: {
+			case SelectionType::FILTER: {
 				if (pos < filters.size()) {
 					value = filters[pos].second;
 					quit = true;
@@ -98,7 +98,7 @@ void select_formaction::prepare()
 		listformatter listfmt;
 		unsigned int i = 0;
 		switch (type) {
-		case selection_type::TAG:
+		case SelectionType::TAG:
 			for (const auto& tag : tags) {
 				std::string tagstr = strprintf::fmt(
 					"%4u  %s (%u)",
@@ -111,7 +111,7 @@ void select_formaction::prepare()
 				i++;
 			}
 			break;
-		case selection_type::FILTER:
+		case SelectionType::FILTER:
 			for (const auto& filter : filters) {
 				std::string tagstr = strprintf::fmt(
 					"%4u  %s", i + 1, filter.first);
@@ -145,12 +145,12 @@ void select_formaction::init()
 	fmt.register_fmt('V', PROGRAM_VERSION);
 
 	switch (type) {
-	case selection_type::TAG:
+	case SelectionType::TAG:
 		title = fmt.do_format(
 			v->get_cfg()->get_configvalue("selecttag-title-format"),
 			width);
 		break;
-	case selection_type::FILTER:
+	case SelectionType::FILTER:
 		title = fmt.do_format(v->get_cfg()->get_configvalue(
 					      "selectfilter-title-format"),
 			width);
@@ -170,9 +170,9 @@ keymap_hint_entry* select_formaction::get_keymap_hint()
 		{OP_OPEN, _("Select Filter")},
 		{OP_NIL, nullptr}};
 	switch (type) {
-	case selection_type::TAG:
+	case SelectionType::TAG:
 		return hints_tag;
-	case selection_type::FILTER:
+	case SelectionType::FILTER:
 		return hints_filter;
 	}
 	return nullptr;
@@ -181,9 +181,9 @@ keymap_hint_entry* select_formaction::get_keymap_hint()
 std::string select_formaction::title()
 {
 	switch (type) {
-	case selection_type::TAG:
+	case SelectionType::TAG:
 		return _("Select Tag");
-	case selection_type::FILTER:
+	case SelectionType::FILTER:
 		return _("Select Filter");
 	default:
 		return "";

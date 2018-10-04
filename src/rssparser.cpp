@@ -77,7 +77,7 @@ time_t rss_parser::parse_date(const std::string& datestr)
 {
 	time_t t = curl_getdate(datestr.c_str(), nullptr);
 	if (t == -1) {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"rss_parser::parse_date: encountered t == -1, trying "
 			"out "
 			"W3CDTF parser...");
@@ -86,7 +86,7 @@ time_t rss_parser::parse_date(const std::string& datestr)
 			nullptr);
 	}
 	if (t == -1) {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"rss_parser::parse_date: still t == -1, setting to "
 			"current "
 			"time");
@@ -131,7 +131,7 @@ void rss_parser::set_rtl(std::shared_ptr<rss_feed> feed,
 	};
 	auto it = rtl_langprefix.find(lang);
 	if (it != rtl_langprefix.end()) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"rss_parser::parse: detected right-to-left order, "
 			"language "
 			"code = %s",
@@ -192,7 +192,7 @@ void rss_parser::download_http(const std::string& uri)
 	for (unsigned int i = 0; i < retrycount && !is_valid; i++) {
 		try {
 			std::string useragent = utils::get_useragent(cfgcont);
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"rss_parser::download_http: user-agent = %s",
 				useragent);
 			rsspp::parser p(cfgcont->get_configvalue_as_int(
@@ -214,19 +214,19 @@ void rss_parser::download_http(const std::string& uri)
 				api,
 				cfgcont->get_configvalue("cookie-cache"),
 				easyhandle ? easyhandle->ptr() : 0);
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"rss_parser::download_http: lm = %d etag = %s",
 				p.get_last_modified(),
 				p.get_etag());
 			if (p.get_last_modified() != 0 ||
 				p.get_etag().length() > 0) {
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"rss_parser::download_http: "
 					"lastmodified "
 					"old: %d new: %d",
 					lm,
 					p.get_last_modified());
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"rss_parser::download_http: etag old: "
 					"%s "
 					"new %s",
@@ -245,7 +245,7 @@ void rss_parser::download_http(const std::string& uri)
 			throw;
 		}
 	}
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_parser::parse: http URL %s, is_valid = %s",
 		uri,
 		is_valid ? "true" : "false");
@@ -263,7 +263,7 @@ void rss_parser::get_execplugin(const std::string& plugin)
 		is_valid = false;
 		throw;
 	}
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_parser::parse: execplugin %s, is_valid = %s",
 		plugin,
 		is_valid ? "true" : "false");
@@ -280,7 +280,7 @@ void rss_parser::parse_file(const std::string& file)
 		is_valid = false;
 		throw;
 	}
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_parser::parse: parsed file %s, is_valid = %s",
 		file,
 		is_valid ? "true" : "false");
@@ -296,7 +296,7 @@ void rss_parser::download_filterplugin(const std::string& filter,
 		const_cast<char*>(filter.c_str()),
 		nullptr};
 	std::string result = utils::run_program(argv, buf);
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_parser::parse: output of `%s' is: %s",
 		filter,
 		result);
@@ -309,7 +309,7 @@ void rss_parser::download_filterplugin(const std::string& filter,
 		is_valid = false;
 		throw;
 	}
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_parser::parse: filterplugin %s, is_valid = %s",
 		filter,
 		is_valid ? "true" : "false");
@@ -338,7 +338,7 @@ void rss_parser::fill_feed_fields(std::shared_ptr<rss_feed> feed)
 
 	set_rtl(feed, f.language);
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_parser::parse: feed title = `%s' link = `%s'",
 		feed->title(),
 		feed->link());
@@ -433,7 +433,7 @@ void rss_parser::fill_feed_items(std::shared_ptr<rss_feed> feed)
 
 		set_item_enclosure(x, item);
 
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"rss_parser::parse: item title = `%s' link = `%s' "
 			"pubDate "
 			"= `%s' (%d) description = `%s'",
@@ -508,7 +508,7 @@ void rss_parser::set_item_content(std::shared_ptr<rss_item> x,
 		x->set_description(utils::retrieve_url(x->link(), cfgcont));
 	}
 
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_parser::set_item_content: content = %s",
 		x->description());
 }
@@ -539,10 +539,10 @@ void rss_parser::set_item_enclosure(std::shared_ptr<rss_item> x,
 {
 	x->set_enclosure_url(item.enclosure_url);
 	x->set_enclosure_type(item.enclosure_type);
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_parser::parse: found enclosure_url: %s",
 		item.enclosure_url);
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_parser::parse: found enclosure_type: %s",
 		item.enclosure_type);
 }
@@ -554,7 +554,7 @@ void rss_parser::add_item_to_feed(std::shared_ptr<rss_feed> feed,
 	// no ignore list
 	if (!ign || !ign->matches(item.get())) {
 		feed->add_item(item);
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"rss_parser::parse: added article title = `%s' link = "
 			"`%s' "
 			"ign = %p",
@@ -562,7 +562,7 @@ void rss_parser::add_item_to_feed(std::shared_ptr<rss_feed> feed,
 			item->link(),
 			ign);
 	} else {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"rss_parser::parse: ignored article title = `%s' link "
 			"= "
 			"`%s'",
@@ -582,7 +582,7 @@ void rss_parser::handle_content_encoded(std::shared_ptr<rss_item> x,
 	if (item.content_encoded != "") {
 		x->set_description(item.content_encoded);
 	} else {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"rss_parser::parse: found no content:encoded");
 	}
 }
@@ -616,7 +616,7 @@ void rss_parser::fetch_ttrss(const std::string& feed_id)
 			feed_id, easyhandle ? easyhandle->ptr() : nullptr);
 		is_valid = true;
 	}
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_parser::fetch_ttrss: f.items.size = %u",
 		f.items.size());
 }
@@ -628,7 +628,7 @@ void rss_parser::fetch_newsblur(const std::string& feed_id)
 		f = napi->fetch_feed(feed_id);
 		is_valid = true;
 	}
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"rss_parser::fetch_newsblur: f.items.size = %u",
 		f.items.size());
 }
@@ -640,7 +640,7 @@ void rss_parser::fetch_ocnews(const std::string& feed_id)
 		f = napi->fetch_feed(feed_id);
 		is_valid = true;
 	}
-	LOG(level::INFO,
+	LOG(Level::INFO,
 		"rss_parser::fetch_ocnews: f.items.size = %u",
 		f.items.size());
 }

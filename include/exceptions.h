@@ -47,7 +47,7 @@ public:
 		: msg(emsg)
 	{
 	}
-	explicit confighandlerexception(action_handler_status e);
+	explicit confighandlerexception(ActionHandlerStatus e);
 	~confighandlerexception() throw() override {}
 	const char* what() const throw() override
 	{
@@ -59,7 +59,7 @@ public:
 	}
 
 private:
-	const char* get_errmsg(action_handler_status e);
+	const char* get_errmsg(ActionHandlerStatus e);
 	std::string msg;
 };
 
@@ -81,9 +81,9 @@ private:
 
 class matcherexception : public std::exception {
 public:
-	enum class type { ATTRIB_UNAVAIL, INVALID_REGEX };
+	enum class Type { ATTRIB_UNAVAIL, INVALID_REGEX };
 
-	matcherexception(type et,
+	matcherexception(Type et,
 		const std::string& info,
 		const std::string& info2 = "")
 		: type_(et)
@@ -96,7 +96,7 @@ public:
 	const char* what() const throw() override;
 
 private:
-	type type_;
+	Type type_;
 	std::string addinfo;
 	std::string addinfo2;
 };

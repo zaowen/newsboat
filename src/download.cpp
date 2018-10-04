@@ -13,7 +13,7 @@ namespace podboat {
  */
 
 download::download(pb_controller* c)
-	: download_status(dlstatus::QUEUED)
+	: download_status(DlStatus::QUEUED)
 	, cursize(0.0)
 	, totalsize(0.0)
 	, curkbps(0.0)
@@ -51,23 +51,23 @@ double download::percents_finished() const
 const std::string download::status_text() const
 {
 	switch (download_status) {
-	case dlstatus::QUEUED:
+	case DlStatus::QUEUED:
 		return _s("queued");
-	case dlstatus::DOWNLOADING:
+	case DlStatus::DOWNLOADING:
 		return _s("downloading");
-	case dlstatus::CANCELLED:
+	case DlStatus::CANCELLED:
 		return _s("cancelled");
-	case dlstatus::DELETED:
+	case DlStatus::DELETED:
 		return _s("deleted");
-	case dlstatus::FINISHED:
+	case DlStatus::FINISHED:
 		return _s("finished");
-	case dlstatus::FAILED:
+	case DlStatus::FAILED:
 		return _s("failed");
-	case dlstatus::ALREADY_DOWNLOADED:
+	case DlStatus::ALREADY_DOWNLOADED:
 		return _s("incomplete");
-	case dlstatus::READY:
+	case DlStatus::READY:
 		return _s("ready");
-	case dlstatus::PLAYED:
+	case DlStatus::PLAYED:
 		return _s("played");
 	default:
 		return _s("unknown (bug).");
@@ -87,7 +87,7 @@ void download::set_progress(double downloaded, double total)
 	totalsize = total;
 }
 
-void download::set_status(dlstatus dls)
+void download::set_status(DlStatus dls)
 {
 	if (download_status != dls) {
 		ctrl->set_view_update_necessary(true);

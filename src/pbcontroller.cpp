@@ -29,7 +29,7 @@ using namespace newsboat;
 
 static void ctrl_c_action(int sig)
 {
-	LOG(level::DEBUG, "caugh signal %d", sig);
+	LOG(Level::DEBUG, "caugh signal %d", sig);
 	stfl::reset();
 	::exit(EXIT_FAILURE);
 }
@@ -99,7 +99,7 @@ bool pb_controller::setup_dirs_xdg(const char* env_home)
 	// create data directory if it doesn't exist
 	int ret = utils::mkdir_parents(xdg_data_dir, 0700);
 	if (ret && errno != EEXIST) {
-		LOG(level::CRITICAL,
+		LOG(Level::CRITICAL,
 			"Couldn't create `%s': (%i) %s",
 			xdg_data_dir,
 			errno,
@@ -224,8 +224,8 @@ int pb_controller::run(int argc, char* argv[])
 			logger::getInstance().set_logfile(optarg);
 			break;
 		case 'l': {
-			level l = static_cast<level>(atoi(optarg));
-			if (l > level::NONE && l <= level::DEBUG) {
+			Level l = static_cast<Level>(atoi(optarg));
+			if (l > Level::NONE && l <= Level::DEBUG) {
 				logger::getInstance().set_loglevel(l);
 			} else {
 				std::cerr << strprintf::fmt(_("%s: %d: invalid "
@@ -382,7 +382,7 @@ unsigned int pb_controller::downloads_in_progress()
 {
 	unsigned int count = 0;
 	for (const auto& dl : downloads_) {
-		if (dl.status() == dlstatus::DOWNLOADING)
+		if (dl.status() == DlStatus::DOWNLOADING)
 			++count;
 	}
 	return count;
@@ -404,7 +404,7 @@ double pb_controller::get_total_kbps()
 {
 	double result = 0.0;
 	for (const auto& dl : downloads_) {
-		if (dl.status() == dlstatus::DOWNLOADING) {
+		if (dl.status() == DlStatus::DOWNLOADING) {
 			result += dl.kbps();
 		}
 	}
@@ -418,7 +418,7 @@ void pb_controller::start_downloads()
 		if (dl2start == 0)
 			break;
 
-		if (download.status() == dlstatus::QUEUED) {
+		if (download.status() == DlStatus::QUEUED) {
 			std::thread t{poddlthread(&download, cfg)};
 			--dl2start;
 			t.detach();

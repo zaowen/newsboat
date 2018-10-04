@@ -67,7 +67,7 @@ void rec_find_rss_outlines(
 			}
 
 			if (url) {
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"OPML::import: found RSS outline with "
 					"url = "
 					"%s",
@@ -81,7 +81,7 @@ void rec_find_rss_outlines(
 				if (*url == '|') {
 					nurl = strprintf::fmt(
 						"exec:%s", url + 1);
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"OPML::import: liferea-style "
 						"url %s "
 						"converted to %s",
@@ -93,7 +93,7 @@ void rec_find_rss_outlines(
 				char* filtercmd = (char*)xmlGetProp(
 					node, (const xmlChar*)"filtercmd");
 				if (filtercmd) {
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"OPML::import: adding filter "
 						"command %s to url %s",
 						filtercmd,
@@ -116,7 +116,7 @@ void rec_find_rss_outlines(
 
 				bool found = false;
 
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"OPML::import: size = %u",
 					urlcfg->get_urls().size());
 				// TODO: replace with algorithm::any or something
@@ -130,13 +130,13 @@ void rec_find_rss_outlines(
 				}
 
 				if (!found) {
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"OPML::import: added url = %s",
 						url);
 					urlcfg->get_urls().push_back(
 						std::string(url));
 					if (tag.length() > 0) {
-						LOG(level::DEBUG,
+						LOG(Level::DEBUG,
 							"OPML::import: "
 							"appending "
 							"tag %s to url %s",
@@ -146,7 +146,7 @@ void rec_find_rss_outlines(
 							tag);
 					}
 				} else {
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"OPML::import: url = %s is "
 						"already "
 						"in list",
@@ -189,7 +189,7 @@ bool OPML::import(
 	for (xmlNode* node = root->children; node != nullptr;
 		node = node->next) {
 		if (strcmp((const char*)node->name, "body") == 0) {
-			LOG(level::DEBUG, "OPML::import: found body");
+			LOG(Level::DEBUG, "OPML::import: found body");
 			rec_find_rss_outlines(urlcfg, node->children, "");
 			urlcfg->write_config();
 		}

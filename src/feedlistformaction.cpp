@@ -75,7 +75,7 @@ void feedlist_formaction::prepare()
 	if (old_width != width) {
 		do_redraw = true;
 		old_width = width;
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"feedlist_formaction::prepare: apparent resize");
 	}
 
@@ -89,14 +89,14 @@ void feedlist_formaction::prepare()
 	}
 
 	if (do_redraw) {
-		LOG(level::DEBUG, "feedlist_formaction::prepare: doing redraw");
+		LOG(Level::DEBUG, "feedlist_formaction::prepare: doing redraw");
 		v->get_ctrl()->update_feedlist();
 		set_pos();
 		do_redraw = false;
 	}
 }
 
-void feedlist_formaction::process_operation(operation op,
+void feedlist_formaction::process_operation(Operation op ,
 	bool automatic,
 	std::vector<std::string>* args)
 {
@@ -109,7 +109,7 @@ REDO:
 			if (automatic && args->size() > 0) {
 				pos = utils::to_u((*args)[0]);
 			}
-			LOG(level::INFO,
+			LOG(Level::INFO,
 				"feedlist_formaction: opening feed at position "
 				"`%s'",
 				feedpos);
@@ -123,7 +123,7 @@ REDO:
 		}
 	} break;
 	case OP_RELOAD: {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"feedlist_formaction: reloading feed at position `%s'",
 			feedpos);
 		if (feeds_shown > 0 && feedpos.length() > 0) {
@@ -213,7 +213,7 @@ REDO:
 					pos);
 			if (feed) {
 				if (!feed->is_query_feed()) {
-					LOG(level::INFO,
+					LOG(Level::INFO,
 						"feedlist_formaction: opening "
 						"feed "
 						"at position `%s': %s",
@@ -236,7 +236,7 @@ REDO:
 				v->get_ctrl()->get_feedcontainer()->get_feed(
 					pos);
 			if (feed) {
-				LOG(level::INFO,
+				LOG(Level::INFO,
 					"feedlist_formaction: opening all "
 					"unread "
 					"items in feed at position `%s'",
@@ -253,7 +253,7 @@ REDO:
 				v->get_ctrl()->get_feedcontainer()->get_feed(
 					pos);
 			if (feed) {
-				LOG(level::INFO,
+				LOG(Level::INFO,
 					"feedlist_formaction: opening all "
 					"unread "
 					"items in feed at position `%s' and "
@@ -265,7 +265,7 @@ REDO:
 		}
 		break;
 	case OP_RELOADALL:
-		LOG(level::INFO, "feedlist_formaction: reloading all feeds");
+		LOG(Level::INFO, "feedlist_formaction: reloading all feeds");
 		{
 			bool reload_only_visible_feeds =
 				v->get_cfg()->get_configvalue_as_bool(
@@ -279,7 +279,7 @@ REDO:
 		}
 		break;
 	case OP_MARKFEEDREAD: {
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"feedlist_formaction: marking feed read at position "
 			"`%s'",
 			feedpos);
@@ -305,7 +305,7 @@ REDO:
 	} break;
 	case OP_TOGGLESHOWREAD:
 		m.parse(FILTER_UNREAD_FEEDS);
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"feedlist_formaction: toggling show-read-feeds");
 		if (v->get_cfg()->get_configvalue_as_bool("show-read-feeds")) {
 			v->get_cfg()->set_configvalue("show-read-feeds", "no");
@@ -319,7 +319,7 @@ REDO:
 		break;
 	case OP_NEXTUNREAD: {
 		unsigned int local_tmp;
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"feedlist_formaction: jumping to next unread feed");
 		if (!jump_to_next_unread_feed(local_tmp)) {
 			v->show_error(_("No feeds with unread items."));
@@ -327,7 +327,7 @@ REDO:
 	} break;
 	case OP_PREVUNREAD: {
 		unsigned int local_tmp;
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"feedlist_formaction: jumping to previous unread feed");
 		if (!jump_to_previous_unread_feed(local_tmp)) {
 			v->show_error(_("No feeds with unread items."));
@@ -335,14 +335,14 @@ REDO:
 	} break;
 	case OP_NEXT: {
 		unsigned int local_tmp;
-		LOG(level::INFO, "feedlist_formaction: jumping to next feed");
+		LOG(Level::INFO, "feedlist_formaction: jumping to next feed");
 		if (!jump_to_next_feed(local_tmp)) {
 			v->show_error(_("Already on last feed."));
 		}
 	} break;
 	case OP_PREV: {
 		unsigned int local_tmp;
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"feedlist_formaction: jumping to previous feed");
 		if (!jump_to_previous_feed(local_tmp)) {
 			v->show_error(_("Already on first feed."));
@@ -350,14 +350,14 @@ REDO:
 	} break;
 	case OP_RANDOMUNREAD: {
 		unsigned int local_tmp;
-		LOG(level::INFO,
+		LOG(Level::INFO,
 			"feedlist_formaction: jumping to random unread feed");
 		if (!jump_to_random_unread_feed(local_tmp)) {
 			v->show_error(_("No feeds with unread items."));
 		}
 	} break;
 	case OP_MARKALLFEEDSREAD:
-		LOG(level::INFO, "feedlist_formaction: marking all feeds read");
+		LOG(Level::INFO, "feedlist_formaction: marking all feeds read");
 		v->set_status(_("Marking all feeds read..."));
 		if (tag == "") {
 			v->get_ctrl()->mark_all_read("");
@@ -467,7 +467,7 @@ REDO:
 			op = OP_CLEARTAG;
 			goto REDO;
 		}
-		LOG(level::INFO, "feedlist_formaction: quitting");
+		LOG(Level::INFO, "feedlist_formaction: quitting");
 		if (automatic ||
 			!v->get_cfg()->get_configvalue_as_bool(
 				"confirm-exit") ||
@@ -478,7 +478,7 @@ REDO:
 		}
 		break;
 	case OP_HARDQUIT:
-		LOG(level::INFO, "feedlist_formaction: hard quitting");
+		LOG(Level::INFO, "feedlist_formaction: hard quitting");
 		quit = true;
 		break;
 	case OP_HELP:
@@ -587,19 +587,19 @@ keymap_hint_entry* feedlist_formaction::get_keymap_hint()
 bool feedlist_formaction::jump_to_previous_unread_feed(unsigned int& feedpos)
 {
 	unsigned int curpos = utils::to_u(f->get("feedpos"));
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"feedlist_formaction::jump_to_previous_unread_feed: searching "
 		"for "
 		"unread feed");
 
 	for (int i = curpos - 1; i >= 0; --i) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"feedlist_formaction::jump_to_previous_unread_feed: "
 			"visible_feeds[%u] unread items: %u",
 			i,
 			visible_feeds[i].first->unread_item_count());
 		if (visible_feeds[i].first->unread_item_count() > 0) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"feedlist_formaction::jump_to_previous_unread_"
 				"feed:"
 				" hit");
@@ -610,13 +610,13 @@ bool feedlist_formaction::jump_to_previous_unread_feed(unsigned int& feedpos)
 	}
 	for (int i = visible_feeds.size() - 1; i >= static_cast<int>(curpos);
 		--i) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"feedlist_formaction::jump_to_previous_unread_feed: "
 			"visible_feeds[%u] unread items: %u",
 			i,
 			visible_feeds[i].first->unread_item_count());
 		if (visible_feeds[i].first->unread_item_count() > 0) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"feedlist_formaction::jump_to_previous_unread_"
 				"feed:"
 				" hit");
@@ -631,7 +631,7 @@ bool feedlist_formaction::jump_to_previous_unread_feed(unsigned int& feedpos)
 void feedlist_formaction::goto_feed(const std::string& str)
 {
 	unsigned int curpos = utils::to_u(f->get("feedpos"));
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"feedlist_formaction::goto_feed: curpos = %u str = `%s'",
 		curpos,
 		str);
@@ -677,18 +677,18 @@ bool feedlist_formaction::jump_to_random_unread_feed(unsigned int& feedpos)
 bool feedlist_formaction::jump_to_next_unread_feed(unsigned int& feedpos)
 {
 	unsigned int curpos = utils::to_u(f->get("feedpos"));
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"feedlist_formaction::jump_to_next_unread_feed: searching for "
 		"unread feed");
 
 	for (unsigned int i = curpos + 1; i < visible_feeds.size(); ++i) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"feedlist_formaction::jump_to_next_unread_feed: "
 			"visible_feeds[%u] unread items: %u",
 			i,
 			visible_feeds[i].first->unread_item_count());
 		if (visible_feeds[i].first->unread_item_count() > 0) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"feedlist_formaction::jump_to_next_unread_feed:"
 				" "
 				"hit");
@@ -698,13 +698,13 @@ bool feedlist_formaction::jump_to_next_unread_feed(unsigned int& feedpos)
 		}
 	}
 	for (unsigned int i = 0; i <= curpos; ++i) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"feedlist_formaction::jump_to_next_unread_feed: "
 			"visible_feeds[%u] unread items: %u",
 			i,
 			visible_feeds[i].first->unread_item_count());
 		if (visible_feeds[i].first->unread_item_count() > 0) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"feedlist_formaction::jump_to_next_unread_feed:"
 				" "
 				"hit");
@@ -722,7 +722,7 @@ bool feedlist_formaction::jump_to_previous_feed(unsigned int& feedpos)
 
 	if (curpos > 0) {
 		unsigned int i = curpos - 1;
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"feedlist_formaction::jump_to_previous_feed: "
 			"visible_feeds[%u]",
 			i);
@@ -739,7 +739,7 @@ bool feedlist_formaction::jump_to_next_feed(unsigned int& feedpos)
 
 	if ((curpos + 1) < visible_feeds.size()) {
 		unsigned int i = curpos + 1;
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"feedlist_formaction::jump_to_next_feed: "
 			"visible_feeds[%u]",
 			i);
@@ -799,7 +799,7 @@ void feedlist_formaction::handle_cmdline(const std::string& cmd)
 	}
 }
 
-void feedlist_formaction::finished_qna(operation op)
+void feedlist_formaction::finished_qna(Operation op )
 {
 	formaction::finished_qna(op); // important!
 
@@ -822,7 +822,7 @@ void feedlist_formaction::mark_pos_if_visible(unsigned int pos)
 	v->get_ctrl()->update_visible_feeds();
 	for (const auto& feed : visible_feeds) {
 		if (feed.second == pos) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"feedlist_formaction::mark_pos_if_visible: "
 				"match, "
 				"setting position to %u",
@@ -836,7 +836,7 @@ void feedlist_formaction::mark_pos_if_visible(unsigned int pos)
 	pos = v->get_ctrl()->get_feedcontainer()->get_pos_of_next_unread(pos);
 	for (const auto& feed : visible_feeds) {
 		if (feed.second == pos) {
-			LOG(level::DEBUG,
+			LOG(Level::DEBUG,
 				"feedlist_formaction::mark_pos_if_visible: "
 				"match "
 				"in 2nd try, setting position to %u",
@@ -898,7 +898,7 @@ void feedlist_formaction::op_end_setfilter()
 void feedlist_formaction::op_start_search()
 {
 	std::string searchphrase = qna_responses[0];
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"feedlist_formaction::op_start_search: starting search for "
 		"`%s'",
 		searchphrase);

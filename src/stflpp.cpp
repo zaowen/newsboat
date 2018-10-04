@@ -76,7 +76,7 @@ std::string stfl::form::get_focus()
 void stfl::form::set_focus(const std::string& name)
 {
 	stfl_set_focus(f, stfl_ipool_towc(ipool, name.c_str()));
-	LOG(level::DEBUG, "stfl::form::set_focus: %s", name);
+	LOG(Level::DEBUG, "stfl::form::set_focus: %s", name);
 }
 
 void stfl::form::modify(const std::string& name,

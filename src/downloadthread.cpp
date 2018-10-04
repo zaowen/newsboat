@@ -21,7 +21,7 @@ void downloadthread::operator()()
 	 * A downloadthread is spawned whenever "reload all" is invoked, and
 	 * whenever an auto-reload comes up.
 	 */
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"downloadthread::run: inside downloadthread, reloading all "
 		"feeds...");
 	if (reloader.trylock_reload_mutex()) {

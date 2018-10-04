@@ -22,7 +22,7 @@ help_formaction::help_formaction(view* vv, std::string formstr)
 
 help_formaction::~help_formaction() {}
 
-void help_formaction::process_operation(operation op,
+void help_formaction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -155,13 +155,13 @@ void help_formaction::prepare()
 							desc.desc);
 						break;
 					}
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"help_formaction::prepare: "
 						"step 1 "
 						"- line = %s",
 						line);
 					line = utils::quote_for_stfl(line);
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"help_formaction::prepare: "
 						"step 2 "
 						"- line = %s",
@@ -171,7 +171,7 @@ void help_formaction::prepare()
 						line = utils::replace_all(line,
 							searchphrase,
 							highlighted_searchphrase);
-						LOG(level::DEBUG,
+						LOG(Level::DEBUG,
 							"help_formaction::"
 							"prepare: "
 							"step 3 - line = %s",
@@ -221,7 +221,7 @@ keymap_hint_entry* help_formaction::get_keymap_hint()
 	return hints;
 }
 
-void help_formaction::finished_qna(operation op)
+void help_formaction::finished_qna(Operation op )
 {
 	v->inside_qna(false);
 	switch (op) {

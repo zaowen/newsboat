@@ -45,7 +45,7 @@ rss_feed::rss_feed(cache* c)
 	, is_rtl_(false)
 	, idx(0)
 	, order(0)
-	, status_(dl_status::SUCCESS)
+	, status_(DlStatus::SUCCESS)
 {
 }
 
@@ -264,9 +264,9 @@ std::shared_ptr<rss_item> rss_feed::get_item_by_guid_unlocked(
 	if (it != items_guid_map.end()) {
 		return it->second;
 	}
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_feed::get_item_by_guid_unlocked: hit dummy item!");
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_feed::get_item_by_guid_unlocked: items_guid_map.size = %d",
 		items_guid_map.size());
 	// abort();
@@ -397,7 +397,7 @@ void rss_ignores::handle_action(const std::string& action,
 	if (action == "ignore-article") {
 		if (params.size() < 2)
 			throw confighandlerexception(
-				action_handler_status::TOO_FEW_PARAMS);
+				ActionHandlerStatus::TOO_FEW_PARAMS);
 		std::string ignore_rssurl = params[0];
 		std::string ignore_expr = params[1];
 		matcher m;
@@ -418,7 +418,7 @@ void rss_ignores::handle_action(const std::string& action,
 		}
 	} else
 		throw confighandlerexception(
-			action_handler_status::INVALID_COMMAND);
+			ActionHandlerStatus::INVALID_COMMAND);
 }
 
 void rss_ignores::dump_config(std::vector<std::string>& config_output)
@@ -453,7 +453,7 @@ rss_ignores::~rss_ignores()
 bool rss_ignores::matches(rss_item* item)
 {
 	for (const auto& ign : ignores) {
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"rss_ignores::matches: ign.first = `%s' item->feedurl "
 			"= "
 			"`%s'",
@@ -461,7 +461,7 @@ bool rss_ignores::matches(rss_item* item)
 			item->feedurl());
 		if (ign.first == "*" || item->feedurl() == ign.first) {
 			if (ign.second->matches(item)) {
-				LOG(level::DEBUG,
+				LOG(Level::DEBUG,
 					"rss_ignores::matches: found match");
 				return true;
 			}
@@ -492,7 +492,7 @@ void rss_feed::update_items(std::vector<std::shared_ptr<rss_feed>> feeds)
 	if (query.length() == 0)
 		return;
 
-	LOG(level::DEBUG, "rss_feed::update_items: query = `%s'", query);
+	LOG(Level::DEBUG, "rss_feed::update_items: query = `%s'", query);
 
 	struct timeval tv1, tv2, tvx;
 	gettimeofday(&tv1, nullptr);
@@ -506,7 +506,7 @@ void rss_feed::update_items(std::vector<std::shared_ptr<rss_feed>> feeds)
 		if (!feed->is_query_feed()) { // don't fetch items from other query feeds!
 			for (const auto& item : feed->items()) {
 				if (m.matches(item.get())) {
-					LOG(level::DEBUG,
+					LOG(Level::DEBUG,
 						"rss_feed::update_items: "
 						"matcher "
 						"matches!");
@@ -529,11 +529,11 @@ void rss_feed::update_items(std::vector<std::shared_ptr<rss_feed>> feeds)
 	unsigned long diffx =
 		(((tv2.tv_sec - tvx.tv_sec) * 1000000) + tv2.tv_usec) -
 		tvx.tv_usec;
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_feed::update_items matching took %lu.%06lu s",
 		diff / 1000000,
 		diff % 1000000);
-	LOG(level::DEBUG,
+	LOG(Level::DEBUG,
 		"rss_feed::update_items sorting took %lu.%06lu s",
 		diffx / 1000000,
 		diffx % 1000000);
@@ -571,7 +571,7 @@ void rss_feed::set_rssurl(const std::string& u)
 				query);
 		}
 
-		LOG(level::DEBUG,
+		LOG(Level::DEBUG,
 			"rss_feed::set_rssurl: query name = `%s' expr = `%s'",
 			tokens[1],
 			query);
@@ -590,78 +590,78 @@ void rss_feed::sort(const ArticleSortStrategy& sort_strategy)
 void rss_feed::sort_unlocked(const ArticleSortStrategy& sort_strategy)
 {
 	switch (sort_strategy.sm) {
-	case art_sort_method_t::TITLE:
+	case ArtSortMethod::TITLE:
 		std::stable_sort(items_.begin(),
 			items_.end(),
 			[&](std::shared_ptr<rss_item> a,
 				std::shared_ptr<rss_item> b) {
 				return sort_strategy.sd ==
-						sort_direction_t::DESC
+						SortDirection::DESC
 					? (utils::strnaturalcmp(a->title().c_str(),
 						   b->title().c_str()) > 0)
 					: (utils::strnaturalcmp(a->title().c_str(),
 						   b->title().c_str()) < 0);
 			});
 		break;
-	case art_sort_method_t::FLAGS:
+	case ArtSortMethod::FLAGS:
 		std::stable_sort(items_.begin(),
 			items_.end(),
 			[&](std::shared_ptr<rss_item> a,
 				std::shared_ptr<rss_item> b) {
 				return sort_strategy.sd ==
-						sort_direction_t::DESC
+						SortDirection::DESC
 					? (strcmp(a->flags().c_str(),
 						   b->flags().c_str()) > 0)
 					: (strcmp(a->flags().c_str(),
 						   b->flags().c_str()) < 0);
 			});
 		break;
-	case art_sort_method_t::AUTHOR:
+	case ArtSortMethod::AUTHOR:
 		std::stable_sort(items_.begin(),
 			items_.end(),
 			[&](std::shared_ptr<rss_item> a,
 				std::shared_ptr<rss_item> b) {
 				return sort_strategy.sd ==
-						sort_direction_t::DESC
+						SortDirection::DESC
 					? (strcmp(a->author().c_str(),
 						   b->author().c_str()) > 0)
 					: (strcmp(a->author().c_str(),
 						   b->author().c_str()) < 0);
 			});
 		break;
-	case art_sort_method_t::LINK:
+	case ArtSortMethod::LINK:
 		std::stable_sort(items_.begin(),
 			items_.end(),
 			[&](std::shared_ptr<rss_item> a,
 				std::shared_ptr<rss_item> b) {
 				return sort_strategy.sd ==
-						sort_direction_t::DESC
+						SortDirection::DESC
 					? (strcmp(a->link().c_str(),
 						   b->link().c_str()) > 0)
 					: (strcmp(a->link().c_str(),
 						   b->link().c_str()) < 0);
 			});
 		break;
-	case art_sort_method_t::GUID:
+	case ArtSortMethod::GUID:
 		std::stable_sort(items_.begin(),
 			items_.end(),
 			[&](std::shared_ptr<rss_item> a,
 				std::shared_ptr<rss_item> b) {
 				return sort_strategy.sd ==
-						sort_direction_t::DESC
+						SortDirection::DESC
 					? (strcmp(a->guid().c_str(),
 						   b->guid().c_str()) > 0)
 					: (strcmp(a->guid().c_str(),
 						   b->guid().c_str()) < 0);
 			});
 		break;
-	case art_sort_method_t::DATE:
+	case ArtSortMethod::DATE:
 		std::stable_sort(items_.begin(),
 			items_.end(),
 			[&](std::shared_ptr<rss_item> a,
 				std::shared_ptr<rss_item> b) {
 				// date is descending by default
-				return sort_strategy.sd == sort_direction_t::ASC
+				return sort_strategy.sd == SortDirection::ASC
 					? (a->pubDate_timestamp() >
 						  b->pubDate_timestamp())
 					: (a->pubDate_timestamp() <
@@ -720,13 +720,13 @@ void rss_item::set_feedptr(std::shared_ptr<rss_feed> ptr)
 std::string rss_feed::get_status()
 {
 	switch (status_) {
-	case dl_status::SUCCESS:
+	case DlStatus::SUCCESS:
 		return " ";
-	case dl_status::TO_BE_DOWNLOADED:
+	case DlStatus::TO_BE_DOWNLOADED:
 		return "_";
-	case dl_status::DURING_DOWNLOAD:
+	case DlStatus::DURING_DOWNLOAD:
 		return ".";
-	case dl_status::DL_ERROR:
+	case DlStatus::DL_ERROR:
 		return "x";
 	}
 	return "?";

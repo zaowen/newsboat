@@ -11,7 +11,7 @@
 
 namespace rsspp {
 
-enum version {
+enum Version {
 	UNKNOWN = 0,
 	RSS_0_91,
 	RSS_0_92,
@@ -71,7 +71,7 @@ public:
 
 	std::string encoding;
 
-	version rss_version;
+	Version rss_version;
 	std::string title;
 	std::string title_type;
 	std::string description;
