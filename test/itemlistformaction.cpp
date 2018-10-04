@@ -1,10 +1,10 @@
-#include "itemlist_formaction.h"
+#include "itemlistformaction.h"
 
 #include <unistd.h>
 
 #include "3rd-party/catch.hpp"
 #include "cache.h"
-#include "feedlist_formaction.h"
+#include "feedlistformaction.h"
 #include "itemlist.h"
 #include "keymap.h"
 #include "regexmanager.h"

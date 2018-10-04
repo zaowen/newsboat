@@ -4,7 +4,7 @@
 
 #include "3rd-party/catch.hpp"
 #include "configcontainer.h"
-#include "rss_parser.h"
+#include "rssparser.h"
 #include "test-helpers.h"
 
 using namespace newsboat;
