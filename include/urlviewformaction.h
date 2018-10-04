@@ -6,12 +6,12 @@
 
 namespace newsboat {
 
-class urlview_formaction : public formaction {
+class UrlViewFormAction : public Formaction {
 public:
-	urlview_formaction(view*,
+	UrlViewFormAction(view*,
 		std::shared_ptr<rss_feed>& feed,
 		std::string formstr);
-	~urlview_formaction() override;
+	~UrlViewFormAction() override;
 	void prepare() override;
 	void init() override;
 	keymap_hint_entry* get_keymap_hint() override;

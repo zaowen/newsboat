@@ -18,8 +18,8 @@
 
 namespace newsboat {
 
-itemlist_formaction::itemlist_formaction(view* vv, std::string formstr)
-	: list_formaction(vv, formstr)
+ItemListFormAction::ItemListFormAction(view* vv, std::string formstr)
+	: ListFormAction(vv, formstr)
 	, pos(0)
 	, apply_filter(false)
 	, show_searchresult(false)
@@ -36,9 +36,9 @@ itemlist_formaction::itemlist_formaction(view* vv, std::string formstr)
 	assert(true == m.parse(FILTER_UNREAD_ITEMS));
 }
 
-itemlist_formaction::~itemlist_formaction() {}
+ItemListFormAction::~ItemListFormAction() {}
 
-void itemlist_formaction::process_operation(Operation op ,
+void ItemListFormAction::process_operation(Operation op ,
 	bool automatic,
 	std::vector<std::string>* args)
 {
@@ -57,7 +57,7 @@ void itemlist_formaction::process_operation(Operation op ,
 	switch (op) {
 	case OP_OPEN: {
 		LOG(Level::INFO,
-			"itemlist_formaction: opening item at pos `%s'",
+			"ItemListFormAction: opening item at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0 && visible_items.size() != 0) {
 			// no need to mark item as read, the itemview already do
@@ -113,7 +113,7 @@ void itemlist_formaction::process_operation(Operation op ,
 	} break;
 	case OP_OPENBROWSER_AND_MARK: {
 		LOG(Level::INFO,
-			"itemlist_formaction: opening item at pos `%s'",
+			"ItemListFormAction: opening item at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0 && visible_items.size() != 0) {
 			if (itempos < visible_items.size()) {
@@ -144,7 +144,7 @@ void itemlist_formaction::process_operation(Operation op ,
 	} break;
 	case OP_OPENINBROWSER: {
 		LOG(Level::INFO,
-			"itemlist_formaction: opening item at pos `%s'",
+			"ItemListFormAction: opening item at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0 && visible_items.size() != 0) {
 			if (itempos < visible_items.size()) {
@@ -160,7 +160,7 @@ void itemlist_formaction::process_operation(Operation op ,
 	case OP_OPENALLUNREADINBROWSER: {
 		if (feed) {
 			LOG(Level::INFO,
-				"itemlist_formaction: opening all unread items "
+				"ItemListFormAction: opening all unread items "
 				"in "
 				"browser");
 			open_unread_items_in_browser(feed, false);
@@ -169,7 +169,7 @@ void itemlist_formaction::process_operation(Operation op ,
 	case OP_OPENALLUNREADINBROWSER_AND_MARK: {
 		if (feed) {
 			LOG(Level::INFO,
-				"itemlist_formaction: opening all unread items "
+				"ItemListFormAction: opening all unread items "
 				"in "
 				"browser and marking read");
 			open_unread_items_in_browser(feed, true);
@@ -178,7 +178,7 @@ void itemlist_formaction::process_operation(Operation op ,
 	} break;
 	case OP_TOGGLEITEMREAD: {
 		LOG(Level::INFO,
-			"itemlist_formaction: toggling item read at pos `%s'",
+			"ItemListFormAction: toggling item read at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0) {
 			v->set_status(_("Toggling read flag for article..."));
@@ -286,7 +286,7 @@ void itemlist_formaction::process_operation(Operation op ,
 		break;
 	case OP_BOOKMARK: {
 		LOG(Level::INFO,
-			"itemlist_formaction: bookmarking item at pos `%s'",
+			"ItemListFormAction: bookmarking item at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0 && visible_items.size() != 0) {
 			if (itempos < visible_items.size()) {
@@ -345,7 +345,7 @@ void itemlist_formaction::process_operation(Operation op ,
 	} break;
 	case OP_SAVE: {
 		LOG(Level::INFO,
-			"itemlist_formaction: saving item at pos `%s'",
+			"ItemListFormAction: saving item at pos `%s'",
 			itemposname);
 		if (itemposname.length() > 0 && visible_items.size() != 0) {
 			std::string filename;
@@ -370,7 +370,7 @@ void itemlist_formaction::process_operation(Operation op ,
 	case OP_RELOAD:
 		if (!show_searchresult) {
 			LOG(Level::INFO,
-				"itemlist_formaction: reloading current feed");
+				"ItemListFormAction: reloading current feed");
 			v->get_ctrl()->get_reloader()->reload(pos);
 			invalidate(InvalidationMode::COMPLETE);
 		} else {
@@ -379,21 +379,21 @@ void itemlist_formaction::process_operation(Operation op ,
 		}
 		break;
 	case OP_QUIT:
-		LOG(Level::INFO, "itemlist_formaction: quitting");
+		LOG(Level::INFO, "ItemListFormAction: quitting");
 		v->feedlist_mark_pos_if_visible(pos);
 		feed->purge_deleted_items();
 		feed->unload();
 		quit = true;
 		break;
 	case OP_HARDQUIT:
-		LOG(Level::INFO, "itemlist_formaction: hard quitting");
+		LOG(Level::INFO, "ItemListFormAction: hard quitting");
 		v->feedlist_mark_pos_if_visible(pos);
 		feed->purge_deleted_items();
 		hardquit = true;
 		break;
 	case OP_NEXTUNREAD:
 		LOG(Level::INFO,
-			"itemlist_formaction: jumping to next unread item");
+			"ItemListFormAction: jumping to next unread item");
 		if (!jump_to_next_unread_item(false)) {
 			if (!v->get_next_unread(this)) {
 				v->show_error(_("No unread items."));
@@ -402,7 +402,7 @@ void itemlist_formaction::process_operation(Operation op ,
 		break;
 	case OP_PREVUNREAD:
 		LOG(Level::INFO,
-			"itemlist_formaction: jumping to previous unread item");
+			"ItemListFormAction: jumping to previous unread item");
 		if (!jump_to_previous_unread_item(false)) {
 			if (!v->get_previous_unread(this)) {
 				v->show_error(_("No unread items."));
@@ -410,7 +410,7 @@ void itemlist_formaction::process_operation(Operation op ,
 		}
 		break;
 	case OP_NEXT:
-		LOG(Level::INFO, "itemlist_formaction: jumping to next item");
+		LOG(Level::INFO, "ItemListFormAction: jumping to next item");
 		if (!jump_to_next_item(false)) {
 			if (!v->get_next(this)) {
 				v->show_error(_("Already on last item."));
@@ -419,7 +419,7 @@ void itemlist_formaction::process_operation(Operation op ,
 		break;
 	case OP_PREV:
 		LOG(Level::INFO,
-			"itemlist_formaction: jumping to previous item");
+			"ItemListFormAction: jumping to previous item");
 		if (!jump_to_previous_item(false)) {
 			if (!v->get_previous(this)) {
 				v->show_error(_("Already on first item."));
@@ -454,7 +454,7 @@ void itemlist_formaction::process_operation(Operation op ,
 		}
 		break;
 	case OP_MARKFEEDREAD:
-		LOG(Level::INFO, "itemlist_formaction: marking feed read");
+		LOG(Level::INFO, "ItemListFormAction: marking feed read");
 		v->set_status(_("Marking feed read..."));
 		try {
 			if (feed->rssurl() != "") {
@@ -464,7 +464,7 @@ void itemlist_formaction::process_operation(Operation op ,
 					std::lock_guard<std::mutex> lock(
 						feed->item_mutex);
 					LOG(Level::DEBUG,
-						"itemlist_formaction: oh, it "
+						"ItemListFormAction: oh, it "
 						"looks "
 						"like I'm in a pseudo-feed "
 						"(search "
@@ -493,7 +493,7 @@ void itemlist_formaction::process_operation(Operation op ,
 		break;
 	case OP_MARKALLABOVEASREAD:
 		LOG(Level::INFO,
-			"itemlist_formaction: marking all above as read");
+			"ItemListFormAction: marking all above as read");
 		v->set_status(_("Marking all above as read..."));
 		if (itemposname.length() > 0 &&
 			itempos < visible_items.size()) {
@@ -517,7 +517,7 @@ void itemlist_formaction::process_operation(Operation op ,
 	case OP_TOGGLESHOWREAD:
 		m.parse(FILTER_UNREAD_ITEMS);
 		LOG(Level::DEBUG,
-			"itemlist_formaction: toggling show-read-articles");
+			"ItemListFormAction: toggling show-read-articles");
 		if (v->get_cfg()->get_configvalue_as_bool(
 			    "show-read-articles")) {
 			v->get_cfg()->set_configvalue(
@@ -579,7 +579,7 @@ void itemlist_formaction::process_operation(Operation op ,
 						->get_filters()
 						.get_filters());
 				LOG(Level::DEBUG,
-					"itemlist_formaction::run: newfilters "
+					"ItemListFormAction::run: newfilters "
 					"= %s",
 					newfilter);
 			}
@@ -695,7 +695,7 @@ void itemlist_formaction::process_operation(Operation op ,
 		invalidate(InvalidationMode::COMPLETE);
 		break;
 	default:
-		list_formaction::process_operation(op, automatic, args);
+		ListFormAction::process_operation(op, automatic, args);
 		break;
 	}
 	if (hardquit) {
@@ -707,9 +707,9 @@ void itemlist_formaction::process_operation(Operation op ,
 	}
 }
 
-void itemlist_formaction::finished_qna(Operation op )
+void ItemListFormAction::finished_qna(Operation op )
 {
-	formaction::finished_qna(op); // important!
+	Formaction::finished_qna(op); // important!
 
 	switch (op) {
 	case OP_INT_END_SETFILTER:
@@ -749,7 +749,7 @@ void itemlist_formaction::finished_qna(Operation op )
 	}
 }
 
-void itemlist_formaction::qna_end_setfilter()
+void ItemListFormAction::qna_end_setfilter()
 {
 	std::string filtertext = qna_responses[0];
 	filterhistory.add_line(filtertext);
@@ -767,7 +767,7 @@ void itemlist_formaction::qna_end_setfilter()
 	}
 }
 
-void itemlist_formaction::qna_end_editflags()
+void ItemListFormAction::qna_end_editflags()
 {
 	std::string itemposname = f->get("itempos");
 	if (itemposname.length() == 0) {
@@ -781,12 +781,12 @@ void itemlist_formaction::qna_end_editflags()
 		v->get_ctrl()->update_flags(visible_items[itempos].first);
 		v->set_status(_("Flags updated."));
 		LOG(Level::DEBUG,
-			"itemlist_formaction::finished_qna: updated flags");
+			"ItemListFormAction::finished_qna: updated flags");
 		invalidate(itempos);
 	}
 }
 
-void itemlist_formaction::qna_start_search()
+void ItemListFormAction::qna_start_search()
 {
 	searchphrase = qna_responses[0];
 	if (searchphrase.length() == 0)
@@ -830,7 +830,7 @@ void itemlist_formaction::qna_start_search()
 	v->push_searchresult(search_dummy_feed, searchphrase);
 }
 
-void itemlist_formaction::do_update_visible_items()
+void ItemListFormAction::do_update_visible_items()
 {
 	if (!(invalidated && invalidation_mode == InvalidationMode::COMPLETE))
 		return;
@@ -856,13 +856,13 @@ void itemlist_formaction::do_update_visible_items()
 	}
 
 	LOG(Level::DEBUG,
-		"itemlist_formaction::do_update_visible_items: size = %u",
+		"ItemListFormAction::do_update_visible_items: size = %u",
 		visible_items.size());
 
 	visible_items = new_visible_items;
 }
 
-void itemlist_formaction::prepare()
+void ItemListFormAction::prepare()
 {
 	std::lock_guard<std::mutex> mtx(redraw_mtx);
 
@@ -952,7 +952,7 @@ void itemlist_formaction::prepare()
 	prepare_set_filterpos();
 }
 
-std::string itemlist_formaction::item2formatted_line(
+std::string ItemListFormAction::item2formatted_line(
 	const itemptr_pos_pair& item,
 	const unsigned int width,
 	const std::string& itemlist_format,
@@ -998,7 +998,7 @@ std::string itemlist_formaction::item2formatted_line(
 	return formattedLine;
 }
 
-void itemlist_formaction::init()
+void ItemListFormAction::init()
 {
 	f->set("itempos", "0");
 	f->set("msg", "");
@@ -1013,13 +1013,13 @@ void itemlist_formaction::init()
 	f->run(-3); // FRUN - compute all widget dimensions
 }
 
-void itemlist_formaction::set_head(const std::string& s,
+void ItemListFormAction::set_head(const std::string& s,
 	unsigned int unread,
 	unsigned int total,
 	const std::string& url)
 {
 	/*
-	 * Since the itemlist_formaction is also used to display search results,
+	 * Since the ItemListFormAction is also used to display search results,
 	 * we always need to set the right title
 	 */
 	std::string title;
@@ -1047,14 +1047,14 @@ void itemlist_formaction::set_head(const std::string& s,
 	f->set("head", title);
 }
 
-bool itemlist_formaction::jump_to_previous_unread_item(bool start_with_last)
+bool ItemListFormAction::jump_to_previous_unread_item(bool start_with_last)
 {
 	int itempos;
 	std::istringstream is(f->get("itempos"));
 	is >> itempos;
 	for (int i = (start_with_last ? itempos : (itempos - 1)); i >= 0; --i) {
 		LOG(Level::DEBUG,
-			"itemlist_formaction::jump_to_previous_unread_item: "
+			"ItemListFormAction::jump_to_previous_unread_item: "
 			"visible_items[%u] unread = %s",
 			i,
 			visible_items[i].first->unread() ? "true" : "false");
@@ -1072,7 +1072,7 @@ bool itemlist_formaction::jump_to_previous_unread_item(bool start_with_last)
 	return false;
 }
 
-bool itemlist_formaction::jump_to_random_unread_item()
+bool ItemListFormAction::jump_to_random_unread_item()
 {
 	bool has_unread_available = false;
 	for (unsigned int i = 0; i < visible_items.size(); ++i) {
@@ -1094,11 +1094,11 @@ bool itemlist_formaction::jump_to_random_unread_item()
 	return has_unread_available;
 }
 
-bool itemlist_formaction::jump_to_next_unread_item(bool start_with_first)
+bool ItemListFormAction::jump_to_next_unread_item(bool start_with_first)
 {
 	unsigned int itempos = utils::to_u(f->get("itempos"));
 	LOG(Level::DEBUG,
-		"itemlist_formaction::jump_to_next_unread_item: itempos = %u "
+		"ItemListFormAction::jump_to_next_unread_item: itempos = %u "
 		"visible_items.size = %u",
 		itempos,
 		visible_items.size());
@@ -1106,7 +1106,7 @@ bool itemlist_formaction::jump_to_next_unread_item(bool start_with_first)
 		i < visible_items.size();
 		++i) {
 		LOG(Level::DEBUG,
-			"itemlist_formaction::jump_to_next_unread_item: i = %u",
+			"ItemListFormAction::jump_to_next_unread_item: i = %u",
 			i);
 		if (visible_items[i].first->unread()) {
 			f->set("itempos", std::to_string(i));
@@ -1116,7 +1116,7 @@ bool itemlist_formaction::jump_to_next_unread_item(bool start_with_first)
 	for (unsigned int i = 0; i <= itempos && i < visible_items.size();
 		++i) {
 		LOG(Level::DEBUG,
-			"itemlist_formaction::jump_to_next_unread_item: i = %u",
+			"ItemListFormAction::jump_to_next_unread_item: i = %u",
 			i);
 		if (visible_items[i].first->unread()) {
 			f->set("itempos", std::to_string(i));
@@ -1126,7 +1126,7 @@ bool itemlist_formaction::jump_to_next_unread_item(bool start_with_first)
 	return false;
 }
 
-bool itemlist_formaction::jump_to_previous_item(bool start_with_last)
+bool ItemListFormAction::jump_to_previous_item(bool start_with_last)
 {
 	int itempos;
 	std::istringstream is(f->get("itempos"));
@@ -1135,7 +1135,7 @@ bool itemlist_formaction::jump_to_previous_item(bool start_with_last)
 	int i = (start_with_last ? itempos : (itempos - 1));
 	if (i >= 0) {
 		LOG(Level::DEBUG,
-			"itemlist_formaction::jump_to_previous_item: "
+			"ItemListFormAction::jump_to_previous_item: "
 			"visible_items[%u]",
 			i);
 		f->set("itempos", std::to_string(i));
@@ -1144,18 +1144,18 @@ bool itemlist_formaction::jump_to_previous_item(bool start_with_last)
 	return false;
 }
 
-bool itemlist_formaction::jump_to_next_item(bool start_with_first)
+bool ItemListFormAction::jump_to_next_item(bool start_with_first)
 {
 	unsigned int itempos = utils::to_u(f->get("itempos"));
 	LOG(Level::DEBUG,
-		"itemlist_formaction::jump_to_next_item: itempos = %u "
+		"ItemListFormAction::jump_to_next_item: itempos = %u "
 		"visible_items.size = %u",
 		itempos,
 		visible_items.size());
 	unsigned int i = (start_with_first ? itempos : (itempos + 1));
 	if (i < visible_items.size()) {
 		LOG(Level::DEBUG,
-			"itemlist_formaction::jump_to_next_item: i = %u",
+			"ItemListFormAction::jump_to_next_item: i = %u",
 			i);
 		f->set("itempos", std::to_string(i));
 		return true;
@@ -1163,13 +1163,13 @@ bool itemlist_formaction::jump_to_next_item(bool start_with_first)
 	return false;
 }
 
-std::string itemlist_formaction::get_guid()
+std::string ItemListFormAction::get_guid()
 {
 	unsigned int itempos = utils::to_u(f->get("itempos"));
 	return visible_items[itempos].first->guid();
 }
 
-keymap_hint_entry* itemlist_formaction::get_keymap_hint()
+keymap_hint_entry* ItemListFormAction::get_keymap_hint()
 {
 	static keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_OPEN, _("Open")},
@@ -1183,7 +1183,7 @@ keymap_hint_entry* itemlist_formaction::get_keymap_hint()
 	return hints;
 }
 
-void itemlist_formaction::handle_cmdline_num(unsigned int idx)
+void ItemListFormAction::handle_cmdline_num(unsigned int idx)
 {
 	if (idx > 0 &&
 		idx <= visible_items[visible_items.size() - 1].second + 1) {
@@ -1198,7 +1198,7 @@ void itemlist_formaction::handle_cmdline_num(unsigned int idx)
 	}
 }
 
-void itemlist_formaction::handle_cmdline(const std::string& cmd)
+void ItemListFormAction::handle_cmdline(const std::string& cmd)
 {
 	unsigned int idx = 0;
 	if (1 == sscanf(cmd.c_str(), "%u", &idx)) {
@@ -1211,7 +1211,7 @@ void itemlist_formaction::handle_cmdline(const std::string& cmd)
 			std::string filename = utils::resolve_tilde(tokens[1]);
 			std::string itemposname = f->get("itempos");
 			LOG(Level::INFO,
-				"itemlist_formaction::handle_cmdline: saving "
+				"ItemListFormAction::handle_cmdline: saving "
 				"item "
 				"at pos `%s' to `%s'",
 				itemposname,
@@ -1224,12 +1224,12 @@ void itemlist_formaction::handle_cmdline(const std::string& cmd)
 				v->show_error(_("Error: no item selected!"));
 			}
 		} else {
-			formaction::handle_cmdline(cmd);
+			Formaction::handle_cmdline(cmd);
 		}
 	}
 }
 
-int itemlist_formaction::get_pos(unsigned int realidx)
+int ItemListFormAction::get_pos(unsigned int realidx)
 {
 	for (unsigned int i = 0; i < visible_items.size(); ++i) {
 		if (visible_items[i].second == realidx)
@@ -1238,9 +1238,9 @@ int itemlist_formaction::get_pos(unsigned int realidx)
 	return -1;
 }
 
-void itemlist_formaction::recalculate_form()
+void ItemListFormAction::recalculate_form()
 {
-	formaction::recalculate_form();
+	Formaction::recalculate_form();
 	invalidate(InvalidationMode::COMPLETE);
 
 	std::string itemposname = f->get("itempos");
@@ -1257,7 +1257,7 @@ void itemlist_formaction::recalculate_form()
 	}
 }
 
-void itemlist_formaction::save_article(const std::string& filename,
+void ItemListFormAction::save_article(const std::string& filename,
 	std::shared_ptr<rss_item> item)
 {
 	if (filename == "") {
@@ -1275,7 +1275,7 @@ void itemlist_formaction::save_article(const std::string& filename,
 	}
 }
 
-void itemlist_formaction::save_filterpos()
+void ItemListFormAction::save_filterpos()
 {
 	unsigned int i = utils::to_u(f->get("itempos"));
 	if (i < visible_items.size()) {
@@ -1284,7 +1284,7 @@ void itemlist_formaction::save_filterpos()
 	}
 }
 
-void itemlist_formaction::set_regexmanager(regexmanager* r)
+void ItemListFormAction::set_regexmanager(regexmanager* r)
 {
 	rxman = r;
 	std::vector<std::string>& attrs = r->get_attrs("articlelist");
@@ -1305,7 +1305,7 @@ void itemlist_formaction::set_regexmanager(regexmanager* r)
 	f->modify("items", "replace", textview);
 }
 
-std::string itemlist_formaction::gen_flags(std::shared_ptr<rss_item> item)
+std::string ItemListFormAction::gen_flags(std::shared_ptr<rss_item> item)
 {
 	std::string flags;
 	if (item->deleted()) {
@@ -1323,7 +1323,7 @@ std::string itemlist_formaction::gen_flags(std::shared_ptr<rss_item> item)
 	return flags;
 }
 
-std::string itemlist_formaction::gen_datestr(time_t t,
+std::string ItemListFormAction::gen_datestr(time_t t,
 	const std::string& datetimeformat)
 {
 	char datebuf[64];
@@ -1332,7 +1332,7 @@ std::string itemlist_formaction::gen_datestr(time_t t,
 	return datebuf;
 }
 
-void itemlist_formaction::prepare_set_filterpos()
+void ItemListFormAction::prepare_set_filterpos()
 {
 	if (set_filterpos) {
 		set_filterpos = false;
@@ -1348,10 +1348,10 @@ void itemlist_formaction::prepare_set_filterpos()
 	}
 }
 
-void itemlist_formaction::set_feed(std::shared_ptr<rss_feed> fd)
+void ItemListFormAction::set_feed(std::shared_ptr<rss_feed> fd)
 {
 	LOG(Level::DEBUG,
-		"itemlist_formaction::set_feed: fd pointer = %p title = `%s'",
+		"ItemListFormAction::set_feed: fd pointer = %p title = `%s'",
 		fd.get(),
 		fd->title());
 	feed = fd;
@@ -1360,7 +1360,7 @@ void itemlist_formaction::set_feed(std::shared_ptr<rss_feed> fd)
 	do_update_visible_items();
 }
 
-std::string itemlist_formaction::title()
+std::string ItemListFormAction::title()
 {
 	if (feed->rssurl() == "") {
 		return strprintf::fmt(_("Search Result - '%s'"), searchphrase);

@@ -23,21 +23,21 @@
 
 namespace newsboat {
 
-feedhq_api::feedhq_api(configcontainer* c)
+FeedHqApi::FeedHqApi(configcontainer* c)
 	: remote_api(c)
 {
 	// TODO
 }
 
-feedhq_api::~feedhq_api()
+FeedHqApi::~FeedHqApi()
 {
 	// TODO
 }
 
-bool feedhq_api::authenticate()
+bool FeedHqApi::authenticate()
 {
 	auth = retrieve_auth();
-	LOG(Level::DEBUG, "feedhq_api::authenticate: Auth = %s", auth);
+	LOG(Level::DEBUG, "FeedHqApi::authenticate: Auth = %s", auth);
 	return auth != "";
 }
 
@@ -49,7 +49,7 @@ my_write_data(void* buffer, size_t size, size_t nmemb, void* userp)
 	return size * nmemb;
 }
 
-std::string feedhq_api::retrieve_auth()
+std::string FeedHqApi::retrieve_auth()
 {
 	CURL* handle = curl_easy_init();
 	credentials cred = get_credentials("feedhq", "FeedHQ");
@@ -84,7 +84,7 @@ std::string feedhq_api::retrieve_auth()
 	curl_easy_cleanup(handle);
 
 	for (const auto& line : utils::tokenize(result)) {
-		LOG(Level::DEBUG, "feedhq_api::retrieve_auth: line = %s", line);
+		LOG(Level::DEBUG, "FeedHqApi::retrieve_auth: line = %s", line);
 		if (line.substr(0, 5) == "Auth=") {
 			std::string auth = line.substr(5, line.length() - 5);
 			return auth;
@@ -94,7 +94,7 @@ std::string feedhq_api::retrieve_auth()
 	return "";
 }
 
-std::vector<tagged_feedurl> feedhq_api::get_subscribed_urls()
+std::vector<tagged_feedurl> FeedHqApi::get_subscribed_urls()
 {
 	std::vector<tagged_feedurl> urls;
 
@@ -116,7 +116,7 @@ std::vector<tagged_feedurl> feedhq_api::get_subscribed_urls()
 	curl_slist_free_all(custom_headers);
 
 	LOG(Level::DEBUG,
-		"feedhq_api::get_subscribed_urls: document = %s",
+		"FeedHqApi::get_subscribed_urls: document = %s",
 		result);
 
 	// TODO: parse result
@@ -124,7 +124,7 @@ std::vector<tagged_feedurl> feedhq_api::get_subscribed_urls()
 	json_object* reply = json_tokener_parse(result.c_str());
 	if (reply == nullptr) {
 		LOG(Level::ERROR,
-			"feedhq_api::get_subscribed_urls: failed to parse "
+			"FeedHqApi::get_subscribed_urls: failed to parse "
 			"response "
 			"as JSON.");
 		return urls;
@@ -168,20 +168,20 @@ std::vector<tagged_feedurl> feedhq_api::get_subscribed_urls()
 	return urls;
 }
 
-void feedhq_api::add_custom_headers(curl_slist** custom_headers)
+void FeedHqApi::add_custom_headers(curl_slist** custom_headers)
 {
 	if (auth_header.empty()) {
 		auth_header = strprintf::fmt(
 			"Authorization: GoogleLogin auth=%s", auth);
 	}
 	LOG(Level::DEBUG,
-		"feedhq_api::add_custom_headers header = %s",
+		"FeedHqApi::add_custom_headers header = %s",
 		auth_header);
 	*custom_headers =
 		curl_slist_append(*custom_headers, auth_header.c_str());
 }
 
-bool feedhq_api::mark_all_read(const std::string& feedurl)
+bool FeedHqApi::mark_all_read(const std::string& feedurl)
 {
 	std::string prefix =
 		cfg->get_configvalue("feedhq-url") + FEEDHQ_FEED_PREFIX;
@@ -192,7 +192,7 @@ bool feedhq_api::mark_all_read(const std::string& feedurl)
 		real_feedurl = utils::unescape_url(elems[0]);
 	} catch (const std::runtime_error& e) {
 		LOG(Level::DEBUG,
-			"feedhq_api::mark_all_read: Failed to "
+			"FeedHqApi::mark_all_read: Failed to "
 			"unescape_url(%s): %s",
 			elems[0],
 			e.what());
@@ -210,13 +210,13 @@ bool feedhq_api::mark_all_read(const std::string& feedurl)
 	return result == "OK";
 }
 
-bool feedhq_api::mark_article_read(const std::string& guid, bool read)
+bool FeedHqApi::mark_article_read(const std::string& guid, bool read)
 {
 	std::string token = get_new_token();
 	return mark_article_read_with_token(guid, read, token);
 }
 
-bool feedhq_api::mark_article_read_with_token(const std::string& guid,
+bool FeedHqApi::mark_article_read_with_token(const std::string& guid,
 	bool read,
 	const std::string& token)
 {
@@ -242,7 +242,7 @@ bool feedhq_api::mark_article_read_with_token(const std::string& guid,
 		postcontent);
 
 	LOG(Level::DEBUG,
-		"feedhq_api::mark_article_read_with_token: postcontent = %s "
+		"FeedHqApi::mark_article_read_with_token: postcontent = %s "
 		"result "
 		"= %s",
 		postcontent,
@@ -251,7 +251,7 @@ bool feedhq_api::mark_article_read_with_token(const std::string& guid,
 	return result == "OK";
 }
 
-std::string feedhq_api::get_new_token()
+std::string FeedHqApi::get_new_token()
 {
 	CURL* handle = curl_easy_init();
 	std::string result;
@@ -270,12 +270,12 @@ std::string feedhq_api::get_new_token()
 	curl_easy_cleanup(handle);
 	curl_slist_free_all(custom_headers);
 
-	LOG(Level::DEBUG, "feedhq_api::get_new_token: token = %s", result);
+	LOG(Level::DEBUG, "FeedHqApi::get_new_token: token = %s", result);
 
 	return result;
 }
 
-bool feedhq_api::update_article_flags(const std::string& oldflags,
+bool FeedHqApi::update_article_flags(const std::string& oldflags,
 	const std::string& newflags,
 	const std::string& guid)
 {
@@ -306,7 +306,7 @@ bool feedhq_api::update_article_flags(const std::string& oldflags,
 	return success;
 }
 
-bool feedhq_api::star_article(const std::string& guid, bool star)
+bool FeedHqApi::star_article(const std::string& guid, bool star)
 {
 	std::string token = get_new_token();
 	std::string postcontent;
@@ -330,7 +330,7 @@ bool feedhq_api::star_article(const std::string& guid, bool star)
 	return result == "OK";
 }
 
-bool feedhq_api::share_article(const std::string& guid, bool share)
+bool FeedHqApi::share_article(const std::string& guid, bool share)
 {
 	std::string token = get_new_token();
 	std::string postcontent;
@@ -354,7 +354,7 @@ bool feedhq_api::share_article(const std::string& guid, bool share)
 	return result == "OK";
 }
 
-std::string feedhq_api::post_content(const std::string& url,
+std::string FeedHqApi::post_content(const std::string& url,
 	const std::string& postdata)
 {
 	std::string result;
@@ -373,7 +373,7 @@ std::string feedhq_api::post_content(const std::string& url,
 	curl_slist_free_all(custom_headers);
 
 	LOG(Level::DEBUG,
-		"feedhq_api::post_content: url = %s postdata = %s result = %s",
+		"FeedHqApi::post_content: url = %s postdata = %s result = %s",
 		url,
 		postdata,
 		result);

@@ -13,22 +13,22 @@
 namespace newsboat {
 
 /*
- * The select_formaction is used both for the "select tag" dialog
+ * The SelectFormAction is used both for the "select tag" dialog
  * and the "select filter", as they do practically the same. That's
  * why there is the decision between SELECTTAG and SELECTFILTER on
  * a few places.
  */
 
-select_formaction::select_formaction(view* vv, std::string formstr)
-	: formaction(vv, formstr)
+SelectFormAction::SelectFormAction(view* vv, std::string formstr)
+	: Formaction(vv, formstr)
 	, quit(false)
 	, type(SelectionType::TAG)
 {
 }
 
-select_formaction::~select_formaction() {}
+SelectFormAction::~SelectFormAction() {}
 
-void select_formaction::handle_cmdline(const std::string& cmd)
+void SelectFormAction::handle_cmdline(const std::string& cmd)
 {
 	unsigned int idx = 0;
 	if (1 == sscanf(cmd.c_str(), "%u", &idx)) {
@@ -39,11 +39,11 @@ void select_formaction::handle_cmdline(const std::string& cmd)
 			f->set("tagpos", std::to_string(idx - 1));
 		}
 	} else {
-		formaction::handle_cmdline(cmd);
+		Formaction::handle_cmdline(cmd);
 	}
 }
 
-void select_formaction::process_operation(Operation op ,
+void SelectFormAction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -92,7 +92,7 @@ void select_formaction::process_operation(Operation op ,
 	}
 }
 
-void select_formaction::prepare()
+void SelectFormAction::prepare()
 {
 	if (do_redraw) {
 		listformatter listfmt;
@@ -128,7 +128,7 @@ void select_formaction::prepare()
 	}
 }
 
-void select_formaction::init()
+void SelectFormAction::init()
 {
 	std::string title;
 	do_redraw = true;
@@ -161,7 +161,7 @@ void select_formaction::init()
 	f->set("head", title);
 }
 
-keymap_hint_entry* select_formaction::get_keymap_hint()
+keymap_hint_entry* SelectFormAction::get_keymap_hint()
 {
 	static keymap_hint_entry hints_tag[] = {{OP_QUIT, _("Cancel")},
 		{OP_OPEN, _("Select Tag")},
@@ -178,7 +178,7 @@ keymap_hint_entry* select_formaction::get_keymap_hint()
 	return nullptr;
 }
 
-std::string select_formaction::title()
+std::string SelectFormAction::title()
 {
 	switch (type) {
 	case SelectionType::TAG:

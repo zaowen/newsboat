@@ -20,10 +20,10 @@ struct keymap_hint_entry {
 
 typedef std::pair<std::string, std::string> qna_pair;
 
-class formaction {
+class Formaction {
 public:
-	formaction(view*, std::string formstr);
-	virtual ~formaction();
+	Formaction(view*, std::string formstr);
+	virtual ~Formaction();
 	virtual void prepare() = 0;
 	virtual void init() = 0;
 	std::shared_ptr<stfl::form> get_form();
@@ -59,11 +59,11 @@ public:
 		Operation finish_op,
 		history* h = nullptr);
 
-	void set_parent_formaction(std::shared_ptr<formaction> fa)
+	void set_parent_formaction(std::shared_ptr<Formaction> fa)
 	{
 		parent_formaction = fa;
 	}
-	std::shared_ptr<formaction> get_parent_formaction() const
+	std::shared_ptr<Formaction> get_parent_formaction() const
 	{
 		return parent_formaction;
 	}
@@ -115,7 +115,7 @@ private:
 	std::vector<qna_pair> qna_prompts;
 	Operation finish_operation;
 	history* qna_history;
-	std::shared_ptr<formaction> parent_formaction;
+	std::shared_ptr<Formaction> parent_formaction;
 };
 
 } // namespace newsboat

@@ -22,8 +22,8 @@
 
 namespace newsboat {
 
-filebrowser_formaction::filebrowser_formaction(view* vv, std::string formstr)
-	: formaction(vv, formstr)
+FileBrowserFormAction::FileBrowserFormAction(view* vv, std::string formstr)
+	: Formaction(vv, formstr)
 	, quit(false)
 {
 	// In filebrowser, keyboard focus is at the input field, so user can't
@@ -33,9 +33,9 @@ filebrowser_formaction::filebrowser_formaction(view* vv, std::string formstr)
 	vv->set_keymap(keys);
 }
 
-filebrowser_formaction::~filebrowser_formaction() {}
+FileBrowserFormAction::~FileBrowserFormAction() {}
 
-void filebrowser_formaction::process_operation(Operation op ,
+void FileBrowserFormAction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -49,7 +49,7 @@ void filebrowser_formaction::process_operation(Operation op ,
 		 *   - the focus is in the filename field, then the filename
 		 * needs to be returned.
 		 */
-		LOG(Level::DEBUG, "filebrowser_formaction: 'opening' item");
+		LOG(Level::DEBUG, "FileBrowserFormAction: 'opening' item");
 		std::string focus = f->get_focus();
 		if (focus.length() > 0) {
 			if (focus == "files") {
@@ -81,7 +81,7 @@ void filebrowser_formaction::process_operation(Operation op ,
 							width));
 					int status = ::chdir(filename.c_str());
 					LOG(Level::DEBUG,
-						"filebrowser_formaction:OP_"
+						"FileBrowserFormAction:OP_"
 						"OPEN: "
 						"chdir(%s) = %i",
 						filename,
@@ -188,7 +188,7 @@ std::vector<std::string> get_sorted_filelist()
 	return ret;
 }
 
-void filebrowser_formaction::prepare()
+void FileBrowserFormAction::prepare()
 {
 	/*
 	 * prepare is always called before an operation is processed,
@@ -218,7 +218,7 @@ void filebrowser_formaction::prepare()
 	}
 }
 
-void filebrowser_formaction::init()
+void FileBrowserFormAction::init()
 {
 	set_keymap_hints();
 
@@ -253,7 +253,7 @@ void filebrowser_formaction::init()
 			cwdtmp));
 }
 
-keymap_hint_entry* filebrowser_formaction::get_keymap_hint()
+keymap_hint_entry* FileBrowserFormAction::get_keymap_hint()
 {
 	static keymap_hint_entry hints[] = {{OP_QUIT, _("Cancel")},
 		{OP_OPEN, _("Save")},
@@ -261,7 +261,7 @@ keymap_hint_entry* filebrowser_formaction::get_keymap_hint()
 	return hints;
 }
 
-std::string filebrowser_formaction::add_file(std::string filename)
+std::string FileBrowserFormAction::add_file(std::string filename)
 {
 	std::string retval;
 	struct stat sb;
@@ -290,7 +290,7 @@ std::string filebrowser_formaction::add_file(std::string filename)
 	return retval;
 }
 
-std::string filebrowser_formaction::get_formatted_filename(std::string filename,
+std::string FileBrowserFormAction::get_formatted_filename(std::string filename,
 	char ftype,
 	mode_t mode)
 {
@@ -317,7 +317,7 @@ std::string filebrowser_formaction::get_formatted_filename(std::string filename,
 	return strprintf::fmt("%s%c", filename, suffix);
 }
 
-std::string filebrowser_formaction::get_rwx(unsigned short val)
+std::string FileBrowserFormAction::get_rwx(unsigned short val)
 {
 	std::string str;
 	const char* bitstrs[] = {
@@ -330,7 +330,7 @@ std::string filebrowser_formaction::get_rwx(unsigned short val)
 	return str;
 }
 
-char filebrowser_formaction::get_filetype(mode_t mode)
+char FileBrowserFormAction::get_filetype(mode_t mode)
 {
 	static struct flag_char {
 		mode_t flag;
@@ -350,7 +350,7 @@ char filebrowser_formaction::get_filetype(mode_t mode)
 	return '?';
 }
 
-std::string filebrowser_formaction::get_owner(uid_t uid)
+std::string FileBrowserFormAction::get_owner(uid_t uid)
 {
 	struct passwd* spw = getpwuid(uid);
 	if (spw) {
@@ -363,7 +363,7 @@ std::string filebrowser_formaction::get_owner(uid_t uid)
 	return "????????";
 }
 
-std::string filebrowser_formaction::get_group(gid_t gid)
+std::string FileBrowserFormAction::get_group(gid_t gid)
 {
 	struct group* sgr = getgrgid(gid);
 	if (sgr) {
@@ -376,7 +376,7 @@ std::string filebrowser_formaction::get_group(gid_t gid)
 	return "????????";
 }
 
-std::string filebrowser_formaction::title()
+std::string FileBrowserFormAction::title()
 {
 	return strprintf::fmt(_("Save File - %s"), utils::getcwd());
 }

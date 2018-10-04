@@ -11,10 +11,10 @@ namespace newsboat {
 
 typedef std::pair<std::shared_ptr<rss_feed>, unsigned int> feedptr_pos_pair;
 
-class feedlist_formaction : public list_formaction {
+class FeedListFormAction : public ListFormAction {
 public:
-	feedlist_formaction(view*, std::string formstr);
-	~feedlist_formaction() override;
+	FeedListFormAction(view*, std::string formstr);
+	~FeedListFormAction() override;
 	void prepare() override;
 	void init() override;
 	void set_feedlist(std::vector<std::shared_ptr<rss_feed>>& feeds);
@@ -26,7 +26,7 @@ public:
 
 	void set_redraw(bool b) override
 	{
-		formaction::set_redraw(b);
+		Formaction::set_redraw(b);
 		apply_filter = !(v->get_cfg()->get_configvalue_as_bool(
 			"show-read-feeds"));
 	}

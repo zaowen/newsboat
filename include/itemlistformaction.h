@@ -15,16 +15,16 @@ typedef std::pair<std::shared_ptr<rss_item>, unsigned int> itemptr_pos_pair;
 
 enum class InvalidationMode { PARTIAL, COMPLETE };
 
-class itemlist_formaction : public list_formaction {
+class ItemListFormAction : public ListFormAction {
 public:
-	itemlist_formaction(view*, std::string formstr);
-	~itemlist_formaction() override;
+	ItemListFormAction(view*, std::string formstr);
+	~ItemListFormAction() override;
 	void prepare() override;
 	void init() override;
 
 	void set_redraw(bool b) override
 	{
-		formaction::set_redraw(b);
+		Formaction::set_redraw(b);
 		apply_filter = !(v->get_cfg()->get_configvalue_as_bool(
 			"show-read-articles"));
 		invalidate(InvalidationMode::COMPLETE);

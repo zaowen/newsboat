@@ -5,10 +5,10 @@
 
 namespace newsboat {
 
-class help_formaction : public formaction {
+class HelpFormAction : public Formaction {
 public:
-	help_formaction(view*, std::string formstr);
-	~help_formaction() override;
+	HelpFormAction(view*, std::string formstr);
+	~HelpFormAction() override;
 	void prepare() override;
 	void init() override;
 	keymap_hint_entry* get_keymap_hint() override;

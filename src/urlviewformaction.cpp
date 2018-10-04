@@ -12,23 +12,23 @@
 namespace newsboat {
 
 /*
- * The urlview_formaction is probably the simplest dialog of all. It
+ * The UrlViewFormAction is probably the simplest dialog of all. It
  * displays a list of URLs, and makes it possible to open the URLs
  * in a browser or to bookmark them.
  */
 
-urlview_formaction::urlview_formaction(view* vv,
+UrlViewFormAction::UrlViewFormAction(view* vv,
 	std::shared_ptr<rss_feed>& feed,
 	std::string formstr)
-	: formaction(vv, formstr)
+	: Formaction(vv, formstr)
 	, quit(false)
 	, feed(feed)
 {
 }
 
-urlview_formaction::~urlview_formaction() {}
+UrlViewFormAction::~UrlViewFormAction() {}
 
-void urlview_formaction::process_operation(Operation op ,
+void UrlViewFormAction::process_operation(Operation op ,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -94,7 +94,7 @@ void urlview_formaction::process_operation(Operation op ,
 	}
 }
 
-void urlview_formaction::prepare()
+void UrlViewFormAction::prepare()
 {
 	if (do_redraw) {
 		listformatter listfmt;
@@ -109,7 +109,7 @@ void urlview_formaction::prepare()
 	}
 }
 
-void urlview_formaction::init()
+void UrlViewFormAction::init()
 {
 	v->set_status("");
 
@@ -129,7 +129,7 @@ void urlview_formaction::init()
 	set_keymap_hints();
 }
 
-keymap_hint_entry* urlview_formaction::get_keymap_hint()
+keymap_hint_entry* UrlViewFormAction::get_keymap_hint()
 {
 	static keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_OPEN, _("Open in Browser")},
@@ -138,7 +138,7 @@ keymap_hint_entry* urlview_formaction::get_keymap_hint()
 	return hints;
 }
 
-void urlview_formaction::handle_cmdline(const std::string& cmd)
+void UrlViewFormAction::handle_cmdline(const std::string& cmd)
 {
 	unsigned int idx = 0;
 	if (1 == sscanf(cmd.c_str(), "%u", &idx)) {
@@ -148,11 +148,11 @@ void urlview_formaction::handle_cmdline(const std::string& cmd)
 			f->set("feedpos", std::to_string(idx - 1));
 		}
 	} else {
-		formaction::handle_cmdline(cmd);
+		Formaction::handle_cmdline(cmd);
 	}
 }
 
-std::string urlview_formaction::title()
+std::string UrlViewFormAction::title()
 {
 	return _("URLs");
 }

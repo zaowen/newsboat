@@ -19,15 +19,15 @@
 namespace newsboat {
 
 class formaction;
-class itemlist_formaction;
-class itemview_formaction;
+class ItemListFormAction;
+class ItemViewFormAction;
 
 class view {
 public:
 	explicit view(controller*);
 	~view();
 	int run();
-	std::string run_modal(std::shared_ptr<formaction> f,
+	std::string run_modal(std::shared_ptr<Formaction> f,
 		const std::string& value = "");
 
 	void set_feedlist(std::vector<std::shared_ptr<rss_feed>> feeds);
@@ -83,21 +83,21 @@ public:
 
 	std::string get_filename_suggestion(const std::string& s);
 
-	bool get_next_unread(itemlist_formaction* itemlist,
-		itemview_formaction* itemview = nullptr);
-	bool get_previous_unread(itemlist_formaction* itemlist,
-		itemview_formaction* itemview = nullptr);
-	bool get_next(itemlist_formaction* itemlist,
-		itemview_formaction* itemview = nullptr);
-	bool get_previous(itemlist_formaction* itemlist,
-		itemview_formaction* itemview = nullptr);
-	bool get_random_unread(itemlist_formaction* itemlist,
-		itemview_formaction* itemview = nullptr);
+	bool get_next_unread(ItemListFormAction* itemlist,
+		ItemViewFormAction* itemview = nullptr);
+	bool get_previous_unread(ItemListFormAction* itemlist,
+		ItemViewFormAction* itemview = nullptr);
+	bool get_next(ItemListFormAction* itemlist,
+		ItemViewFormAction* itemview = nullptr);
+	bool get_previous(ItemListFormAction* itemlist,
+		ItemViewFormAction* itemview = nullptr);
+	bool get_random_unread(ItemListFormAction* itemlist,
+		ItemViewFormAction* itemview = nullptr);
 
-	bool get_next_unread_feed(itemlist_formaction* itemlist);
-	bool get_prev_unread_feed(itemlist_formaction* itemlist);
-	bool get_next_feed(itemlist_formaction* itemlist);
-	bool get_prev_feed(itemlist_formaction* itemlist);
+	bool get_next_unread_feed(ItemListFormAction* itemlist);
+	bool get_prev_unread_feed(ItemListFormAction* itemlist);
+	bool get_next_feed(ItemListFormAction* itemlist);
+	bool get_prev_feed(ItemListFormAction* itemlist);
 
 	void prepare_query_feed(std::shared_ptr<rss_feed> feed);
 
@@ -116,9 +116,9 @@ public:
 	std::vector<std::pair<unsigned int, std::string>>
 	get_formaction_names();
 
-	std::shared_ptr<formaction> get_current_formaction();
+	std::shared_ptr<Formaction> get_current_formaction();
 
-	std::shared_ptr<formaction> get_formaction(unsigned int idx) const
+	std::shared_ptr<Formaction> get_formaction(unsigned int idx) const
 	{
 		return formaction_stack[idx];
 	}
@@ -138,14 +138,14 @@ public:
 	static void ctrl_c_action(int sig);
 
 protected:
-	void set_bindings(std::shared_ptr<formaction> fa);
-	void apply_colors(std::shared_ptr<formaction> fa);
+	void set_bindings(std::shared_ptr<Formaction> fa);
+	void apply_colors(std::shared_ptr<Formaction> fa);
 
-	void handle_cmdline_completion(std::shared_ptr<formaction> fa);
-	void clear_line(std::shared_ptr<formaction> fa);
-	void clear_eol(std::shared_ptr<formaction> fa);
-	void cancel_input(std::shared_ptr<formaction> fa);
-	void delete_word(std::shared_ptr<formaction> fa);
+	void handle_cmdline_completion(std::shared_ptr<Formaction> fa);
+	void clear_line(std::shared_ptr<Formaction> fa);
+	void clear_eol(std::shared_ptr<Formaction> fa);
+	void cancel_input(std::shared_ptr<Formaction> fa);
+	void delete_word(std::shared_ptr<Formaction> fa);
 
 	controller* ctrl;
 
@@ -155,7 +155,7 @@ protected:
 
 	friend class colormanager;
 
-	std::vector<std::shared_ptr<formaction>> formaction_stack;
+	std::vector<std::shared_ptr<Formaction>> formaction_stack;
 	unsigned int current_formaction;
 
 	std::vector<std::string> tags;

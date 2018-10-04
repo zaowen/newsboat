@@ -284,7 +284,7 @@ int controller::run(const CLIArgsParser& args)
 		api = new newsblur_api(&cfg);
 		urlcfg = new newsblur_urlreader(configpaths.url_file(), api);
 	} else if (type == "feedhq") {
-		api = new feedhq_api(&cfg);
+		api = new FeedHqApi(&cfg);
 		urlcfg =
 			new feedhq_urlreader(&cfg, configpaths.url_file(), api);
 	} else if (type == "ocnews") {
@@ -467,7 +467,7 @@ int controller::run(const CLIArgsParser& args)
 		refresh_on_start = true;
 	}
 
-	formaction::load_histories(
+	Formaction::load_histories(
 		configpaths.search_file(), configpaths.cmdline_file());
 
 	// run the view
@@ -476,7 +476,7 @@ int controller::run(const CLIArgsParser& args)
 	unsigned int history_limit =
 		cfg.get_configvalue_as_int("history-limit");
 	LOG(Level::DEBUG, "controller::run: history-limit = %u", history_limit);
-	formaction::save_histories(configpaths.search_file(),
+	Formaction::save_histories(configpaths.search_file(),
 		configpaths.cmdline_file(),
 		history_limit);
 

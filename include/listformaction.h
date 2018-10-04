@@ -5,9 +5,9 @@
 
 namespace newsboat {
 
-class list_formaction : public formaction {
+class ListFormAction : public Formaction {
 public:
-	list_formaction(view*, std::string formstr);
+	ListFormAction(view*, std::string formstr);
 
 protected:
 	void process_operation(Operation op ,

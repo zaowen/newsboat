@@ -9,14 +9,14 @@
 
 namespace newsboat {
 
-class itemlist_formaction;
+class ItemListFormAction;
 
-class itemview_formaction : public formaction {
+class ItemViewFormAction : public Formaction {
 public:
-	itemview_formaction(view*,
-		std::shared_ptr<itemlist_formaction> il,
+	ItemViewFormAction(view*,
+		std::shared_ptr<ItemListFormAction> il,
 		std::string formstr);
-	~itemview_formaction() override;
+	~ItemViewFormAction() override;
 	void prepare() override;
 	void init() override;
 	void set_guid(const std::string& guid_)
@@ -70,7 +70,7 @@ private:
 	bool quit;
 	regexmanager* rxman;
 	unsigned int num_lines;
-	std::shared_ptr<itemlist_formaction> itemlist;
+	std::shared_ptr<ItemListFormAction> itemlist;
 	bool in_search;
 };
 

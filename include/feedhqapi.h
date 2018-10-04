@@ -7,10 +7,10 @@
 
 namespace newsboat {
 
-class feedhq_api : public remote_api {
+class FeedHqApi : public remote_api {
 public:
-	explicit feedhq_api(configcontainer* c);
-	~feedhq_api() override;
+	explicit FeedHqApi(configcontainer* c);
+	~FeedHqApi() override;
 	bool authenticate() override;
 	std::vector<tagged_feedurl> get_subscribed_urls() override;
 	void add_custom_headers(curl_slist** custom_headers) override;

@@ -15,10 +15,10 @@
 
 namespace newsboat {
 
-itemview_formaction::itemview_formaction(view* vv,
-	std::shared_ptr<itemlist_formaction> il,
+ItemViewFormAction::ItemViewFormAction(view* vv,
+	std::shared_ptr<ItemListFormAction> il,
 	std::string formstr)
-	: formaction(vv, formstr)
+	: Formaction(vv, formstr)
 	, show_source(false)
 	, quit(false)
 	, rxman(0)
@@ -30,9 +30,9 @@ itemview_formaction::itemview_formaction(view* vv,
 	std::sort(valid_cmds.begin(), valid_cmds.end());
 }
 
-itemview_formaction::~itemview_formaction() {}
+ItemViewFormAction::~ItemViewFormAction() {}
 
-void itemview_formaction::init()
+void ItemViewFormAction::init()
 {
 	f->set("msg", "");
 	do_redraw = true;
@@ -52,7 +52,7 @@ void itemview_formaction::init()
 	set_keymap_hints();
 }
 
-void itemview_formaction::prepare()
+void ItemViewFormAction::prepare()
 {
 	/*
 	 * whenever necessary, the item view is regenerated. This is done
@@ -186,7 +186,7 @@ void itemview_formaction::prepare()
 	}
 }
 
-void itemview_formaction::process_operation(Operation op ,
+void ItemViewFormAction::process_operation(Operation op ,
 	bool automatic,
 	std::vector<std::string>* args)
 {
@@ -464,7 +464,7 @@ void itemview_formaction::process_operation(Operation op ,
 	}
 }
 
-keymap_hint_entry* itemview_formaction::get_keymap_hint()
+keymap_hint_entry* ItemViewFormAction::get_keymap_hint()
 {
 	static keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_SAVE, _("Save")},
@@ -476,7 +476,7 @@ keymap_hint_entry* itemview_formaction::get_keymap_hint()
 	return hints;
 }
 
-void itemview_formaction::set_head(const std::string& s,
+void ItemViewFormAction::set_head(const std::string& s,
 	const std::string& feedtitle,
 	unsigned int unread,
 	unsigned int total)
@@ -505,7 +505,7 @@ void itemview_formaction::set_head(const std::string& s,
 			width));
 }
 
-void itemview_formaction::render_source(
+void ItemViewFormAction::render_source(
 	std::vector<std::pair<LineType, std::string>>& lines,
 	std::string source)
 {
@@ -526,7 +526,7 @@ void itemview_formaction::render_source(
 	} while (source.length() > 0);
 }
 
-void itemview_formaction::handle_cmdline(const std::string& cmd)
+void ItemViewFormAction::handle_cmdline(const std::string& cmd)
 {
 	std::vector<std::string> tokens = utils::tokenize_quoted(cmd);
 	if (!tokens.empty()) {
@@ -553,14 +553,14 @@ void itemview_formaction::handle_cmdline(const std::string& cmd)
 			}
 
 		} else {
-			formaction::handle_cmdline(cmd);
+			Formaction::handle_cmdline(cmd);
 		}
 	}
 }
 
-void itemview_formaction::finished_qna(Operation op )
+void ItemViewFormAction::finished_qna(Operation op )
 {
-	formaction::finished_qna(op); // important!
+	Formaction::finished_qna(op); // important!
 
 	std::shared_ptr<rss_item> item = feed->get_item_by_guid(guid);
 
@@ -602,7 +602,7 @@ void itemview_formaction::finished_qna(Operation op )
 	}
 }
 
-std::vector<std::pair<LineType, std::string>> itemview_formaction::render_html(
+std::vector<std::pair<LineType, std::string>> ItemViewFormAction::render_html(
 	const std::string& source,
 	std::vector<linkpair>& thelinks,
 	const std::string& url)
@@ -619,10 +619,10 @@ std::vector<std::pair<LineType, std::string>> itemview_formaction::render_html(
 		argv[2] = const_cast<char*>(renderer.c_str());
 		argv[3] = nullptr;
 		LOG(Level::DEBUG,
-			"itemview_formaction::render_html: source = %s",
+			"ItemViewFormAction::render_html: source = %s",
 			source);
 		LOG(Level::DEBUG,
-			"itemview_formaction::render_html: html-renderer = %s",
+			"ItemViewFormAction::render_html: html-renderer = %s",
 			argv[2]);
 
 		std::string output = utils::run_program(argv, source);
@@ -638,7 +638,7 @@ std::vector<std::pair<LineType, std::string>> itemview_formaction::render_html(
 	return result;
 }
 
-void itemview_formaction::set_regexmanager(regexmanager* r)
+void ItemViewFormAction::set_regexmanager(regexmanager* r)
 {
 	rxman = r;
 	std::vector<std::string>& attrs = r->get_attrs("article");
@@ -660,7 +660,7 @@ void itemview_formaction::set_regexmanager(regexmanager* r)
 	f->modify("article", "replace", textview);
 }
 
-void itemview_formaction::update_percent()
+void ItemViewFormAction::update_percent()
 {
 	if (v->get_cfg()->get_configvalue_as_bool("display-article-progress")) {
 		unsigned int percent = 0;
@@ -672,7 +672,7 @@ void itemview_formaction::update_percent()
 			percent = 0;
 
 		LOG(Level::DEBUG,
-			"itemview_formaction::update_percent: offset = %u "
+			"ItemViewFormAction::update_percent: offset = %u "
 			"num_lines = %u percent = %u",
 			offset,
 			num_lines,
@@ -688,7 +688,7 @@ void itemview_formaction::update_percent()
 	}
 }
 
-std::string itemview_formaction::title()
+std::string ItemViewFormAction::title()
 {
 	std::shared_ptr<rss_item> item = feed->get_item_by_guid(guid);
 	auto title = item->title();
@@ -696,12 +696,12 @@ std::string itemview_formaction::title()
 	return strprintf::fmt(_("Article - %s"), title);
 }
 
-void itemview_formaction::set_highlightphrase(const std::string& text)
+void ItemViewFormAction::set_highlightphrase(const std::string& text)
 {
 	highlight_text(text);
 }
 
-void itemview_formaction::do_search()
+void ItemViewFormAction::do_search()
 {
 	std::string searchphrase = qna_responses[0];
 	if (searchphrase.length() == 0)
@@ -710,13 +710,13 @@ void itemview_formaction::do_search()
 	searchhistory.add_line(searchphrase);
 
 	LOG(Level::DEBUG,
-		"itemview_formaction::do_search: searchphrase = %s",
+		"ItemViewFormAction::do_search: searchphrase = %s",
 		searchphrase);
 
 	highlight_text(searchphrase);
 }
 
-void itemview_formaction::highlight_text(const std::string& searchphrase)
+void ItemViewFormAction::highlight_text(const std::string& searchphrase)
 {
 	std::vector<std::string> params;
 	params.push_back("article");
@@ -730,7 +730,7 @@ void itemview_formaction::highlight_text(const std::string& searchphrase)
 		rxman->handle_action("highlight", params);
 
 		LOG(Level::DEBUG,
-			"itemview_formaction::highlight_text: configuration "
+			"ItemViewFormAction::highlight_text: configuration "
 			"manipulation was successful");
 
 		set_regexmanager(rxman);
@@ -739,7 +739,7 @@ void itemview_formaction::highlight_text(const std::string& searchphrase)
 		do_redraw = true;
 	} catch (const confighandlerexception& e) {
 		LOG(Level::ERROR,
-			"itemview_formaction::highlight_text: handle_action "
+			"ItemViewFormAction::highlight_text: handle_action "
 			"failed, error = %s",
 			e.what());
 		v->show_error(_("Error: invalid regular expression!"));
