@@ -44,8 +44,8 @@ void ItemViewFormAction::init()
 		f->set("percentwidth", "0");
 	} else {
 		f->set("percentwidth",
-			std::to_string(utils::max(6,
-				utils::max(strlen(_("Top")),
+			std::to_string(Utils::max(6,
+				Utils::max(strlen(_("Top")),
 					strlen(_("Bottom"))))));
 		update_percent();
 	}
@@ -62,21 +62,21 @@ void ItemViewFormAction::prepare()
 	 */
 	if (do_redraw) {
 		{
-			scope_measure("itemview::prepare: rendering");
+			ScopeMeasure("itemview::prepare: rendering");
 			f->run(-3); // XXX HACK: render once so that we get a
 				    // proper widget width
 		}
 
-		std::shared_ptr<rss_item> item = feed->get_item_by_guid(guid);
-		textformatter textfmt;
+		std::shared_ptr<RssItem> item = feed->get_item_by_guid(guid);
+		TextFormatter textfmt;
 
-		std::shared_ptr<rss_feed> feedptr = item->get_feedptr();
+		std::shared_ptr<RssFeed> feedptr = item->get_feedptr();
 
 		std::string feedtitle, feedheader;
 		if (feedptr.get() != nullptr) {
 			if (feedptr->title().length() > 0) {
 				feedtitle = feedptr->title();
-				utils::remove_soft_hyphens(feedtitle);
+				Utils::remove_soft_hyphens(feedtitle);
 			} else if (feedptr->link().length() > 0) {
 				feedtitle = feedptr->link();
 			} else if (feedptr->rssurl().length() > 0) {
@@ -85,47 +85,47 @@ void ItemViewFormAction::prepare()
 		}
 		if (feedtitle.length() > 0) {
 			feedheader =
-				strprintf::fmt("%s%s", _("Feed: "), feedtitle);
+				StrPrintf::fmt("%s%s", _("Feed: "), feedtitle);
 			textfmt.add_line(LineType::wrappable, feedheader);
 		}
 
 		if (item->title().length() > 0) {
-			std::string title = strprintf::fmt(
+			std::string title = StrPrintf::fmt(
 				"%s%s", _("Title: "), item->title());
-			utils::remove_soft_hyphens(title);
+			Utils::remove_soft_hyphens(title);
 			textfmt.add_line(LineType::wrappable, title);
 		}
 
 		if (item->author().length() > 0) {
-			std::string author = strprintf::fmt(
+			std::string author = StrPrintf::fmt(
 				"%s%s", _("Author: "), item->author());
-			utils::remove_soft_hyphens(author);
+			Utils::remove_soft_hyphens(author);
 			textfmt.add_line(LineType::wrappable, author);
 		}
 
 		if (item->link().length() > 0) {
-			std::string link = strprintf::fmt("%s%s",
+			std::string link = StrPrintf::fmt("%s%s",
 				_("Link: "),
-				utils::censor_url(item->link()));
+				Utils::censor_url(item->link()));
 			textfmt.add_line(LineType::softwrappable, link);
 		}
 
 		std::string date =
-			strprintf::fmt("%s%s", _("Date: "), item->pubDate());
+			StrPrintf::fmt("%s%s", _("Date: "), item->pubDate());
 		textfmt.add_line(LineType::wrappable, date);
 
 		if (item->flags().length() > 0) {
-			std::string flags = strprintf::fmt(
+			std::string flags = StrPrintf::fmt(
 				"%s%s", _("Flags: "), item->flags());
 			textfmt.add_line(LineType::wrappable, flags);
 		}
 
 		if (item->enclosure_url().length() > 0) {
-			std::string enc_url = strprintf::fmt("%s%s",
+			std::string enc_url = StrPrintf::fmt("%s%s",
 				_("Podcast Download URL: "),
-				utils::censor_url(item->enclosure_url()));
+				Utils::censor_url(item->enclosure_url()));
 			if (item->enclosure_type() != "") {
-				enc_url.append(strprintf::fmt(" (%s%s)",
+				enc_url.append(StrPrintf::fmt(" (%s%s)",
 					_("type: "),
 					item->enclosure_type()));
 			}
@@ -147,7 +147,7 @@ void ItemViewFormAction::prepare()
 		std::vector<std::pair<LineType, std::string>> lines;
 		if (show_source) {
 			render_source(lines,
-				utils::quote_for_stfl(item->description()));
+				Utils::quote_for_stfl(item->description()));
 		} else {
 			std::string baseurl = item->get_base() != ""
 				? item->get_base()
@@ -159,7 +159,7 @@ void ItemViewFormAction::prepare()
 		textfmt.add_lines(lines);
 
 		std::string widthstr = f->get("article:w");
-		unsigned int window_width = utils::to_u(widthstr, 0);
+		unsigned int window_width = Utils::to_u(widthstr, 0);
 
 		unsigned int textwidth =
 			v->get_cfg()->get_configvalue_as_int("text-width");
@@ -190,7 +190,7 @@ void ItemViewFormAction::process_operation(Operation op ,
 	bool automatic,
 	std::vector<std::string>* args)
 {
-	std::shared_ptr<rss_item> item = feed->get_item_by_guid(guid);
+	std::shared_ptr<RssItem> item = feed->get_item_by_guid(guid);
 	bool hardquit = false;
 
 	/*
@@ -207,7 +207,7 @@ void ItemViewFormAction::process_operation(Operation op ,
 			v->get_ctrl()->mark_article_read(item->guid(), true);
 		}
 	} catch (const dbexception& e) {
-		v->show_error(strprintf::fmt(
+		v->show_error(StrPrintf::fmt(
 			_("Error while marking article as read: %s"),
 			e.what()));
 	}
@@ -220,16 +220,16 @@ void ItemViewFormAction::process_operation(Operation op ,
 		break;
 	case OP_ENQUEUE: {
 		if (item->enclosure_url().length() > 0 &&
-			utils::is_http_url(item->enclosure_url())) {
+			Utils::is_http_url(item->enclosure_url())) {
 			v->get_ctrl()->enqueue_url(item->enclosure_url(),
 				item->title(),
 				item->pubDate_timestamp(),
 				feed);
 			v->set_status(
-				strprintf::fmt(_("Added %s to download queue."),
+				StrPrintf::fmt(_("Added %s to download queue."),
 					item->enclosure_url()));
 		} else {
-			v->set_status(strprintf::fmt(
+			v->set_status(StrPrintf::fmt(
 				_("Invalid URL: '%s'"), item->enclosure_url()));
 		}
 	} break;
@@ -248,10 +248,10 @@ void ItemViewFormAction::process_operation(Operation op ,
 		} else {
 			try {
 				v->get_ctrl()->write_item(item, filename);
-				v->show_error(strprintf::fmt(
+				v->show_error(StrPrintf::fmt(
 					_("Saved article to %s."), filename));
 			} catch (...) {
-				v->show_error(strprintf::fmt(
+				v->show_error(StrPrintf::fmt(
 					_("Error: couldn't write article to "
 					  "file %s"),
 					filename));
@@ -398,7 +398,7 @@ void ItemViewFormAction::process_operation(Operation op ,
 			item->set_unread(true);
 			v->get_ctrl()->mark_article_read(item->guid(), false);
 		} catch (const dbexception& e) {
-			v->show_error(strprintf::fmt(
+			v->show_error(StrPrintf::fmt(
 				_("Error while marking article as unread: %s"),
 				e.what()));
 		}
@@ -481,23 +481,23 @@ void ItemViewFormAction::set_head(const std::string& s,
 	unsigned int unread,
 	unsigned int total)
 {
-	fmtstr_formatter fmt;
+	FmtStrFormatter fmt;
 	fmt.register_fmt('N', PROGRAM_NAME);
 	fmt.register_fmt('V', PROGRAM_VERSION);
 
 	auto itemtitle = s;
-	utils::remove_soft_hyphens(itemtitle);
+	Utils::remove_soft_hyphens(itemtitle);
 	fmt.register_fmt('T', itemtitle);
 
 	auto clear_feedtitle = feedtitle;
-	utils::remove_soft_hyphens(clear_feedtitle);
+	Utils::remove_soft_hyphens(clear_feedtitle);
 	fmt.register_fmt('F', clear_feedtitle);
 
 	fmt.register_fmt('u', std::to_string(unread));
 	fmt.register_fmt('t', std::to_string(total));
 
 	std::string listwidth = f->get("article:w");
-	unsigned int width = utils::to_u(listwidth);
+	unsigned int width = Utils::to_u(listwidth);
 
 	f->set("head",
 		fmt.do_format(
@@ -510,7 +510,7 @@ void ItemViewFormAction::render_source(
 	std::string source)
 {
 	/*
-	 * This function is called instead of htmlrenderer::render() when the
+	 * This function is called instead of HtmlRenderer::render() when the
 	 * user requests to have the source displayed instead of seeing the
 	 * rendered HTML.
 	 */
@@ -528,11 +528,11 @@ void ItemViewFormAction::render_source(
 
 void ItemViewFormAction::handle_cmdline(const std::string& cmd)
 {
-	std::vector<std::string> tokens = utils::tokenize_quoted(cmd);
+	std::vector<std::string> tokens = Utils::tokenize_quoted(cmd);
 	if (!tokens.empty()) {
 		if (tokens[0] == "save" && tokens.size() >= 2) {
-			std::string filename = utils::resolve_tilde(tokens[1]);
-			std::shared_ptr<rss_item> item =
+			std::string filename = Utils::resolve_tilde(tokens[1]);
+			std::shared_ptr<RssItem> item =
 				feed->get_item_by_guid(guid);
 
 			if (filename == "") {
@@ -541,11 +541,11 @@ void ItemViewFormAction::handle_cmdline(const std::string& cmd)
 				try {
 					v->get_ctrl()->write_item(
 						item, filename);
-					v->show_error(strprintf::fmt(
+					v->show_error(StrPrintf::fmt(
 						_("Saved article to %s"),
 						filename));
 				} catch (...) {
-					v->show_error(strprintf::fmt(
+					v->show_error(StrPrintf::fmt(
 						_("Error: couldn't save "
 						  "article to %s"),
 						filename));
@@ -562,7 +562,7 @@ void ItemViewFormAction::finished_qna(Operation op )
 {
 	Formaction::finished_qna(op); // important!
 
-	std::shared_ptr<rss_item> item = feed->get_item_by_guid(guid);
+	std::shared_ptr<RssItem> item = feed->get_item_by_guid(guid);
 
 	switch (op) {
 	case OP_INT_EDITFLAGS_END:
@@ -610,7 +610,7 @@ std::vector<std::pair<LineType, std::string>> ItemViewFormAction::render_html(
 	std::vector<std::pair<LineType, std::string>> result;
 	std::string renderer = v->get_cfg()->get_configvalue("html-renderer");
 	if (renderer == "internal") {
-		htmlrenderer rnd;
+		HtmlRenderer rnd;
 		rnd.render(source, result, thelinks, url);
 	} else {
 		char* argv[4];
@@ -625,13 +625,13 @@ std::vector<std::pair<LineType, std::string>> ItemViewFormAction::render_html(
 			"ItemViewFormAction::render_html: html-renderer = %s",
 			argv[2]);
 
-		std::string output = utils::run_program(argv, source);
+		std::string output = Utils::run_program(argv, source);
 		std::istringstream is(output);
 		std::string line;
 		getline(is, line);
 		while (!is.eof()) {
 			result.push_back(std::make_pair(LineType::softwrappable,
-				utils::quote_for_stfl(line)));
+				Utils::quote_for_stfl(line)));
 			getline(is, line);
 		}
 	}
@@ -646,13 +646,13 @@ void ItemViewFormAction::set_regexmanager(regexmanager* r)
 	std::string attrstr;
 	for (const auto& attribute : attrs) {
 		attrstr.append(
-			strprintf::fmt("@style_%u_normal:%s ", i, attribute));
+			StrPrintf::fmt("@style_%u_normal:%s ", i, attribute));
 		i++;
 	}
 	attrstr.append(
 		"@style_b_normal[color_bold]:attr=bold "
 		"@style_u_normal[color_underline]:attr=underline ");
-	std::string textview = strprintf::fmt(
+	std::string textview = StrPrintf::fmt(
 		"{textview[article] style_normal[article]: "
 		"style_end[styleend]:fg=blue,attr=bold %s .expand:vh "
 		"offset[articleoffset]:0 richtext:1}",
@@ -664,7 +664,7 @@ void ItemViewFormAction::update_percent()
 {
 	if (v->get_cfg()->get_configvalue_as_bool("display-article-progress")) {
 		unsigned int percent = 0;
-		unsigned int offset = utils::to_u(f->get("articleoffset"), 0);
+		unsigned int offset = Utils::to_u(f->get("articleoffset"), 0);
 
 		if (num_lines > 0)
 			percent = (100 * (offset + 1)) / num_lines;
@@ -683,17 +683,17 @@ void ItemViewFormAction::update_percent()
 		} else if (offset == (num_lines - 1)) {
 			f->set("percent", _("Bottom"));
 		} else {
-			f->set("percent", strprintf::fmt("%3u %% ", percent));
+			f->set("percent", StrPrintf::fmt("%3u %% ", percent));
 		}
 	}
 }
 
 std::string ItemViewFormAction::title()
 {
-	std::shared_ptr<rss_item> item = feed->get_item_by_guid(guid);
+	std::shared_ptr<RssItem> item = feed->get_item_by_guid(guid);
 	auto title = item->title();
-	utils::remove_soft_hyphens(title);
-	return strprintf::fmt(_("Article - %s"), title);
+	Utils::remove_soft_hyphens(title);
+	return StrPrintf::fmt(_("Article - %s"), title);
 }
 
 void ItemViewFormAction::set_highlightphrase(const std::string& text)
@@ -722,7 +722,7 @@ void ItemViewFormAction::highlight_text(const std::string& searchphrase)
 	params.push_back("article");
 	params.push_back(searchphrase);
 
-	std::vector<std::string> colors = utils::tokenize(
+	std::vector<std::string> colors = Utils::tokenize(
 		v->get_cfg()->get_configvalue("search-highlight-colors"), " ");
 	std::copy(colors.begin(), colors.end(), std::back_inserter(params));
 

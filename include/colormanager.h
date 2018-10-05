@@ -7,14 +7,14 @@
 #include "configparser.h"
 
 namespace podboat {
-class pb_view;
+class PbView;
 }
 
 class view;
 
 namespace newsboat {
 
-class colormanager : public config_action_handler {
+class colormanager : public ConfigActionHandler {
 public:
 	colormanager();
 	~colormanager() override;
@@ -26,7 +26,7 @@ public:
 	{
 		return colors_loaded_;
 	}
-	void set_pb_colors(podboat::pb_view* v);
+	void set_pb_colors(podboat::PbView* v);
 	std::map<std::string, std::string>& get_fgcolors()
 	{
 		return fg_colors;

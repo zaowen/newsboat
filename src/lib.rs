@@ -3,7 +3,7 @@ extern crate libc;
 use libc::c_char;
 use std::ffi::{CStr, CString};
 
-pub mod utils;
+pub mod Utils;
 
 #[no_mangle]
 pub extern "C" fn rs_replace_all(
@@ -23,7 +23,7 @@ pub extern "C" fn rs_replace_all(
     let rs_to = rs_to.to_str()
         .expect("rs_to contained invalid UTF-8");
 
-    let result = utils::replace_all(rs_input, rs_from, rs_to);
+    let result = Utils::replace_all(rs_input, rs_from, rs_to);
     // Panic here can't happen because:
     // 1. panic can only happen if `result` contains null bytes;
     // 2. `result` contains what `input` contained, plus maybe what `to` contains (if there were

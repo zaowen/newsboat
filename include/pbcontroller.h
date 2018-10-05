@@ -12,15 +12,15 @@
 
 namespace podboat {
 
-class pb_view;
+class PbView;
 
-class queueloader;
+class QueueLoader;
 
-class pb_controller {
+class PbController {
 public:
-	pb_controller();
-	~pb_controller();
-	void set_view(pb_view* vv)
+	PbController();
+	~PbController();
+	void set_view(PbView* vv)
 	{
 		v = vv;
 	}
@@ -34,7 +34,7 @@ public:
 	{
 		view_update_ = b;
 	}
-	std::vector<download>& downloads()
+	std::vector<Download>& downloads()
 	{
 		return downloads_;
 	}
@@ -64,12 +64,12 @@ private:
 	void print_usage(const char* argv0);
 	bool setup_dirs_xdg(const char* env_home);
 
-	pb_view* v;
+	PbView* v;
 	std::string config_file;
 	std::string queue_file;
 	newsboat::configcontainer* cfg;
 	bool view_update_;
-	std::vector<download> downloads_;
+	std::vector<Download> downloads_;
 
 	std::string config_dir;
 	std::string url_file;
@@ -79,7 +79,7 @@ private:
 
 	unsigned int max_dls;
 
-	queueloader* ql;
+	QueueLoader* ql;
 
 	std::string lock_file;
 	std::unique_ptr<newsboat::FSLock> fslock;

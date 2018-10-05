@@ -24,10 +24,10 @@ namespace newsboat {
 
 enum class LineType { wrappable = 1, softwrappable, nonwrappable, hr };
 
-class textformatter {
+class TextFormatter {
 public:
-	textformatter();
-	~textformatter();
+	TextFormatter();
+	~TextFormatter();
 	void add_line(LineType type, std::string line);
 	void add_lines(
 		const std::vector<std::pair<LineType, std::string>>& lines);

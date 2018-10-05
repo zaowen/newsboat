@@ -7,7 +7,7 @@ namespace newsboat {
 
 typedef std::pair<std::string, std::string> filter_name_expr_pair;
 
-class filtercontainer : public config_action_handler {
+class filtercontainer : public ConfigActionHandler {
 public:
 	filtercontainer() {}
 	~filtercontainer() override;

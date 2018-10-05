@@ -13,8 +13,8 @@ TEST_CASE("items in search result can be marked read", "[cache]")
 {
 	configcontainer cfg;
 	cache rsscache(":memory:", &cfg);
-	rss_parser parser("file://data/rss.xml", &rsscache, &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser("file://data/rss.xml", &rsscache, &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 	REQUIRE(feed->total_item_count() == 8);
 	rsscache.externalize_rssfeed(feed, false);
 
@@ -37,14 +37,14 @@ TEST_CASE("Cleaning old articles works", "[cache]")
 	TestHelpers::TempFile dbfile;
 	std::unique_ptr<configcontainer> cfg(new configcontainer());
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), cfg.get()));
-	rss_parser parser(
+	RssParser parser(
 		"file://data/rss.xml", rsscache.get(), cfg.get(), nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	std::shared_ptr<RssFeed> feed = parser.parse();
 
 	/* Adding a fresh item that won't be deleted. If it survives the test,
 	 * we will know that "keep-articles-days" really deletes the old
 	 * articles *only* and not the whole database. */
-	auto item = std::make_shared<rss_item>(rsscache.get());
+	auto item = std::make_shared<RssItem>(rsscache.get());
 	item->set_title("Test item");
 	item->set_link("http://example.com/item");
 	item->set_guid("http://example.com/item");
@@ -78,8 +78,8 @@ TEST_CASE("Last-Modified and ETag values are persisted to DB", "[cache]")
 	TestHelpers::TempFile dbfile;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), cfg.get()));
 	const auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, rsscache.get(), cfg.get(), nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser(feedurl, rsscache.get(), cfg.get(), nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 	rsscache->externalize_rssfeed(feed, false);
 
 	/* We will run this lambda on different inputs to check different
@@ -127,12 +127,12 @@ TEST_CASE("Last-Modified and ETag values are persisted to DB", "[cache]")
 
 TEST_CASE("mark_all_read marks all items in the feed read", "[cache]")
 {
-	std::shared_ptr<rss_feed> feed, test_feed;
+	std::shared_ptr<RssFeed> feed, test_feed;
 
 	configcontainer cfg;
 	cache rsscache(":memory:", &cfg);
 
-	test_feed = std::make_shared<rss_feed>(&rsscache);
+	test_feed = std::make_shared<RssFeed>(&rsscache);
 	test_feed->set_title("Test feed");
 	auto test_feed_url = "http://example.com/atom.xml";
 	test_feed->set_link(test_feed_url);
@@ -145,7 +145,7 @@ TEST_CASE("mark_all_read marks all items in the feed read", "[cache]")
 	/* Ensure that the feeds contain expected number of items, then
 	 * externalize them (put into cache). */
 	for (const auto& feed_data : feeds) {
-		rss_parser parser(feed_data.first, &rsscache, &cfg, nullptr);
+		RssParser parser(feed_data.first, &rsscache, &cfg, nullptr);
 		feed = parser.parse();
 		REQUIRE(feed->total_item_count() == feed_data.second);
 
@@ -196,7 +196,7 @@ TEST_CASE("mark_all_read marks all items in the feed read", "[cache]")
 
 		/* Since test_feed contains the first item of each feed, only
 		 * these two items should be marked read. */
-		auto unread_items_count = [](std::shared_ptr<rss_feed>& feed) {
+		auto unread_items_count = [](std::shared_ptr<RssFeed>& feed) {
 			unsigned int count = 0;
 			for (const auto& item : feed->items()) {
 				if (item->unread()) {
@@ -241,12 +241,12 @@ TEST_CASE(
 	std::vector<std::string> feedurls = {
 		"file://data/rss.xml", "file://data/atom10_1.xml"};
 
-	std::vector<std::shared_ptr<rss_feed>> feeds;
+	std::vector<std::shared_ptr<RssFeed>> feeds;
 	std::unique_ptr<configcontainer> cfg(new configcontainer());
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), cfg.get()));
 	for (const auto& url : feedurls) {
-		rss_parser parser(url, rsscache.get(), cfg.get(), nullptr);
-		std::shared_ptr<rss_feed> feed = parser.parse();
+		RssParser parser(url, rsscache.get(), cfg.get(), nullptr);
+		std::shared_ptr<RssFeed> feed = parser.parse();
 		feeds.push_back(feed);
 		rsscache->externalize_rssfeed(feed, false);
 	}
@@ -260,7 +260,7 @@ TEST_CASE(
 		rsscache.reset(new cache(dbfile.getPath(), cfg.get()));
 
 		for (const auto& url : feedurls) {
-			std::shared_ptr<rss_feed> feed =
+			std::shared_ptr<RssFeed> feed =
 				rsscache->internalize_rssfeed(url, nullptr);
 			REQUIRE(feed->total_item_count() != 0);
 		}
@@ -280,7 +280,7 @@ TEST_CASE(
 			cfg.reset(new configcontainer());
 			rsscache.reset(new cache(dbfile.getPath(), cfg.get()));
 
-			std::shared_ptr<rss_feed> feed =
+			std::shared_ptr<RssFeed> feed =
 				rsscache->internalize_rssfeed(
 					feedurls[0], nullptr);
 			REQUIRE(feed->total_item_count() == 0);
@@ -302,7 +302,7 @@ TEST_CASE(
 			cfg.reset(new configcontainer());
 			rsscache.reset(new cache(dbfile.getPath(), cfg.get()));
 
-			std::shared_ptr<rss_feed> feed =
+			std::shared_ptr<RssFeed> feed =
 				rsscache->internalize_rssfeed(
 					feedurls[0], nullptr);
 			REQUIRE(feed->total_item_count() == 6);
@@ -315,8 +315,8 @@ TEST_CASE("fetch_descriptions fills out feed item's descriptions", "[cache]")
 	configcontainer cfg;
 	cache rsscache(":memory:", &cfg);
 	const auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, &rsscache, &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser(feedurl, &rsscache, &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 
 	rsscache.externalize_rssfeed(feed, false);
 
@@ -336,9 +336,9 @@ TEST_CASE("get_unread_count returns number of yet unread articles", "[cache]")
 	TestHelpers::TempFile dbfile;
 	configcontainer cfg;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), &cfg));
-	std::unique_ptr<rss_parser> parser(new rss_parser(
+	std::unique_ptr<RssParser> parser(new RssParser(
 		"file://data/rss.xml", rsscache.get(), &cfg, nullptr));
-	std::shared_ptr<rss_feed> feed = parser->parse();
+	std::shared_ptr<RssFeed> feed = parser->parse();
 	// Marking one article as read to make sure get_unread_count() really
 	// counts only unread articles
 	feed->items()[0]->set_unread(false);
@@ -348,7 +348,7 @@ TEST_CASE("get_unread_count returns number of yet unread articles", "[cache]")
 
 	// Let's add another article to make sure get_unread_count looks at all
 	// feeds present in the cache
-	parser.reset(new rss_parser(
+	parser.reset(new RssParser(
 		"file://data/atom10_1.xml", rsscache.get(), &cfg, nullptr));
 	feed = parser->parse();
 	feed->items()[0]->set_unread(false);
@@ -371,11 +371,11 @@ TEST_CASE("get_read_item_guids returns GUIDs of items that are marked read",
 
 	// We'll keep our own count of which GUIDs are unread
 	std::unordered_set<std::string> read_guids;
-	std::unique_ptr<rss_parser> parser(new rss_parser(
+	std::unique_ptr<RssParser> parser(new RssParser(
 		"file://data/rss.xml", rsscache.get(), &cfg, nullptr));
-	std::shared_ptr<rss_feed> feed = parser->parse();
+	std::shared_ptr<RssFeed> feed = parser->parse();
 
-	auto mark_read = [&read_guids](std::shared_ptr<rss_item> item) {
+	auto mark_read = [&read_guids](std::shared_ptr<RssItem> item) {
 		item->set_unread(false);
 		INFO("add  " + item->guid());
 		read_guids.insert(item->guid());
@@ -405,7 +405,7 @@ TEST_CASE("get_read_item_guids returns GUIDs of items that are marked read",
 
 	// Let's add another article to make sure get_unread_count looks at all
 	// feeds present in the cache
-	parser.reset(new rss_parser(
+	parser.reset(new RssParser(
 		"file://data/atom10_1.xml", rsscache.get(), &cfg, nullptr));
 	feed = parser->parse();
 	mark_read(feed->items()[0]);
@@ -429,8 +429,8 @@ TEST_CASE("mark_item_deleted changes \"deleted\" flag of item with given GUID ",
 	configcontainer cfg;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), &cfg));
 	auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, rsscache.get(), &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser(feedurl, rsscache.get(), &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 
 	auto item = feed->items()[1];
 	auto guid = item->guid();
@@ -451,8 +451,8 @@ TEST_CASE("mark_items_read_by_guid marks items with given GUIDs as unread ",
 	configcontainer cfg;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), &cfg));
 	auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, rsscache.get(), &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser(feedurl, rsscache.get(), &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 
 	REQUIRE(feed->unread_item_count() == 8);
 
@@ -489,8 +489,8 @@ TEST_CASE(
 	configcontainer cfg;
 	cache rsscache(":memory:", &cfg);
 	auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, &rsscache, &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser(feedurl, &rsscache, &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 
 	REQUIRE(feed->total_item_count() == 8);
 
@@ -532,14 +532,14 @@ TEST_CASE("search_for_items finds all items with matching title or content",
 	std::vector<std::string> feedurls = {
 		"file://data/atom10_1.xml", "file://data/rss20_1.xml"};
 	for (const auto& url : feedurls) {
-		rss_parser parser(url, &rsscache, &cfg, nullptr);
-		std::shared_ptr<rss_feed> feed = parser.parse();
+		RssParser parser(url, &rsscache, &cfg, nullptr);
+		std::shared_ptr<RssFeed> feed = parser.parse();
 
 		rsscache.externalize_rssfeed(feed, false);
 	}
 
 	auto query = "content";
-	std::vector<std::shared_ptr<rss_item>> items;
+	std::vector<std::shared_ptr<RssItem>> items;
 
 	SECTION("Search the whole DB")
 	{
@@ -566,8 +566,8 @@ TEST_CASE("update_rssitem_flags dumps `rss_item` object's flags to DB",
 	configcontainer cfg;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), &cfg));
 	const auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, rsscache.get(), &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser(feedurl, rsscache.get(), &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 	rsscache->externalize_rssfeed(feed, false);
 
 	auto item = feed->items()[0];
@@ -589,8 +589,8 @@ TEST_CASE(
 	configcontainer cfg;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), &cfg));
 	const auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, rsscache.get(), &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser(feedurl, rsscache.get(), &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 
 	auto item = feed->items()[0];
 
@@ -644,8 +644,8 @@ TEST_CASE(
 	"back",
 	"[cache]")
 {
-	auto feeds_are_the_same = [](const std::shared_ptr<rss_feed>& feed1,
-					  const std::shared_ptr<rss_feed>&
+	auto feeds_are_the_same = [](const std::shared_ptr<RssFeed>& feed1,
+					  const std::shared_ptr<RssFeed>&
 						  feed2) {
 		REQUIRE(feed1->title_raw() == feed2->title_raw());
 		REQUIRE(feed1->title() == feed2->title());
@@ -698,7 +698,7 @@ TEST_CASE(
 	configcontainer cfg;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), &cfg));
 	const auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, rsscache.get(), &cfg, nullptr);
+	RssParser parser(feedurl, rsscache.get(), &cfg, nullptr);
 	auto initial_feed = parser.parse();
 	initial_feed->load();
 	initial_feed->unload();
@@ -738,7 +738,7 @@ TEST_CASE("externalize_rssfeed doesn't store more than `max-items` items",
 
 	cfg->set_configvalue("max-items", "3");
 	const auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, rsscache.get(), cfg.get(), nullptr);
+	RssParser parser(feedurl, rsscache.get(), cfg.get(), nullptr);
 	auto feed = parser.parse();
 	REQUIRE(feed->total_item_count() == 8);
 	rsscache->externalize_rssfeed(feed, false);
@@ -764,7 +764,7 @@ TEST_CASE(
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), cfg.get()));
 
 	const auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, rsscache.get(), cfg.get(), nullptr);
+	RssParser parser(feedurl, rsscache.get(), cfg.get(), nullptr);
 	auto feed = parser.parse();
 	REQUIRE(feed->total_item_count() == 8);
 
@@ -822,12 +822,12 @@ TEST_CASE("internalize_rssfeed doesn't return items that are ignored",
 	cache rsscache(":memory:", &cfg);
 
 	const std::string feedurl("file://data/rss092_1.xml");
-	rss_parser parser(feedurl, &rsscache, &cfg, nullptr);
+	RssParser parser(feedurl, &rsscache, &cfg, nullptr);
 	auto feed = parser.parse();
 	REQUIRE(feed->total_item_count() == 3);
 	rsscache.externalize_rssfeed(feed, false);
 
-	rss_ignores ign;
+	RssIgnores ign;
 	ign.handle_action("ignore-article", {"*", "title =~ \"third\""});
 
 	feed = rsscache.internalize_rssfeed(feedurl, nullptr);
@@ -845,8 +845,8 @@ TEST_CASE(
 	configcontainer cfg;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), &cfg));
 	auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, rsscache.get(), &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser(feedurl, rsscache.get(), &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 	feed->items()[0]->set_unread_nowrite(false);
 	rsscache->externalize_rssfeed(feed, false);
 
@@ -883,8 +883,8 @@ TEST_CASE(
 	configcontainer cfg;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), &cfg));
 	auto feedurl = "file://data/rss.xml";
-	rss_parser parser(feedurl, rsscache.get(), &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser(feedurl, rsscache.get(), &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 	feed->items()[0]->set_unread_nowrite(false);
 	rsscache->externalize_rssfeed(feed, false);
 
@@ -920,7 +920,7 @@ TEST_CASE(
 	configcontainer cfg;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), &cfg));
 
-	auto feed = std::make_shared<rss_feed>(rsscache.get());
+	auto feed = std::make_shared<RssFeed>(rsscache.get());
 	feed->set_query("unread = \"yes\"");
 	feed->set_rssurl("query:All unread:unread = \"yes\"");
 
@@ -975,8 +975,8 @@ TEST_CASE("do_vacuum doesn't throw an exception", "[cache]")
 	TestHelpers::TempFile dbfile;
 	configcontainer cfg;
 	std::unique_ptr<cache> rsscache(new cache(dbfile.getPath(), &cfg));
-	rss_parser parser("file://data/rss.xml", rsscache.get(), &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser("file://data/rss.xml", rsscache.get(), &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 	rsscache->externalize_rssfeed(feed, false);
 
 	REQUIRE_NOTHROW(rsscache->do_vacuum());
@@ -990,31 +990,31 @@ TEST_CASE("search_in_items returns items that contain given substring",
 {
 	configcontainer cfg;
 	cache rsscache(":memory:", &cfg);
-	rss_parser parser("file://data/rss.xml", &rsscache, &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser("file://data/rss.xml", &rsscache, &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 	REQUIRE(feed->total_item_count() == 8);
 	rsscache.externalize_rssfeed(feed, false);
 
 	using guids = std::unordered_set<std::string>;
 
 	const guids matching_guids{
-		"http://www.blogger.com/feeds/33750310/posts/full/"
+		"http://www.bLogger.com/feeds/33750310/posts/full/"
 		"115822000722667899",
 	};
 	const guids non_matching_guids{
-		"http://www.blogger.com/feeds/33750310/posts/full/"
+		"http://www.bLogger.com/feeds/33750310/posts/full/"
 		"115720132609158191",
-		"http://www.blogger.com/feeds/33750310/posts/full/"
+		"http://www.bLogger.com/feeds/33750310/posts/full/"
 		"115868412707787974",
-		"http://www.blogger.com/feeds/33750310/posts/full/"
+		"http://www.bLogger.com/feeds/33750310/posts/full/"
 		"115902176438316101",
-		"http://www.blogger.com/feeds/33750310/posts/full/"
+		"http://www.bLogger.com/feeds/33750310/posts/full/"
 		"115934092675971946",
-		"http://www.blogger.com/feeds/33750310/posts/full/"
+		"http://www.bLogger.com/feeds/33750310/posts/full/"
 		"115954641079726548",
-		"http://www.blogger.com/feeds/33750310/posts/full/"
+		"http://www.bLogger.com/feeds/33750310/posts/full/"
 		"116026794030557608",
-		"http://www.blogger.com/feeds/33750310/posts/full/"
+		"http://www.bLogger.com/feeds/33750310/posts/full/"
 		"116665092831467603",
 	};
 
@@ -1038,8 +1038,8 @@ TEST_CASE("search_in_items returns empty set if input set is empty", "[cache]")
 {
 	configcontainer cfg;
 	cache rsscache(":memory:", &cfg);
-	rss_parser parser("file://data/rss.xml", &rsscache, &cfg, nullptr);
-	std::shared_ptr<rss_feed> feed = parser.parse();
+	RssParser parser("file://data/rss.xml", &rsscache, &cfg, nullptr);
+	std::shared_ptr<RssFeed> feed = parser.parse();
 	rsscache.externalize_rssfeed(feed, false);
 
 	using guids = std::unordered_set<std::string>;

@@ -34,7 +34,7 @@ configcontainer::configcontainer()
 		  {"bookmark-interactive",
 			  configdata("false", ConfigData::BOOL)},
 		  {"browser",
-			  configdata(utils::get_default_browser(),
+			  configdata(Utils::get_default_browser(),
 				  ConfigData::PATH)},
 		  {"cache-file", configdata("", ConfigData::PATH)},
 		  {"cleanup-on-quit", configdata("yes", ConfigData::BOOL)},
@@ -292,7 +292,7 @@ void configcontainer::handle_action(const std::string& action,
 	switch (cfgdata.type) {
 	case ConfigData::BOOL:
 		if (!is_bool(params[0]))
-			throw confighandlerexception(strprintf::fmt(
+			throw confighandlerexception(StrPrintf::fmt(
 				_("expected boolean value, found `%s' instead"),
 				params[0]));
 		cfgdata.value = params[0];
@@ -300,7 +300,7 @@ void configcontainer::handle_action(const std::string& action,
 
 	case ConfigData::INT:
 		if (!is_int(params[0]))
-			throw confighandlerexception(strprintf::fmt(
+			throw confighandlerexception(StrPrintf::fmt(
 				_("expected integer value, found `%s' instead"),
 				params[0]));
 		cfgdata.value = params[0];
@@ -309,14 +309,14 @@ void configcontainer::handle_action(const std::string& action,
 	case ConfigData::ENUM:
 		if (cfgdata.enum_values.find(params[0]) ==
 			cfgdata.enum_values.end())
-			throw confighandlerexception(strprintf::fmt(
+			throw confighandlerexception(StrPrintf::fmt(
 				_("invalid configuration value `%s'"),
 				params[0]));
 	// fall-through
 	case ConfigData::STR:
 	case ConfigData::PATH:
 		if (cfgdata.multi_option)
-			cfgdata.value = utils::join(params, " ");
+			cfgdata.value = Utils::join(params, " ");
 		else
 			cfgdata.value = params[0];
 		break;
@@ -343,7 +343,7 @@ std::string configcontainer::get_configvalue(const std::string& key)
 {
 	std::string retval = config_data[key].value;
 	if (config_data[key].type == ConfigData::PATH) {
-		retval = utils::resolve_tilde(retval);
+		retval = Utils::resolve_tilde(retval);
 	}
 	return retval;
 }
@@ -397,7 +397,7 @@ void configcontainer::dump_config(std::vector<std::string>& config_output)
 			configline.append(cfg.second.value);
 			if (cfg.second.value != cfg.second.default_value)
 				configline.append(
-					strprintf::fmt(" # default: %s",
+					StrPrintf::fmt(" # default: %s",
 						cfg.second.default_value));
 			break;
 		case ConfigData::ENUM:
@@ -405,17 +405,17 @@ void configcontainer::dump_config(std::vector<std::string>& config_output)
 		case ConfigData::PATH:
 			if (cfg.second.multi_option) {
 				std::vector<std::string> tokens =
-					utils::tokenize(cfg.second.value, " ");
+					Utils::tokenize(cfg.second.value, " ");
 				for (const auto& token : tokens) {
 					configline.append(
-						utils::quote(token) + " ");
+						Utils::quote(token) + " ");
 				}
 			} else {
 				configline.append(
-					utils::quote(cfg.second.value));
+					Utils::quote(cfg.second.value));
 				if (cfg.second.value !=
 					cfg.second.default_value) {
-					configline.append(strprintf::fmt(
+					configline.append(StrPrintf::fmt(
 						" # default: %s",
 						cfg.second.default_value));
 				}
@@ -446,7 +446,7 @@ FeedSortStrategy configcontainer::get_feed_sort_strategy()
 {
 	FeedSortStrategy ss;
 	const auto sortmethod_info =
-		utils::tokenize(get_configvalue("feed-sort-order"), "-");
+		Utils::tokenize(get_configvalue("feed-sort-order"), "-");
 	const std::string sortmethod = sortmethod_info[0];
 
 	std::string direction = "desc";
@@ -481,7 +481,7 @@ ArticleSortStrategy configcontainer::get_article_sort_strategy()
 {
 	ArticleSortStrategy ss;
 	const auto methods =
-		utils::tokenize(get_configvalue("article-sort-order"), "-");
+		Utils::tokenize(get_configvalue("article-sort-order"), "-");
 
 	if (!methods.empty() &&
 		methods[0] == "date") { // date is descending by default

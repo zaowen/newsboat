@@ -6,7 +6,7 @@
 
 namespace newsboat {
 
-reloadthread::reloadthread(controller* c, configcontainer* cf)
+ReloadThread::ReloadThread(Controller* c, configcontainer* cf)
 	: ctrl(c)
 	, oldtime(0)
 	, waittime_sec(0)
@@ -14,17 +14,17 @@ reloadthread::reloadthread(controller* c, configcontainer* cf)
 	, cfg(cf)
 {
 	LOG(Level::INFO,
-		"reloadthread: waiting %u seconds between reloads",
+		"ReloadThread: waiting %u seconds between reloads",
 		waittime_sec);
 }
 
-reloadthread::~reloadthread() {}
+ReloadThread::~ReloadThread() {}
 
-void reloadthread::operator()()
+void ReloadThread::operator()()
 {
 	for (;;) {
 		oldtime = time(nullptr);
-		LOG(Level::INFO, "reloadthread: starting reload");
+		LOG(Level::INFO, "ReloadThread: starting reload");
 
 		waittime_sec = 60 * cfg->get_configvalue_as_int("reload-time");
 		if (waittime_sec == 0)

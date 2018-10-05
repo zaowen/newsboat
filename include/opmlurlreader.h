@@ -9,9 +9,9 @@
 
 namespace newsboat {
 
-class opml_urlreader : public urlreader {
+class OpmlUrlReader : public UrlReader {
 public:
-	explicit opml_urlreader(configcontainer* c);
+	explicit OpmlUrlReader(configcontainer* c);
 	void write_config() override;
 	void reload() override;
 	std::string get_source() override;

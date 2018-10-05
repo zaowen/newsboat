@@ -23,7 +23,7 @@ public:
 	{
 		guid = guid_;
 	}
-	void set_feed(std::shared_ptr<rss_feed> fd)
+	void set_feed(std::shared_ptr<RssFeed> fd)
 	{
 		feed = fd;
 	}
@@ -64,7 +64,7 @@ private:
 	void do_search();
 
 	std::string guid;
-	std::shared_ptr<rss_feed> feed;
+	std::shared_ptr<RssFeed> feed;
 	bool show_source;
 	std::vector<linkpair> links;
 	bool quit;

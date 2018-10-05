@@ -23,10 +23,10 @@ void DialogsFormAction::init()
 {
 	set_keymap_hints();
 
-	unsigned int width = utils::to_u(f->get("dialogs:w"));
+	unsigned int width = Utils::to_u(f->get("dialogs:w"));
 	std::string title_format =
 		v->get_cfg()->get_configvalue("dialogs-title-format");
-	fmtstr_formatter fmt;
+	FmtStrFormatter fmt;
 	fmt.register_fmt('N', PROGRAM_NAME);
 	fmt.register_fmt('V', PROGRAM_VERSION);
 	f->set("head", fmt.do_format(title_format, width));
@@ -35,7 +35,7 @@ void DialogsFormAction::init()
 void DialogsFormAction::prepare()
 {
 	if (update_list) {
-		listformatter listfmt;
+		ListFormatter listfmt;
 
 		unsigned int i = 1;
 		for (const auto& fa : v->get_formaction_names()) {
@@ -44,7 +44,7 @@ void DialogsFormAction::prepare()
 				v->get_formaction(fa.first).get(),
 				get_parent_formaction().get());
 			listfmt.add_line(
-				strprintf::fmt("%4u %s %s",
+				StrPrintf::fmt("%4u %s %s",
 					i,
 					(v->get_formaction(fa.first).get() ==
 						get_parent_formaction().get())
@@ -78,7 +78,7 @@ void DialogsFormAction::process_operation(Operation op ,
 	case OP_OPEN: {
 		std::string dialogposname = f->get("dialogpos");
 		if (dialogposname.length() > 0) {
-			v->set_current_formaction(utils::to_u(dialogposname));
+			v->set_current_formaction(Utils::to_u(dialogposname));
 		} else {
 			v->show_error(_("No item selected!"));
 		}
@@ -86,7 +86,7 @@ void DialogsFormAction::process_operation(Operation op ,
 	case OP_CLOSEDIALOG: {
 		std::string dialogposname = f->get("dialogpos");
 		if (dialogposname.length() > 0) {
-			unsigned int dialogpos = utils::to_u(dialogposname);
+			unsigned int dialogpos = Utils::to_u(dialogposname);
 			if (dialogpos != 0) {
 				v->remove_formaction(dialogpos);
 				update_list = true;

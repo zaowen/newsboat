@@ -6,31 +6,31 @@
 
 namespace newsboat {
 
-ocnews_urlreader::ocnews_urlreader(const std::string& url_file, remote_api* a)
+OcNewsUrlReader::OcNewsUrlReader(const std::string& url_file, RemoteApi* a)
 	: file(url_file)
 	, api(a)
 {
 }
 
-ocnews_urlreader::~ocnews_urlreader() {}
+OcNewsUrlReader::~OcNewsUrlReader() {}
 
-void ocnews_urlreader::write_config()
+void OcNewsUrlReader::write_config()
 {
 	// NOTHING
 }
 
-void ocnews_urlreader::reload()
+void OcNewsUrlReader::reload()
 {
 	urls.clear();
 	tags.clear();
 	alltags.clear();
 
-	file_urlreader ur(file);
+	FileUrlReader ur(file);
 	ur.reload();
 
 	std::vector<std::string>& file_urls(ur.get_urls());
 	for (const auto& url : file_urls) {
-		if (utils::is_query_url(url)) {
+		if (Utils::is_query_url(url)) {
 			urls.push_back(url);
 		}
 	}
@@ -48,7 +48,7 @@ void ocnews_urlreader::reload()
 	}
 }
 
-std::string ocnews_urlreader::get_source()
+std::string OcNewsUrlReader::get_source()
 {
 	return "ownCloud News";
 }

@@ -24,20 +24,20 @@ class ItemViewFormAction;
 
 class view {
 public:
-	explicit view(controller*);
+	explicit view(Controller*);
 	~view();
 	int run();
 	std::string run_modal(std::shared_ptr<Formaction> f,
 		const std::string& value = "");
 
-	void set_feedlist(std::vector<std::shared_ptr<rss_feed>> feeds);
-	void update_visible_feeds(std::vector<std::shared_ptr<rss_feed>> feeds);
+	void set_feedlist(std::vector<std::shared_ptr<RssFeed>> feeds);
+	void update_visible_feeds(std::vector<std::shared_ptr<RssFeed>> feeds);
 	void set_keymap(keymap* k);
 	void set_config_container(configcontainer* cfgcontainer);
 	void show_error(const std::string& msg);
 	void set_status(const std::string& msg);
 	void set_status_unlocked(const std::string& msg);
-	controller* get_ctrl()
+	Controller* get_ctrl()
 	{
 		return ctrl;
 	}
@@ -61,14 +61,14 @@ public:
 	char confirm(const std::string& prompt, const std::string& charset);
 
 	void push_itemlist(unsigned int pos);
-	void push_itemlist(std::shared_ptr<rss_feed> feed);
-	void push_itemview(std::shared_ptr<rss_feed> f,
+	void push_itemlist(std::shared_ptr<RssFeed> feed);
+	void push_itemview(std::shared_ptr<RssFeed> f,
 		const std::string& guid,
 		const std::string& searchphrase = "");
 	void push_help();
 	void push_urlview(const std::vector<linkpair>& links,
-		std::shared_ptr<rss_feed>& feed);
-	void push_searchresult(std::shared_ptr<rss_feed> feed,
+		std::shared_ptr<RssFeed>& feed);
+	void push_searchresult(std::shared_ptr<RssFeed> feed,
 		const std::string& phrase = "");
 	void view_dialogs();
 
@@ -99,7 +99,7 @@ public:
 	bool get_next_feed(ItemListFormAction* itemlist);
 	bool get_prev_feed(ItemListFormAction* itemlist);
 
-	void prepare_query_feed(std::shared_ptr<rss_feed> feed);
+	void prepare_query_feed(std::shared_ptr<RssFeed> feed);
 
 	void force_redraw();
 
@@ -107,7 +107,7 @@ public:
 		std::map<std::string, std::string>& bg_colors,
 		std::map<std::string, std::vector<std::string>>& attributes);
 
-	void notify_itemlist_change(std::shared_ptr<rss_feed> feed);
+	void notify_itemlist_change(std::shared_ptr<RssFeed> feed);
 
 	void feedlist_mark_pos_if_visible(unsigned int pos);
 
@@ -147,7 +147,7 @@ protected:
 	void cancel_input(std::shared_ptr<Formaction> fa);
 	void delete_word(std::shared_ptr<Formaction> fa);
 
-	controller* ctrl;
+	Controller* ctrl;
 
 	configcontainer* cfg;
 	keymap* keys;

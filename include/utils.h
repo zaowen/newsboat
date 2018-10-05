@@ -15,21 +15,21 @@ namespace newsboat {
 
 // wrapped curl handle for exception safety and so on
 // see also: https://github.com/gsauthof/ccurl
-class curl_handle {
+class CurlHandle {
 private:
 	CURL* h;
-	curl_handle(const curl_handle&);
-	curl_handle& operator=(const curl_handle&);
+	CurlHandle(const CurlHandle&);
+	CurlHandle& operator=(const CurlHandle&);
 
 public:
-	curl_handle()
+	CurlHandle()
 		: h(0)
 	{
 		h = curl_easy_init();
 		if (!h)
 			throw std::runtime_error("Can't obtain curl handle");
 	}
-	~curl_handle()
+	~CurlHandle()
 	{
 		curl_easy_cleanup(h);
 	}
@@ -39,7 +39,7 @@ public:
 	}
 };
 
-class utils {
+class Utils {
 public:
 	static std::vector<std::string> tokenize(const std::string& str,
 		std::string delimiters = " \r\n\t");
@@ -178,10 +178,10 @@ private:
 	static void append_escapes(std::string& str, char c);
 };
 
-class scope_measure {
+class ScopeMeasure {
 public:
-	scope_measure(const std::string& func, Level ll = Level::DEBUG);
-	~scope_measure();
+	ScopeMeasure(const std::string& func, Level ll = Level::DEBUG);
+	~ScopeMeasure();
 	void stopover(const std::string& son = "");
 
 private:

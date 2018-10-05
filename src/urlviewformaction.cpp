@@ -18,7 +18,7 @@ namespace newsboat {
  */
 
 UrlViewFormAction::UrlViewFormAction(view* vv,
-	std::shared_ptr<rss_feed>& feed,
+	std::shared_ptr<RssFeed>& feed,
 	std::string formstr)
 	: Formaction(vv, formstr)
 	, quit(false)
@@ -38,7 +38,7 @@ void UrlViewFormAction::process_operation(Operation op ,
 	case OP_OPEN: {
 		std::string posstr = f->get("feedpos");
 		if (posstr.length() > 0) {
-			unsigned int idx = utils::to_u(posstr, 0);
+			unsigned int idx = Utils::to_u(posstr, 0);
 			v->set_status(_("Starting browser..."));
 			v->open_in_browser(links[idx].first);
 			v->set_status("");
@@ -49,7 +49,7 @@ void UrlViewFormAction::process_operation(Operation op ,
 	case OP_BOOKMARK: {
 		std::string posstr = f->get("feedpos");
 		if (posstr.length() > 0) {
-			unsigned int idx = utils::to_u(posstr, 0);
+			unsigned int idx = Utils::to_u(posstr, 0);
 
 			this->start_bookmark_qna(
 				"", links[idx].first, "", feed->title());
@@ -97,11 +97,11 @@ void UrlViewFormAction::process_operation(Operation op ,
 void UrlViewFormAction::prepare()
 {
 	if (do_redraw) {
-		listformatter listfmt;
+		ListFormatter listfmt;
 		unsigned int i = 0;
 		for (const auto& link : links) {
 			listfmt.add_line(
-				strprintf::fmt("%2u  %s", i + 1, link.first),
+				StrPrintf::fmt("%2u  %s", i + 1, link.first),
 				i);
 			i++;
 		}
@@ -114,9 +114,9 @@ void UrlViewFormAction::init()
 	v->set_status("");
 
 	std::string viewwidth = f->get("urls:w");
-	unsigned int width = utils::to_u(viewwidth, 80);
+	unsigned int width = Utils::to_u(viewwidth, 80);
 
-	fmtstr_formatter fmt;
+	FmtStrFormatter fmt;
 	fmt.register_fmt('N', PROGRAM_NAME);
 	fmt.register_fmt('V', PROGRAM_VERSION);
 

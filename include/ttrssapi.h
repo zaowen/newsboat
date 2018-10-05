@@ -9,10 +9,10 @@
 
 namespace newsboat {
 
-class ttrss_api : public remote_api {
+class TtRssApi : public RemoteApi {
 public:
-	explicit ttrss_api(configcontainer* c);
-	~ttrss_api() override;
+	explicit TtRssApi(configcontainer* c);
+	~TtRssApi() override;
 	bool authenticate() override;
 	virtual nlohmann::json run_op(const std::string& op,
 		const std::map<std::string, std::string>& args,
@@ -46,17 +46,17 @@ private:
 	int api_level = -1;
 };
 
-class ttrss_urlreader : public urlreader {
+class TtRssUrlReader : public UrlReader {
 public:
-	ttrss_urlreader(const std::string& url_file, remote_api* a);
-	~ttrss_urlreader() override;
+	TtRssUrlReader(const std::string& url_file, RemoteApi* a);
+	~TtRssUrlReader() override;
 	void write_config() override;
 	void reload() override;
 	std::string get_source() override;
 
 private:
 	std::string file;
-	remote_api* api;
+	RemoteApi* api;
 };
 
 } // namespace newsboat

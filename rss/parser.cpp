@@ -83,7 +83,7 @@ static size_t handle_headers(void* ptr, size_t size, size_t nmemb, void* data)
 		}
 	} else if (!strncasecmp("ETag:", header, 5)) {
 		values->etag = std::string(header + 5);
-		utils::trim(values->etag);
+		Utils::trim(values->etag);
 		LOG(Level::DEBUG, "handle_headers: got etag %s", values->etag);
 	}
 
@@ -95,7 +95,7 @@ static size_t handle_headers(void* ptr, size_t size, size_t nmemb, void* data)
 feed parser::parse_url(const std::string& url,
 	time_t lastmodified,
 	const std::string& etag,
-	newsboat::remote_api* api,
+	newsboat::RemoteApi* api,
 	const std::string& cookie_cache,
 	CURL* ehandle)
 {
@@ -164,7 +164,7 @@ feed parser::parse_url(const std::string& url,
 	}
 
 	if (etag.length() > 0) {
-		auto header = strprintf::fmt("If-None-Match: %s", etag);
+		auto header = StrPrintf::fmt("If-None-Match: %s", etag);
 		custom_headers =
 			curl_slist_append(custom_headers, header.c_str());
 	}
@@ -216,7 +216,7 @@ feed parser::parse_url(const std::string& url,
 			curl_easy_strerror(ret));
 		std::string msg;
 		if (ret == CURLE_HTTP_RETURNED_ERROR && infoOk == CURLE_OK) {
-			msg = strprintf::fmt(
+			msg = StrPrintf::fmt(
 				"%s %li", curl_easy_strerror(ret), status);
 		} else {
 			msg = curl_easy_strerror(ret);
@@ -351,8 +351,8 @@ feed parser::parse_xmlnode(xmlNode* node)
 				}
 			}
 
-			std::shared_ptr<rss_parser> parser =
-				rss_parser_factory::get_object(f, doc);
+			std::shared_ptr<RssParser> parser =
+				RssParserFactory::get_object(f, doc);
 
 			try {
 				parser->parse_feed(f, node);

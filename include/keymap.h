@@ -155,7 +155,7 @@ struct macrocmd {
 	std::vector<std::string> args;
 };
 
-class keymap : public config_action_handler {
+class keymap : public ConfigActionHandler {
 public:
 	explicit keymap(unsigned int flags);
 	~keymap() override;

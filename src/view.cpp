@@ -58,7 +58,7 @@ bool ctrl_c_hit = false;
 
 namespace newsboat {
 
-view::view(controller* c)
+view::view(Controller* c)
 	: ctrl(c)
 	, cfg(0)
 	, keys(0)
@@ -369,7 +369,7 @@ void view::open_in_pager(const std::string& filename)
 	std::string cmdline;
 	std::string pager = cfg->get_configvalue("pager");
 	if (pager.find("%f") != std::string::npos) {
-		fmtstr_formatter fmt;
+		FmtStrFormatter fmt;
 		fmt.register_fmt('f', filename);
 		cmdline = fmt.do_format(pager, 0);
 	} else {
@@ -384,7 +384,7 @@ void view::open_in_pager(const std::string& filename)
 		cmdline.append(filename);
 	}
 	stfl::reset();
-	utils::run_interactively(cmdline, "view::open_in_pager");
+	Utils::run_interactively(cmdline, "view::open_in_pager");
 	pop_current_formaction();
 }
 
@@ -395,9 +395,9 @@ void view::open_in_browser(const std::string& url)
 	std::string cmdline;
 	std::string browser = cfg->get_configvalue("browser");
 	if (browser.find("%u") != std::string::npos) {
-		fmtstr_formatter fmt;
+		FmtStrFormatter fmt;
 		std::string newurl;
-		newurl = utils::replace_all(url, "'", "%27");
+		newurl = Utils::replace_all(url, "'", "%27");
 		newurl.insert(0, "'");
 		newurl.append("'");
 		fmt.register_fmt('u', newurl);
@@ -408,15 +408,15 @@ void view::open_in_browser(const std::string& url)
 		else
 			cmdline.append("lynx");
 		cmdline.append(" '");
-		cmdline.append(utils::replace_all(url, "'", "%27"));
+		cmdline.append(Utils::replace_all(url, "'", "%27"));
 		cmdline.append("'");
 	}
 	stfl::reset();
-	utils::run_interactively(cmdline, "view::open_in_browser");
+	Utils::run_interactively(cmdline, "view::open_in_browser");
 	pop_current_formaction();
 }
 
-void view::update_visible_feeds(std::vector<std::shared_ptr<rss_feed>> feeds)
+void view::update_visible_feeds(std::vector<std::shared_ptr<RssFeed>> feeds)
 {
 	try {
 		if (formaction_stack_size() > 0) {
@@ -427,7 +427,7 @@ void view::update_visible_feeds(std::vector<std::shared_ptr<rss_feed>> feeds)
 			feedlist->update_visible_feeds(feeds);
 		}
 	} catch (const matcherexception& e) {
-		set_status(strprintf::fmt(
+		set_status(StrPrintf::fmt(
 			_("Error: applying the filter failed: %s"), e.what()));
 		LOG(Level::DEBUG,
 			"view::update_visible_feeds: inside catch: %s",
@@ -435,7 +435,7 @@ void view::update_visible_feeds(std::vector<std::shared_ptr<rss_feed>> feeds)
 	}
 }
 
-void view::set_feedlist(std::vector<std::shared_ptr<rss_feed>> feeds)
+void view::set_feedlist(std::vector<std::shared_ptr<RssFeed>> feeds)
 {
 	try {
 		std::lock_guard<std::mutex> lock(mtx);
@@ -453,7 +453,7 @@ void view::set_feedlist(std::vector<std::shared_ptr<rss_feed>> feeds)
 			feedlist->set_feedlist(feeds);
 		}
 	} catch (const matcherexception& e) {
-		set_status(strprintf::fmt(
+		set_status(StrPrintf::fmt(
 			_("Error: applying the filter failed: %s"), e.what()));
 	}
 }
@@ -463,7 +463,7 @@ void view::set_tags(const std::vector<std::string>& t)
 	tags = t;
 }
 
-void view::push_searchresult(std::shared_ptr<rss_feed> feed,
+void view::push_searchresult(std::shared_ptr<RssFeed> feed,
 	const std::string& phrase)
 {
 	assert(feed != nullptr);
@@ -487,7 +487,7 @@ void view::push_searchresult(std::shared_ptr<rss_feed> feed,
 	}
 }
 
-void view::push_itemlist(std::shared_ptr<rss_feed> feed)
+void view::push_itemlist(std::shared_ptr<RssFeed> feed)
 {
 	assert(feed != nullptr);
 
@@ -514,7 +514,7 @@ void view::push_itemlist(std::shared_ptr<rss_feed> feed)
 
 void view::push_itemlist(unsigned int pos)
 {
-	std::shared_ptr<rss_feed> feed =
+	std::shared_ptr<RssFeed> feed =
 		ctrl->get_feedcontainer()->get_feed(pos);
 	LOG(Level::DEBUG,
 		"view::push_itemlist: retrieved feed at position %d",
@@ -528,7 +528,7 @@ void view::push_itemlist(unsigned int pos)
 	}
 }
 
-void view::push_itemview(std::shared_ptr<rss_feed> f,
+void view::push_itemview(std::shared_ptr<RssFeed> f,
 	const std::string& guid,
 	const std::string& searchphrase)
 {
@@ -553,7 +553,7 @@ void view::push_itemview(std::shared_ptr<rss_feed> f,
 		formaction_stack.push_back(itemview);
 		current_formaction = formaction_stack_size() - 1;
 	} else {
-		std::shared_ptr<rss_item> item = f->get_item_by_guid(guid);
+		std::shared_ptr<RssItem> item = f->get_item_by_guid(guid);
 		std::string filename = get_ctrl()->write_temporary_item(item);
 		open_in_pager(filename);
 		try {
@@ -564,7 +564,7 @@ void view::push_itemview(std::shared_ptr<rss_feed> f,
 					item->guid(), true);
 			}
 		} catch (const dbexception& e) {
-			show_error(strprintf::fmt(
+			show_error(StrPrintf::fmt(
 				_("Error while marking article as read: %s"),
 				e.what()));
 		}
@@ -602,7 +602,7 @@ void view::push_help()
 }
 
 void view::push_urlview(const std::vector<linkpair>& links,
-	std::shared_ptr<rss_feed>& feed)
+	std::shared_ptr<RssFeed>& feed)
 {
 	std::shared_ptr<UrlViewFormAction> urlview(
 		new UrlViewFormAction(this, feed, urlview_str));
@@ -697,7 +697,7 @@ char view::confirm(const std::string& prompt, const std::string& charset)
 	return result;
 }
 
-void view::notify_itemlist_change(std::shared_ptr<rss_feed> feed)
+void view::notify_itemlist_change(std::shared_ptr<RssFeed> feed)
 {
 	for (const auto& form : formaction_stack) {
 		if (form != nullptr && form->id() == "articlelist") {
@@ -705,7 +705,7 @@ void view::notify_itemlist_change(std::shared_ptr<rss_feed> feed)
 				std::dynamic_pointer_cast<ItemListFormAction,
 					Formaction>(form);
 			if (itemlist != nullptr) {
-				std::shared_ptr<rss_feed> f =
+				std::shared_ptr<RssFeed> f =
 					itemlist->get_feed();
 				if (f != nullptr &&
 					f->rssurl() == feed->rssurl()) {
@@ -973,7 +973,7 @@ bool view::get_prev_feed(ItemListFormAction* itemlist)
 	return false;
 }
 
-void view::prepare_query_feed(std::shared_ptr<rss_feed> feed)
+void view::prepare_query_feed(std::shared_ptr<RssFeed> feed)
 {
 	if (feed->is_query_feed()) {
 		LOG(Level::DEBUG,
@@ -1222,7 +1222,7 @@ void view::clear_line(std::shared_ptr<Formaction> fa)
 
 void view::clear_eol(std::shared_ptr<Formaction> fa)
 {
-	unsigned int pos = utils::to_u(fa->get_form()->get("qna_value_pos"), 0);
+	unsigned int pos = Utils::to_u(fa->get_form()->get("qna_value_pos"), 0);
 	std::string val = fa->get_form()->get("qna_value");
 	val.erase(pos, val.length());
 	fa->get_form()->set("qna_value", val);
@@ -1239,7 +1239,7 @@ void view::cancel_input(std::shared_ptr<Formaction> fa)
 void view::delete_word(std::shared_ptr<Formaction> fa)
 {
 	std::string::size_type curpos =
-		utils::to_u(fa->get_form()->get("qna_value_pos"), 0);
+		Utils::to_u(fa->get_form()->get("qna_value_pos"), 0);
 	std::string val = fa->get_form()->get("qna_value");
 	std::string::size_type firstpos = curpos;
 	LOG(Level::DEBUG, "view::delete_word: before val = %s", val);
@@ -1305,14 +1305,14 @@ void view::dump_current_form()
 	strftime(fnbuf, sizeof(fnbuf), "dumpform-%Y%m%d-%H%M%S.stfl", stm);
 	std::fstream f(fnbuf, std::ios_base::out);
 	if (!f.is_open()) {
-		show_error(strprintf::fmt("Error: couldn't open file %s: %s",
+		show_error(StrPrintf::fmt("Error: couldn't open file %s: %s",
 			fnbuf,
 			strerror(errno)));
 		return;
 	}
 	f << formtext;
 	f.close();
-	set_status(strprintf::fmt("Dumped current form to file %s", fnbuf));
+	set_status(StrPrintf::fmt("Dumped current form to file %s", fnbuf));
 }
 
 void view::ctrl_c_action(int /* sig */)

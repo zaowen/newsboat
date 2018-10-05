@@ -26,7 +26,7 @@ void configparser::handle_action(const std::string& action,
 	const std::vector<std::string>& params)
 {
 	/*
-	 * configparser also acts as config_action_handler to implement
+	 * configparser also acts as ConfigActionHandler to implement
 	 * recursive "include" command.
 	 */
 	if (action == "include") {
@@ -35,7 +35,7 @@ void configparser::handle_action(const std::string& action,
 				ActionHandlerStatus::TOO_FEW_PARAMS);
 		}
 
-		if (!this->parse(utils::resolve_tilde(params[0])))
+		if (!this->parse(Utils::resolve_tilde(params[0])))
 			throw confighandlerexception(
 				ActionHandlerStatus::FILENOTFOUND);
 	} else
@@ -54,9 +54,9 @@ bool configparser::parse(const std::string& filename, bool double_include)
 	 *   - read it line by line
 	 *   - tokenize every line
 	 *   - if there is at least one token, look up a registered
-	 * config_action_handler to handle the command (which is specified in
+	 * ConfigActionHandler to handle the command (which is specified in
 	 * the first token)
-	 *   - hand over the tokenize results to the config_action_handler
+	 *   - hand over the tokenize results to the ConfigActionHandler
 	 *   - if an error happens, react accordingly.
 	 */
 	if (!double_include &&
@@ -82,10 +82,10 @@ bool configparser::parse(const std::string& filename, bool double_include)
 		getline(f, line);
 		++linecounter;
 		LOG(Level::DEBUG, "configparser::parse: tokenizing %s", line);
-		std::vector<std::string> tokens = utils::tokenize_quoted(line);
+		std::vector<std::string> tokens = Utils::tokenize_quoted(line);
 		if (!tokens.empty()) {
 			std::string cmd = tokens[0];
-			config_action_handler* handler = action_handlers[cmd];
+			ConfigActionHandler* handler = action_handlers[cmd];
 			if (handler) {
 				tokens.erase(
 					tokens.begin()); // delete first element
@@ -93,7 +93,7 @@ bool configparser::parse(const std::string& filename, bool double_include)
 					evaluate_backticks(tokens);
 					handler->handle_action(cmd, tokens);
 				} catch (const confighandlerexception& e) {
-					throw configexception(strprintf::fmt(
+					throw configexception(StrPrintf::fmt(
 						_("Error while processing "
 						  "command `%s' (%s line %u): "
 						  "%s"),
@@ -103,7 +103,7 @@ bool configparser::parse(const std::string& filename, bool double_include)
 						e.what()));
 				}
 			} else {
-				throw configexception(strprintf::fmt(
+				throw configexception(StrPrintf::fmt(
 					_("unknown command `%s'"), cmd));
 			}
 		}
@@ -112,7 +112,7 @@ bool configparser::parse(const std::string& filename, bool double_include)
 }
 
 void configparser::register_handler(const std::string& cmd,
-	config_action_handler* handler)
+	ConfigActionHandler* handler)
 {
 	action_handlers[cmd] = handler;
 }
@@ -163,8 +163,8 @@ std::string configparser::evaluate_backticks(std::string token)
 	while (pos1 != std::string::npos && pos2 != std::string::npos) {
 		std::string cmd = token.substr(pos1 + 1, pos2 - pos1 - 1);
 		token.erase(pos1, pos2 - pos1 + 1);
-		std::string result = utils::get_command_output(cmd);
-		utils::trim_end(result);
+		std::string result = Utils::get_command_output(cmd);
+		Utils::trim_end(result);
 		token.insert(pos1, result);
 
 		pos1 = find_non_escaped_backtick(

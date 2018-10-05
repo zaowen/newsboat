@@ -59,9 +59,9 @@ void HelpFormAction::prepare()
 {
 	if (do_redraw) {
 		std::string listwidth = f->get("help_text:w");
-		unsigned int width = utils::to_u(listwidth);
+		unsigned int width = Utils::to_u(listwidth);
 
-		fmtstr_formatter fmt;
+		FmtStrFormatter fmt;
 		fmt.register_fmt('N', PROGRAM_NAME);
 		fmt.register_fmt('V', PROGRAM_VERSION);
 		f->set("head",
@@ -74,13 +74,13 @@ void HelpFormAction::prepare()
 			descs, v->get_keys()->get_flag_from_context(context));
 
 		std::string highlighted_searchphrase =
-			strprintf::fmt("<hl>%s</>", searchphrase);
+			StrPrintf::fmt("<hl>%s</>", searchphrase);
 		std::vector<std::string> colors =
-			utils::tokenize(v->get_cfg()->get_configvalue(
+			Utils::tokenize(v->get_cfg()->get_configvalue(
 						"search-highlight-colors"),
 				" ");
 		f->set("highlight", make_colorstring(colors));
-		listformatter listfmt;
+		ListFormatter listfmt;
 
 		unsigned int unbound_count = 0;
 		unsigned int syskey_count = 0;
@@ -138,7 +138,7 @@ void HelpFormAction::prepare()
 					switch (i) {
 					case 0:
 					case 1:
-						line = strprintf::fmt(
+						line = StrPrintf::fmt(
 							"%s%s%s%s%s",
 							desc.key,
 							tabs_1,
@@ -147,7 +147,7 @@ void HelpFormAction::prepare()
 							desc.desc);
 						break;
 					case 2:
-						line = strprintf::fmt(
+						line = StrPrintf::fmt(
 							"%s%s%s%s",
 							desc.cmd,
 							tabs_1,
@@ -160,7 +160,7 @@ void HelpFormAction::prepare()
 						"step 1 "
 						"- line = %s",
 						line);
-					line = utils::quote_for_stfl(line);
+					line = Utils::quote_for_stfl(line);
 					LOG(Level::DEBUG,
 						"HelpFormAction::prepare: "
 						"step 2 "
@@ -168,7 +168,7 @@ void HelpFormAction::prepare()
 						line);
 					if (apply_search &&
 						searchphrase.length() > 0) {
-						line = utils::replace_all(line,
+						line = Utils::replace_all(line,
 							searchphrase,
 							highlighted_searchphrase);
 						LOG(Level::DEBUG,

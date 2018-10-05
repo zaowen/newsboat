@@ -47,7 +47,7 @@ void ListFormAction::process_operation(Operation op ,
 }
 
 void ListFormAction::open_unread_items_in_browser(
-	std::shared_ptr<rss_feed> feed,
+	std::shared_ptr<RssFeed> feed,
 	bool markread)
 {
 	int tabcount = 0;

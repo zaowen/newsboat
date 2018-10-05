@@ -6,14 +6,14 @@
 #include "exception.h"
 
 namespace newsboat {
-std::mutex logger::instanceMutex;
+std::mutex Logger::instanceMutex;
 
-logger::logger()
+Logger::Logger()
 	: curlevel(Level::NONE)
 {
 }
 
-void logger::set_logfile(const std::string& logfile)
+void Logger::set_logfile(const std::string& logfile)
 {
 	/*
 	 * This sets the filename of the debug logfile
@@ -28,7 +28,7 @@ void logger::set_logfile(const std::string& logfile)
 	}
 }
 
-void logger::set_errorlogfile(const std::string& logfile)
+void Logger::set_errorlogfile(const std::string& logfile)
 {
 	/*
 	 * This sets the filename of the error logfile, i.e. the one that can be
@@ -46,7 +46,7 @@ void logger::set_errorlogfile(const std::string& logfile)
 	}
 }
 
-void logger::set_loglevel(Level l)
+void Logger::set_loglevel(Level l)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 	curlevel = l;
@@ -54,13 +54,13 @@ void logger::set_loglevel(Level l)
 		f.close();
 }
 
-logger& logger::getInstance()
+Logger& Logger::getInstance()
 {
 	/*
 	 * This is the global logger that everyone uses
 	 */
 	std::lock_guard<std::mutex> lock(instanceMutex);
-	static logger theLogger;
+	static Logger theLogger;
 	return theLogger;
 }
 

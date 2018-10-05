@@ -15,7 +15,7 @@ using namespace newsboat;
 TEST_CASE("OP_OPEN displays article using an external pager",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	TestHelpers::TempFile pagerfile;
 
@@ -35,9 +35,9 @@ TEST_CASE("OP_OPEN displays article using an external pager",
 	cache rsscache(":memory:", &cfg);
 	cfg.set_configvalue("pager", "cat %f > " + pagerfile.getPath());
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
 
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 	item->set_link(test_url);
 	item->set_title(test_title);
 	item->set_author(test_author);
@@ -65,12 +65,12 @@ TEST_CASE("OP_OPEN displays article using an external pager",
 TEST_CASE("OP_PURGE_DELETED purges previously deleted items",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	configcontainer cfg;
 	cache rsscache(":memory:", &cfg);
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 	feed->add_item(item);
 
 	v.set_config_container(&cfg);
@@ -97,7 +97,7 @@ TEST_CASE(
 	"OP_OPENBROWSER_AND_MARK passes the url to the browser and marks read",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	TestHelpers::TempFile browserfile;
 
@@ -109,8 +109,8 @@ TEST_CASE(
 
 	cache rsscache(":memory:", &cfg);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 	item->set_link(test_url);
 	item->set_unread(true);
 	feed->add_item(item);
@@ -132,7 +132,7 @@ TEST_CASE(
 TEST_CASE("OP_OPENINBROWSER passes the url to the browser",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	TestHelpers::TempFile browserfile;
 	std::string test_url = "http://test_url";
@@ -143,8 +143,8 @@ TEST_CASE("OP_OPENINBROWSER passes the url to the browser",
 
 	cache rsscache(":memory:", &cfg);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 	item->set_link(test_url);
 	feed->add_item(item);
 
@@ -163,7 +163,7 @@ TEST_CASE("OP_OPENINBROWSER passes the url to the browser",
 TEST_CASE("OP_OPENALLUNREADINBROWSER passes the url list to the browser",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	TestHelpers::TempFile browserfile;
 	std::unordered_set<std::string> url_set;
@@ -176,11 +176,11 @@ TEST_CASE("OP_OPENALLUNREADINBROWSER passes the url list to the browser",
 
 	cache rsscache(":memory:", &cfg);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
 
 	for (int i = 0; i < itemCount; i++) {
-		std::shared_ptr<rss_item> item =
-			std::make_shared<rss_item>(&rsscache);
+		std::shared_ptr<RssItem> item =
+			std::make_shared<RssItem>(&rsscache);
 		item->set_link(test_url + std::to_string(i));
 		url_set.insert(test_url + std::to_string(i));
 		item->set_unread(true);
@@ -246,7 +246,7 @@ TEST_CASE(
 	"and marks them read",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	TestHelpers::TempFile browserfile;
 	std::unordered_set<std::string> url_set;
@@ -259,11 +259,11 @@ TEST_CASE(
 
 	cache rsscache(":memory:", &cfg);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
 
 	for (int i = 0; i < itemCount; i++) {
-		std::shared_ptr<rss_item> item =
-			std::make_shared<rss_item>(&rsscache);
+		std::shared_ptr<RssItem> item =
+			std::make_shared<RssItem>(&rsscache);
 		item->set_link(test_url + std::to_string(i));
 		url_set.insert(test_url + std::to_string(i));
 		item->set_unread(true);
@@ -328,7 +328,7 @@ TEST_CASE(
 
 TEST_CASE("OP_SHOWURLS shows the article's properties", "[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	configcontainer cfg;
 	cache rsscache(":memory:", &cfg);
@@ -348,8 +348,8 @@ TEST_CASE("OP_SHOWURLS shows the article's properties", "[ItemListFormAction]")
 	v.set_config_container(&cfg);
 	c.set_view(&v);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 
 	item->set_link(test_url);
 	item->set_title(test_title);
@@ -391,7 +391,7 @@ TEST_CASE("OP_SHOWURLS shows the article's properties", "[ItemListFormAction]")
 TEST_CASE("OP_BOOKMARK pipes articles url and title to bookmark-command",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	configcontainer* cfg = c.get_cfg();
 	cache rsscache(":memory:", cfg);
@@ -408,10 +408,10 @@ TEST_CASE("OP_BOOKMARK pipes articles url and title to bookmark-command",
 	v.set_config_container(cfg);
 	c.set_view(&v);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
 	feed->set_title(feed_title);
 
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 	item->set_link(test_url);
 	item->set_title(test_title);
 
@@ -437,7 +437,7 @@ TEST_CASE("OP_BOOKMARK pipes articles url and title to bookmark-command",
 TEST_CASE("OP_EDITFLAGS arguments are added to an item's flags",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	configcontainer* cfg = c.get_cfg();
 	cache rsscache(":memory:", cfg);
@@ -447,8 +447,8 @@ TEST_CASE("OP_EDITFLAGS arguments are added to an item's flags",
 	v.set_config_container(cfg);
 	c.set_view(&v);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 
 	ItemListFormAction itemlist(&v, itemlist_str);
 
@@ -531,7 +531,7 @@ TEST_CASE("OP_EDITFLAGS arguments are added to an item's flags",
 TEST_CASE("OP_SAVE writes an article's attributes to the specified file",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	TestHelpers::TempFile saveFile;
 	configcontainer* cfg = c.get_cfg();
@@ -554,9 +554,9 @@ TEST_CASE("OP_SAVE writes an article's attributes to the specified file",
 	v.set_config_container(cfg);
 	c.set_view(&v);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
 
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 	item->set_link(test_url);
 	item->set_title(test_title);
 	item->set_author(test_author);
@@ -580,7 +580,7 @@ TEST_CASE("OP_SAVE writes an article's attributes to the specified file",
 
 TEST_CASE("OP_HELP command is processed", "[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	regexmanager regman;
 	newsboat::view v(&c);
 	configcontainer* cfg = c.get_cfg();
@@ -593,8 +593,8 @@ TEST_CASE("OP_HELP command is processed", "[ItemListFormAction]")
 	v.set_config_container(cfg);
 	c.set_view(&v);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 
 	ItemListFormAction itemlist(&v, itemlist_str);
 	feed->add_item(item);
@@ -607,7 +607,7 @@ TEST_CASE("OP_HELP command is processed", "[ItemListFormAction]")
 
 TEST_CASE("OP_HARDQUIT command is processed", "[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	regexmanager regman;
 	newsboat::view v(&c);
 	configcontainer* cfg = c.get_cfg();
@@ -620,7 +620,7 @@ TEST_CASE("OP_HARDQUIT command is processed", "[ItemListFormAction]")
 	v.set_config_container(cfg);
 	c.set_view(&v);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
 
 	ItemListFormAction itemlist(&v, itemlist_str);
 	itemlist.set_feed(feed);
@@ -636,7 +636,7 @@ TEST_CASE("Navigate back and forth using OP_NEXT and OP_PREVIOUS",
 	// We are using the OP_SHOWURLS command to print the current
 	// article'attibutes to a file, and assert the position was indeed
 	// updated.
-	controller c;
+	Controller c;
 	TestHelpers::TempFile articleFile;
 	regexmanager regman;
 	newsboat::view v(&c);
@@ -657,13 +657,13 @@ TEST_CASE("Navigate back and forth using OP_NEXT and OP_PREVIOUS",
 	v.set_config_container(cfg);
 	c.set_view(&v);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
 
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 	item->set_title(first_article_title);
 	feed->add_item(item);
 
-	std::shared_ptr<rss_item> item2 = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssItem> item2 = std::make_shared<RssItem>(&rsscache);
 	item2->set_title(second_article_title);
 	feed->add_item(item2);
 
@@ -690,7 +690,7 @@ TEST_CASE("Navigate back and forth using OP_NEXT and OP_PREVIOUS",
 TEST_CASE("OP_TOGGLESHOWREAD switches the value of show-read-articles",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	regexmanager regman;
 	newsboat::view v(&c);
 	configcontainer* cfg = c.get_cfg();
@@ -703,9 +703,9 @@ TEST_CASE("OP_TOGGLESHOWREAD switches the value of show-read-articles",
 	v.set_config_container(cfg);
 	c.set_view(&v);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
 
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 	feed->add_item(item);
 
 	ItemListFormAction itemlist(&v, itemlist_str);
@@ -731,7 +731,7 @@ TEST_CASE("OP_TOGGLESHOWREAD switches the value of show-read-articles",
 TEST_CASE("OP_PIPE_TO pipes an article's content to an external command",
 	"[ItemListFormAction]")
 {
-	controller c;
+	Controller c;
 	newsboat::view v(&c);
 	TestHelpers::TempFile articleFile;
 	configcontainer* cfg = c.get_cfg();
@@ -754,9 +754,9 @@ TEST_CASE("OP_PIPE_TO pipes an article's content to an external command",
 	v.set_config_container(cfg);
 	c.set_view(&v);
 
-	std::shared_ptr<rss_feed> feed = std::make_shared<rss_feed>(&rsscache);
+	std::shared_ptr<RssFeed> feed = std::make_shared<RssFeed>(&rsscache);
 
-	std::shared_ptr<rss_item> item = std::make_shared<rss_item>(&rsscache);
+	std::shared_ptr<RssItem> item = std::make_shared<RssItem>(&rsscache);
 	item->set_link(test_url);
 	item->set_title(test_title);
 	item->set_author(test_author);

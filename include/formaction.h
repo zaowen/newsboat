@@ -94,7 +94,7 @@ protected:
 		const std::string& default_url,
 		const std::string& default_desc,
 		const std::string& default_feed_title);
-	void open_unread_items_in_browser(std::shared_ptr<rss_feed> feed,
+	void open_unread_items_in_browser(std::shared_ptr<RssFeed> feed,
 		bool markread);
 
 	view* v;

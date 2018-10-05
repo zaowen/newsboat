@@ -62,9 +62,9 @@ void FileBrowserFormAction::process_operation(Operation op ,
 					std::string fileswidth =
 						f->get("files:w");
 					unsigned int width =
-						utils::to_u(fileswidth);
+						Utils::to_u(fileswidth);
 
-					fmtstr_formatter fmt;
+					FmtStrFormatter fmt;
 					fmt.register_fmt('N', PROGRAM_NAME);
 					fmt.register_fmt('V', PROGRAM_VERSION);
 					fmt.register_fmt('f', filename);
@@ -87,7 +87,7 @@ void FileBrowserFormAction::process_operation(Operation op ,
 						filename,
 						status);
 					f->set("listpos", "0");
-					std::string fn = utils::getcwd();
+					std::string fn = Utils::getcwd();
 					fn.append(NEWSBEUTER_PATH_SEP);
 					std::string fnstr =
 						f->get("filenametext");
@@ -104,7 +104,7 @@ void FileBrowserFormAction::process_operation(Operation op ,
 					do_redraw = true;
 				} break;
 				case '-': {
-					std::string fn = utils::getcwd();
+					std::string fn = Utils::getcwd();
 					fn.append(NEWSBEUTER_PATH_SEP);
 					fn.append(filename);
 					f->set("filenametext", fn);
@@ -126,7 +126,7 @@ void FileBrowserFormAction::process_operation(Operation op ,
 				if (::stat(fn.c_str(), &sbuf) != -1) {
 					f->set_focus("files");
 					if (v->confirm(
-						    strprintf::fmt(
+						    StrPrintf::fmt(
 							    _("Do you really "
 							      "want to "
 							      "overwrite `%s' "
@@ -166,7 +166,7 @@ std::vector<std::string> get_sorted_filelist()
 {
 	std::vector<std::string> ret;
 
-	auto cwdtmp = utils::getcwd();
+	auto cwdtmp = Utils::getcwd();
 
 	DIR* dirp = ::opendir(cwdtmp.c_str());
 	if (dirp) {
@@ -238,7 +238,7 @@ void FileBrowserFormAction::init()
 	int status = ::chdir(dir.c_str());
 	LOG(Level::DEBUG, "view::filebrowser: chdir(%s) = %i", dir, status);
 
-	auto cwdtmp = utils::getcwd();
+	auto cwdtmp = Utils::getcwd();
 
 	f->set("filenametext", default_filename);
 
@@ -247,7 +247,7 @@ void FileBrowserFormAction::init()
 	f->set("filenametext_pos", std::to_string(default_filename.length()));
 
 	f->set("head",
-		strprintf::fmt(_("%s %s - Save File - %s"),
+		StrPrintf::fmt(_("%s %s - Save File - %s"),
 			PROGRAM_NAME,
 			PROGRAM_VERSION,
 			cwdtmp));
@@ -274,15 +274,15 @@ std::string FileBrowserFormAction::add_file(std::string filename)
 		std::string formattedfilename =
 			get_formatted_filename(filename, ftype, sb.st_mode);
 
-		std::string sizestr = strprintf::fmt("%12u", sb.st_size);
-		std::string line = strprintf::fmt("%c%s %s %s %s %s",
+		std::string sizestr = StrPrintf::fmt("%12u", sb.st_size);
+		std::string line = StrPrintf::fmt("%c%s %s %s %s %s",
 			ftype,
 			rwxbits,
 			owner,
 			group,
 			sizestr,
 			formattedfilename);
-		retval = strprintf::fmt("{listitem[%c%s] text:%s}",
+		retval = StrPrintf::fmt("{listitem[%c%s] text:%s}",
 			ftype,
 			stfl::quote(filename),
 			stfl::quote(line));
@@ -314,7 +314,7 @@ std::string FileBrowserFormAction::get_formatted_filename(std::string filename,
 			suffix = '*';
 	}
 
-	return strprintf::fmt("%s%c", filename, suffix);
+	return StrPrintf::fmt("%s%c", filename, suffix);
 }
 
 std::string FileBrowserFormAction::get_rwx(unsigned short val)
@@ -378,7 +378,7 @@ std::string FileBrowserFormAction::get_group(gid_t gid)
 
 std::string FileBrowserFormAction::title()
 {
-	return strprintf::fmt(_("Save File - %s"), utils::getcwd());
+	return StrPrintf::fmt(_("Save File - %s"), Utils::getcwd());
 }
 
 } // namespace newsboat

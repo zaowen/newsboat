@@ -13,12 +13,12 @@ using json = nlohmann::json;
 
 namespace newsboat {
 
-ttrss_api::ttrss_api(configcontainer* c)
-	: remote_api(c)
+TtRssApi::TtRssApi(configcontainer* c)
+	: RemoteApi(c)
 {
 	single = (cfg->get_configvalue("ttrss-mode") == "single");
 	if (single) {
-		auth_info = strprintf::fmt("%s:%s",
+		auth_info = StrPrintf::fmt("%s:%s",
 			cfg->get_configvalue("ttrss-login"),
 			cfg->get_configvalue("ttrss-password"));
 	} else {
@@ -27,9 +27,9 @@ ttrss_api::ttrss_api(configcontainer* c)
 	sid = "";
 }
 
-ttrss_api::~ttrss_api() {}
+TtRssApi::~TtRssApi() {}
 
-bool ttrss_api::authenticate()
+bool TtRssApi::authenticate()
 {
 	if (auth_lock.try_lock()) {
 		sid = retrieve_sid();
@@ -43,7 +43,7 @@ bool ttrss_api::authenticate()
 	return sid != "";
 }
 
-std::string ttrss_api::retrieve_sid()
+std::string TtRssApi::retrieve_sid()
 {
 	std::map<std::string, std::string> args;
 
@@ -55,7 +55,7 @@ std::string ttrss_api::retrieve_sid()
 	args["user"] = single ? "admin" : cred.user.c_str();
 	args["password"] = cred.pass.c_str();
 	if (single) {
-		auth_info = strprintf::fmt("%s:%s", cred.user, cred.pass);
+		auth_info = StrPrintf::fmt("%s:%s", cred.user, cred.pass);
 	} else {
 		auth_info = "";
 	}
@@ -69,7 +69,7 @@ std::string ttrss_api::retrieve_sid()
 		sid = content["session_id"];
 	} catch (json::exception& e) {
 		LOG(Level::INFO,
-			"ttrss_api::retrieve_sid: couldn't extract session_id: "
+			"TtRssApi::retrieve_sid: couldn't extract session_id: "
 			"%s",
 			e.what());
 	}
@@ -78,17 +78,17 @@ std::string ttrss_api::retrieve_sid()
 		api_level = content["api_level"];
 	} catch (json::exception& e) {
 		LOG(Level::INFO,
-			"ttrss_api::retrieve_sid: couldn't determine api_level "
+			"TtRssApi::retrieve_sid: couldn't determine api_level "
 			"from response: %s",
 			e.what());
 	}
 
-	LOG(Level::DEBUG, "ttrss_api::retrieve_sid: sid = '%s'", sid);
+	LOG(Level::DEBUG, "TtRssApi::retrieve_sid: sid = '%s'", sid);
 
 	return sid;
 }
 
-unsigned int ttrss_api::query_api_level()
+unsigned int TtRssApi::query_api_level()
 {
 	if (api_level == -1) {
 		// api level was never queried. Do it now.
@@ -98,7 +98,7 @@ unsigned int ttrss_api::query_api_level()
 		try {
 			api_level = content["level"];
 			LOG(Level::DEBUG,
-				"ttrss_api::query_api_level: determined level: "
+				"TtRssApi::query_api_level: determined level: "
 				"%d",
 				api_level);
 		} catch (json::exception& e) {
@@ -108,7 +108,7 @@ unsigned int ttrss_api::query_api_level()
 			//  version:1.5.7 and below) client should assume API
 			//  level 0."
 			LOG(Level::DEBUG,
-				"ttrss_api::query_api_level: failed to "
+				"TtRssApi::query_api_level: failed to "
 				"determine "
 				"level, assuming 0");
 			api_level = 0;
@@ -117,13 +117,13 @@ unsigned int ttrss_api::query_api_level()
 	return api_level;
 }
 
-json ttrss_api::run_op(const std::string& op,
+json TtRssApi::run_op(const std::string& op,
 	const std::map<std::string, std::string>& args,
 	bool try_login, /* = true */
 	CURL* cached_handle /* = nullptr */)
 {
 	std::string url =
-		strprintf::fmt("%s/api/", cfg->get_configvalue("ttrss-url"));
+		StrPrintf::fmt("%s/api/", cfg->get_configvalue("ttrss-url"));
 
 	// First build the request payload
 	std::string req_data;
@@ -146,11 +146,11 @@ json ttrss_api::run_op(const std::string& op,
 		req_data = requestparam.dump();
 	}
 
-	std::string result = utils::retrieve_url(
+	std::string result = Utils::retrieve_url(
 		url, cfg, auth_info, &req_data, cached_handle);
 
 	LOG(Level::DEBUG,
-		"ttrss_api::run_op(%s,...): post=%s reply = %s",
+		"TtRssApi::run_op(%s,...): post=%s reply = %s",
 		op,
 		req_data,
 		result);
@@ -160,7 +160,7 @@ json ttrss_api::run_op(const std::string& op,
 		reply = json::parse(result);
 	} catch (json::parse_error& e) {
 		LOG(Level::ERROR,
-			"ttrss_api::run_op: reply failed to parse: %s",
+			"TtRssApi::run_op: reply failed to parse: %s",
 			result);
 		return json(nullptr);
 	}
@@ -170,7 +170,7 @@ json ttrss_api::run_op(const std::string& op,
 		status = reply.at("status");
 	} catch (json::exception& e) {
 		LOG(Level::ERROR,
-			"ttrss_api::run_op: no status code: %s",
+			"TtRssApi::run_op: no status code: %s",
 			e.what());
 		return json(nullptr);
 	}
@@ -180,7 +180,7 @@ json ttrss_api::run_op(const std::string& op,
 		content = reply.at("content");
 	} catch (json::exception& e) {
 		LOG(Level::ERROR,
-			"ttrss_api::run_op: no content part in answer from "
+			"TtRssApi::run_op: no content part in answer from "
 			"server");
 		return json(nullptr);
 	}
@@ -193,7 +193,7 @@ json ttrss_api::run_op(const std::string& op,
 				return json(nullptr);
 		} else {
 			LOG(Level::ERROR,
-				"ttrss_api::run_op: status: %d, error: '%s'",
+				"TtRssApi::run_op: status: %d, error: '%s'",
 				status,
 				content["error"].dump());
 			return json(nullptr);
@@ -203,7 +203,7 @@ json ttrss_api::run_op(const std::string& op,
 	return content;
 }
 
-tagged_feedurl ttrss_api::feed_from_json(const json& jfeed,
+tagged_feedurl TtRssApi::feed_from_json(const json& jfeed,
 	const std::vector<std::string>& addtags)
 {
 	const int feed_id = jfeed["id"];
@@ -217,12 +217,12 @@ tagged_feedurl ttrss_api::feed_from_json(const json& jfeed,
 	// add additional tags
 	tags.insert(tags.end(), addtags.cbegin(), addtags.cend());
 
-	auto url = strprintf::fmt("%s#%d", feed_url, feed_id);
+	auto url = StrPrintf::fmt("%s#%d", feed_url, feed_id);
 	return tagged_feedurl(url, tags);
 	// TODO: cache feed_id -> feed_url (or feed_url -> feed_id ?)
 }
 
-int ttrss_api::parse_category_id(const json& jcatid)
+int TtRssApi::parse_category_id(const json& jcatid)
 {
 	int cat_id;
 	// TTRSS (commit "b0113adac42383b8039eb92ccf3ee2ec0ee70346") returns a
@@ -236,7 +236,7 @@ int ttrss_api::parse_category_id(const json& jcatid)
 	return cat_id;
 }
 
-std::vector<tagged_feedurl> ttrss_api::get_subscribed_urls()
+std::vector<tagged_feedurl> TtRssApi::get_subscribed_urls()
 {
 	std::vector<tagged_feedurl> feeds;
 
@@ -260,7 +260,7 @@ std::vector<tagged_feedurl> ttrss_api::get_subscribed_urls()
 
 		if (feedlist.is_null()) {
 			LOG(Level::ERROR,
-				"ttrss_api::get_subscribed_urls: Failed to "
+				"TtRssApi::get_subscribed_urls: Failed to "
 				"retrieve feedlist");
 			return feeds;
 		}
@@ -285,7 +285,7 @@ std::vector<tagged_feedurl> ttrss_api::get_subscribed_urls()
 			}
 		} catch (json::exception& e) {
 			LOG(Level::ERROR,
-				"ttrss_api::get_subscribed_urls:"
+				"TtRssApi::get_subscribed_urls:"
 				" Failed to determine subscribed urls: %s",
 				e.what());
 			return std::vector<tagged_feedurl>();
@@ -295,12 +295,12 @@ std::vector<tagged_feedurl> ttrss_api::get_subscribed_urls()
 	return feeds;
 }
 
-void ttrss_api::add_custom_headers(curl_slist** /* custom_headers */)
+void TtRssApi::add_custom_headers(curl_slist** /* custom_headers */)
 {
 	// nothing required
 }
 
-bool ttrss_api::mark_all_read(const std::string& feed_url)
+bool TtRssApi::mark_all_read(const std::string& feed_url)
 {
 	std::map<std::string, std::string> args;
 	args["feed_id"] = url_to_id(feed_url);
@@ -312,23 +312,23 @@ bool ttrss_api::mark_all_read(const std::string& feed_url)
 	return true;
 }
 
-bool ttrss_api::mark_article_read(const std::string& guid, bool read)
+bool TtRssApi::mark_article_read(const std::string& guid, bool read)
 {
 	// Do this in a thread, as we don't care about the result enough to wait
 	// for it.
 	std::thread t{[=]() {
 		LOG(Level::DEBUG,
-			"ttrss_api::mark_article_read: inside thread, marking "
+			"TtRssApi::mark_article_read: inside thread, marking "
 			"thread as read...");
 
-		// Call the ttrss_api's update_article function as a thread.
+		// Call the TtRssApi's update_article function as a thread.
 		this->update_article(guid, 2, read ? 0 : 1);
 	}};
 	t.detach();
 	return true;
 }
 
-bool ttrss_api::update_article_flags(const std::string& oldflags,
+bool TtRssApi::update_article_flags(const std::string& oldflags,
 	const std::string& newflags,
 	const std::string& guid)
 {
@@ -360,7 +360,7 @@ bool ttrss_api::update_article_flags(const std::string& oldflags,
 	return success;
 }
 
-rsspp::feed ttrss_api::fetch_feed(const std::string& id, CURL* cached_handle)
+rsspp::feed TtRssApi::fetch_feed(const std::string& id, CURL* cached_handle)
 {
 	rsspp::feed f;
 
@@ -377,11 +377,11 @@ rsspp::feed ttrss_api::fetch_feed(const std::string& id, CURL* cached_handle)
 
 	if (!content.is_array()) {
 		LOG(Level::ERROR,
-			"ttrss_api::fetch_feed: content is not an array");
+			"TtRssApi::fetch_feed: content is not an array");
 		return f;
 	}
 
-	LOG(Level::DEBUG, "ttrss_api::fetch_feed: %d items", content.size());
+	LOG(Level::DEBUG, "TtRssApi::fetch_feed: %d items", content.size());
 
 	try {
 		for (const auto& item_obj : content) {
@@ -419,7 +419,7 @@ rsspp::feed ttrss_api::fetch_feed(const std::string& id, CURL* cached_handle)
 			}
 
 			int id = item_obj["id"];
-			item.guid = strprintf::fmt("%d", id);
+			item.guid = StrPrintf::fmt("%d", id);
 
 			bool unread = item_obj["unread"];
 			if (unread) {
@@ -455,7 +455,7 @@ rsspp::feed ttrss_api::fetch_feed(const std::string& id, CURL* cached_handle)
 	return f;
 }
 
-void ttrss_api::fetch_feeds_per_category(const json& cat,
+void TtRssApi::fetch_feeds_per_category(const json& cat,
 	std::vector<tagged_feedurl>& feeds)
 {
 	json cat_name;
@@ -484,7 +484,7 @@ void ttrss_api::fetch_feeds_per_category(const json& cat,
 
 	cat_name = cat["title"];
 	LOG(Level::DEBUG,
-		"ttrss_api::fetch_feeds_per_category: fetching id = %s title = "
+		"TtRssApi::fetch_feeds_per_category: fetching id = %s title = "
 		"%s",
 		cat_id,
 		cat_name.is_null() ? "<null>" : cat_name.get<std::string>());
@@ -508,17 +508,17 @@ void ttrss_api::fetch_feeds_per_category(const json& cat,
 	}
 }
 
-bool ttrss_api::star_article(const std::string& guid, bool star)
+bool TtRssApi::star_article(const std::string& guid, bool star)
 {
 	return update_article(guid, 0, star ? 1 : 0);
 }
 
-bool ttrss_api::publish_article(const std::string& guid, bool publish)
+bool TtRssApi::publish_article(const std::string& guid, bool publish)
 {
 	return update_article(guid, 1, publish ? 1 : 0);
 }
 
-bool ttrss_api::update_article(const std::string& guid, int field, int mode)
+bool TtRssApi::update_article(const std::string& guid, int field, int mode)
 {
 	std::map<std::string, std::string> args;
 	args["article_ids"] = guid;
@@ -532,7 +532,7 @@ bool ttrss_api::update_article(const std::string& guid, int field, int mode)
 	return true;
 }
 
-std::string ttrss_api::url_to_id(const std::string& url)
+std::string TtRssApi::url_to_id(const std::string& url)
 {
 	const std::string::size_type pound = url.find_first_of('#');
 	if (pound == std::string::npos) {

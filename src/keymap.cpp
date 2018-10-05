@@ -520,7 +520,7 @@ void keymap::dump_config(std::vector<std::string>& config_output)
 		for (const auto& keymap : x) {
 			if (keymap.second < OP_INT_MIN) {
 				std::string configline = "bind-key ";
-				configline.append(utils::quote(keymap.first));
+				configline.append(Utils::quote(keymap.first));
 				configline.append(" ");
 				configline.append(getopname(keymap.second));
 				configline.append(" ");
@@ -538,7 +538,7 @@ void keymap::dump_config(std::vector<std::string>& config_output)
 			configline.append(getopname(cmd.op));
 			for (const auto& arg : cmd.args) {
 				configline.append(" ");
-				configline.append(utils::quote(arg));
+				configline.append(Utils::quote(arg));
 			}
 			if (i < (macro.second.size() - 1))
 				configline.append(" ; ");
@@ -560,7 +560,7 @@ void keymap::handle_action(const std::string& action,
 	const std::vector<std::string>& params)
 {
 	/*
-	 * The keymap acts as config_action_handler so that all the key-related
+	 * The keymap acts as ConfigActionHandler so that all the key-related
 	 * configuration is immediately handed to it.
 	 */
 	LOG(Level::DEBUG, "keymap::handle_action(%s, ...) called", action);
@@ -572,12 +572,12 @@ void keymap::handle_action(const std::string& action,
 		if (params.size() >= 3)
 			context = params[2];
 		if (!is_valid_context(context))
-			throw confighandlerexception(strprintf::fmt(
+			throw confighandlerexception(StrPrintf::fmt(
 				_("`%s' is not a valid context"), context));
 		Operation op  = get_opcode(params[1]);
 		if (op == OP_NIL) {
 			throw confighandlerexception(
-				strprintf::fmt(_("`%s' is not a valid "
+				StrPrintf::fmt(_("`%s' is not a valid "
 						 "key command"),
 					params[1]));
 		}
@@ -615,7 +615,7 @@ void keymap::handle_action(const std::string& action,
 					tmpcmd.op);
 				if (tmpcmd.op == OP_NIL)
 					throw confighandlerexception(
-						strprintf::fmt(
+						StrPrintf::fmt(
 							_("`%s' is not a valid "
 							  "key command"),
 							*it));

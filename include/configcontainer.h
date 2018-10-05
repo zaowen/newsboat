@@ -71,7 +71,7 @@ struct configdata {
 	bool multi_option;
 };
 
-class configcontainer : public config_action_handler {
+class configcontainer : public ConfigActionHandler {
 public:
 	configcontainer();
 	~configcontainer() override;

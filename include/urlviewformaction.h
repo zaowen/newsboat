@@ -9,7 +9,7 @@ namespace newsboat {
 class UrlViewFormAction : public Formaction {
 public:
 	UrlViewFormAction(view*,
-		std::shared_ptr<rss_feed>& feed,
+		std::shared_ptr<RssFeed>& feed,
 		std::string formstr);
 	~UrlViewFormAction() override;
 	void prepare() override;
@@ -32,7 +32,7 @@ private:
 		std::vector<std::string>* args = nullptr) override;
 	std::vector<linkpair> links;
 	bool quit;
-	std::shared_ptr<rss_feed> feed;
+	std::shared_ptr<RssFeed> feed;
 };
 
 } // namespace newsboat

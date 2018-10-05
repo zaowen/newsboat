@@ -11,7 +11,7 @@
 
 namespace newsboat {
 
-typedef std::pair<std::shared_ptr<rss_item>, unsigned int> itemptr_pos_pair;
+typedef std::pair<std::shared_ptr<RssItem>, unsigned int> itemptr_pos_pair;
 
 enum class InvalidationMode { PARTIAL, COMPLETE };
 
@@ -30,7 +30,7 @@ public:
 		invalidate(InvalidationMode::COMPLETE);
 	}
 
-	void set_feed(std::shared_ptr<rss_feed> fd);
+	void set_feed(std::shared_ptr<RssFeed> fd);
 
 	std::string id() const override
 	{
@@ -38,7 +38,7 @@ public:
 	}
 	std::string title() override;
 
-	std::shared_ptr<rss_feed> get_feed()
+	std::shared_ptr<RssFeed> get_feed()
 	{
 		return feed;
 	}
@@ -85,7 +85,7 @@ private:
 	int get_pos(unsigned int idx);
 
 	void save_article(const std::string& filename,
-		std::shared_ptr<rss_item> item);
+		std::shared_ptr<RssItem> item);
 
 	void save_filterpos();
 
@@ -95,7 +95,7 @@ private:
 
 	void handle_cmdline_num(unsigned int idx);
 
-	std::string gen_flags(std::shared_ptr<rss_item> item);
+	std::string gen_flags(std::shared_ptr<RssItem> item);
 	std::string gen_datestr(time_t t, const std::string& datetimeformat);
 
 	void prepare_set_filterpos();
@@ -125,16 +125,16 @@ private:
 		const std::string& datetime_format);
 
 	unsigned int pos;
-	std::shared_ptr<rss_feed> feed;
+	std::shared_ptr<RssFeed> feed;
 	bool apply_filter;
-	matcher m;
+	Matcher m;
 	std::vector<itemptr_pos_pair> visible_items;
 	bool show_searchresult;
 	std::string searchphrase;
 
 	history filterhistory;
 
-	std::shared_ptr<rss_feed> search_dummy_feed;
+	std::shared_ptr<RssFeed> search_dummy_feed;
 
 	std::mutex redraw_mtx;
 
@@ -151,7 +151,7 @@ private:
 	InvalidationMode invalidation_mode;
 	std::vector<unsigned int> invalidated_itempos;
 
-	listformatter listfmt;
+	ListFormatter listfmt;
 };
 
 } // namespace newsboat

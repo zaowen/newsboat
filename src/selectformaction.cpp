@@ -59,7 +59,7 @@ void SelectFormAction::process_operation(Operation op ,
 		break;
 	case OP_OPEN: {
 		std::string tagposname = f->get("tagposname");
-		unsigned int pos = utils::to_u(tagposname);
+		unsigned int pos = Utils::to_u(tagposname);
 		if (tagposname.length() > 0) {
 			switch (type) {
 			case SelectionType::TAG: {
@@ -95,12 +95,12 @@ void SelectFormAction::process_operation(Operation op ,
 void SelectFormAction::prepare()
 {
 	if (do_redraw) {
-		listformatter listfmt;
+		ListFormatter listfmt;
 		unsigned int i = 0;
 		switch (type) {
 		case SelectionType::TAG:
 			for (const auto& tag : tags) {
-				std::string tagstr = strprintf::fmt(
+				std::string tagstr = StrPrintf::fmt(
 					"%4u  %s (%u)",
 					i + 1,
 					tag,
@@ -113,7 +113,7 @@ void SelectFormAction::prepare()
 			break;
 		case SelectionType::FILTER:
 			for (const auto& filter : filters) {
-				std::string tagstr = strprintf::fmt(
+				std::string tagstr = StrPrintf::fmt(
 					"%4u  %s", i + 1, filter.first);
 				listfmt.add_line(tagstr, i);
 				i++;
@@ -136,11 +136,11 @@ void SelectFormAction::init()
 	value = "";
 
 	std::string viewwidth = f->get("taglist:w");
-	unsigned int width = utils::to_u(viewwidth, 80);
+	unsigned int width = Utils::to_u(viewwidth, 80);
 
 	set_keymap_hints();
 
-	fmtstr_formatter fmt;
+	FmtStrFormatter fmt;
 	fmt.register_fmt('N', PROGRAM_NAME);
 	fmt.register_fmt('V', PROGRAM_VERSION);
 

@@ -23,7 +23,7 @@ xmlDocPtr OPML::generate_opml(const FeedContainer& feedcontainer)
 		opml_node, nullptr, (const xmlChar*)"body", nullptr);
 
 	for (const auto& feed : feedcontainer.feeds) {
-		if (!utils::is_special_url(feed->rssurl())) {
+		if (!Utils::is_special_url(feed->rssurl())) {
 			std::string rssurl = feed->rssurl();
 			std::string link = feed->link();
 			std::string title = feed->title();
@@ -51,7 +51,7 @@ xmlDocPtr OPML::generate_opml(const FeedContainer& feedcontainer)
 }
 
 void rec_find_rss_outlines(
-		urlreader* urlcfg,
+		UrlReader* urlcfg,
 		xmlNode* node,
 		std::string tag)
 {
@@ -79,7 +79,7 @@ void rec_find_rss_outlines(
 				// the output of a program in its OPMLs. Convert
 				// them to our syntax.
 				if (*url == '|') {
-					nurl = strprintf::fmt(
+					nurl = StrPrintf::fmt(
 						"exec:%s", url + 1);
 					LOG(Level::DEBUG,
 						"OPML::import: liferea-style "
@@ -99,7 +99,7 @@ void rec_find_rss_outlines(
 						filtercmd,
 						nurl);
 					nurl.insert(0,
-						strprintf::fmt("filter:%s:",
+						StrPrintf::fmt("filter:%s:",
 							filtercmd));
 					xmlFree(filtercmd);
 				}
@@ -110,7 +110,7 @@ void rec_find_rss_outlines(
 				// TODO: get rid of xmlStrdup, it's useless
 				url = (char*)xmlStrdup(
 					(const xmlChar*)
-						utils::quote_if_necessary(nurl)
+						Utils::quote_if_necessary(nurl)
 							.c_str());
 				assert(url);
 
@@ -177,7 +177,7 @@ void rec_find_rss_outlines(
 
 bool OPML::import(
 		const std::string& filename,
-		urlreader* urlcfg)
+		UrlReader* urlcfg)
 {
 	xmlDoc* doc = xmlReadFile(filename.c_str(), nullptr, 0);
 	if (doc == nullptr) {
