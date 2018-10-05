@@ -54,7 +54,7 @@ my_write_data(void* buffer, size_t size, size_t nmemb, void* userp)
 std::string OldReaderApi::retrieve_auth()
 {
 	CURL* handle = curl_easy_init();
-	credentials cred = get_credentials("oldreader", "The Old Reader");
+	Credentials cred = get_credentials("oldreader", "The Old Reader");
 	if (cred.user.empty() || cred.pass.empty()) {
 		return "";
 	}

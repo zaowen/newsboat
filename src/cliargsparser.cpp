@@ -14,7 +14,7 @@ CLIArgsParser::CLIArgsParser(int argc, char* argv[])
 	program_name = argv[0];
 
 	static const char getopt_str[] = "i:erhqu:c:C:d:l:vVx:XI:E:";
-	static const struct option longopts[] = {
+	static const struct Option longopts[] = {
 		{"cache-file", required_argument, 0, 'c'},
 		{"config-file", required_argument, 0, 'C'},
 		{"execute", required_argument, 0, 'x'},

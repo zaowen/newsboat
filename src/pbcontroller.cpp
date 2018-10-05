@@ -194,7 +194,7 @@ int PbController::run(int argc, char* argv[])
 	::signal(SIGINT, ctrl_c_action);
 
 	static const char getopt_str[] = "C:q:d:l:havV";
-	static const struct option longopts[] = {
+	static const struct Option longopts[] = {
 		{"config-file", required_argument, 0, 'C'},
 		{"queue-file", required_argument, 0, 'q'},
 		{"log-file", required_argument, 0, 'd'},

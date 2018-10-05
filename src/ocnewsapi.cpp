@@ -40,7 +40,7 @@ bool OcNewsApi::authenticate()
 
 std::string OcNewsApi::retrieve_auth()
 {
-	credentials cred = get_credentials("ocnews", "ocNews");
+	Credentials cred = get_credentials("ocnews", "ocNews");
 	if (cred.user.empty() || cred.pass.empty()) {
 		LOG(Level::CRITICAL,
 			"OcNewsApi::retrieve_auth: No user and/or password "

@@ -7,7 +7,7 @@
 
 namespace newsboat {
 
-enum class ConfigData { INVALID, BOOL, INT, STR, PATH, ENUM };
+enum class ConfigDataType { INVALID, BOOL, INT, STR, PATH, ENUM };
 
 enum class FeedSortMethod {
 	NONE,
@@ -42,9 +42,9 @@ struct ArticleSortStrategy {
 	}
 };
 
-struct configdata {
-	configdata(const std::string& v = "",
-		ConfigData t = ConfigData::INVALID,
+struct ConfigData {
+	ConfigData(const std::string& v = "",
+		ConfigDataType t = ConfigDataType::INVALID,
 		bool m = false)
 		: value(v)
 		, default_value(v)
@@ -54,11 +54,11 @@ struct configdata {
 	{
 	}
 
-	configdata(const std::string& v,
+	ConfigData(const std::string& v,
 		const std::unordered_set<std::string>& values)
 		: value(v)
 		, default_value(v)
-		, type(ConfigData::ENUM)
+		, type(ConfigDataType::ENUM)
 		, enum_values(values)
 		, multi_option(false)
 	{
@@ -66,7 +66,7 @@ struct configdata {
 
 	std::string value;
 	std::string default_value;
-	ConfigData type;
+	ConfigDataType type;
 	const std::unordered_set<std::string> enum_values;
 	bool multi_option;
 };
@@ -93,7 +93,7 @@ public:
 	static const std::string PARTIAL_FILE_SUFFIX;
 
 private:
-	std::map<std::string, configdata> config_data;
+	std::map<std::string, ConfigData> config_data;
 
 	bool is_bool(const std::string& s);
 	bool is_int(const std::string& s);
