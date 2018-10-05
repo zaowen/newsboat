@@ -12,7 +12,7 @@
 namespace newsboat {
 
 DialogsFormAction::DialogsFormAction(View* vv, std::string formstr)
-	: Formaction(vv, formstr)
+	: FormAction(vv, formstr)
 	, update_list(true)
 {
 }
@@ -61,9 +61,9 @@ void DialogsFormAction::prepare()
 	}
 }
 
-keymap_hint_entry* DialogsFormAction::get_keymap_hint()
+KeymapHintEntry* DialogsFormAction::get_keymap_hint()
 {
-	static keymap_hint_entry hints[] = {{OP_QUIT, _("Close")},
+	static KeymapHintEntry hints[] = {{OP_QUIT, _("Close")},
 		{OP_OPEN, _("Goto Dialog")},
 		{OP_CLOSEDIALOG, _("Close Dialog")},
 		{OP_NIL, nullptr}};
@@ -122,7 +122,7 @@ void DialogsFormAction::handle_cmdline(const std::string& cmd)
 			v->show_error(_("Invalid position!"));
 		}
 	} else {
-		Formaction::handle_cmdline(cmd);
+		FormAction::handle_cmdline(cmd);
 	}
 }
 

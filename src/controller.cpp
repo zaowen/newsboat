@@ -467,7 +467,7 @@ int Controller::run(const CLIArgsParser& args)
 		refresh_on_start = true;
 	}
 
-	Formaction::load_histories(
+	FormAction::load_histories(
 		configpaths.search_file(), configpaths.cmdline_file());
 
 	// run the View
@@ -476,7 +476,7 @@ int Controller::run(const CLIArgsParser& args)
 	unsigned int history_limit =
 		cfg.get_configvalue_as_int("history-limit");
 	LOG(Level::DEBUG, "Controller::run: history-limit = %u", history_limit);
-	Formaction::save_histories(configpaths.search_file(),
+	FormAction::save_histories(configpaths.search_file(),
 		configpaths.cmdline_file(),
 		history_limit);
 

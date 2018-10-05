@@ -27,7 +27,7 @@ public:
 	explicit View(Controller*);
 	~View();
 	int run();
-	std::string run_modal(std::shared_ptr<Formaction> f,
+	std::string run_modal(std::shared_ptr<FormAction> f,
 		const std::string& value = "");
 
 	void set_feedlist(std::vector<std::shared_ptr<RssFeed>> feeds);
@@ -116,9 +116,9 @@ public:
 	std::vector<std::pair<unsigned int, std::string>>
 	get_formaction_names();
 
-	std::shared_ptr<Formaction> get_current_formaction();
+	std::shared_ptr<FormAction> get_current_formaction();
 
-	std::shared_ptr<Formaction> get_formaction(unsigned int idx) const
+	std::shared_ptr<FormAction> get_formaction(unsigned int idx) const
 	{
 		return formaction_stack[idx];
 	}
@@ -138,14 +138,14 @@ public:
 	static void ctrl_c_action(int sig);
 
 protected:
-	void set_bindings(std::shared_ptr<Formaction> fa);
-	void apply_colors(std::shared_ptr<Formaction> fa);
+	void set_bindings(std::shared_ptr<FormAction> fa);
+	void apply_colors(std::shared_ptr<FormAction> fa);
 
-	void handle_cmdline_completion(std::shared_ptr<Formaction> fa);
-	void clear_line(std::shared_ptr<Formaction> fa);
-	void clear_eol(std::shared_ptr<Formaction> fa);
-	void cancel_input(std::shared_ptr<Formaction> fa);
-	void delete_word(std::shared_ptr<Formaction> fa);
+	void handle_cmdline_completion(std::shared_ptr<FormAction> fa);
+	void clear_line(std::shared_ptr<FormAction> fa);
+	void clear_eol(std::shared_ptr<FormAction> fa);
+	void cancel_input(std::shared_ptr<FormAction> fa);
+	void delete_word(std::shared_ptr<FormAction> fa);
 
 	Controller* ctrl;
 
@@ -155,7 +155,7 @@ protected:
 
 	friend class ColorManager;
 
-	std::vector<std::shared_ptr<Formaction>> formaction_stack;
+	std::vector<std::shared_ptr<FormAction>> formaction_stack;
 	unsigned int current_formaction;
 
 	std::vector<std::string> tags;

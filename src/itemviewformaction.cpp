@@ -18,7 +18,7 @@ namespace newsboat {
 ItemViewFormAction::ItemViewFormAction(View* vv,
 	std::shared_ptr<ItemListFormAction> il,
 	std::string formstr)
-	: Formaction(vv, formstr)
+	: FormAction(vv, formstr)
 	, show_source(false)
 	, quit(false)
 	, rxman(0)
@@ -464,9 +464,9 @@ void ItemViewFormAction::process_operation(Operation op ,
 	}
 }
 
-keymap_hint_entry* ItemViewFormAction::get_keymap_hint()
+KeymapHintEntry* ItemViewFormAction::get_keymap_hint()
 {
-	static keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
+	static KeymapHintEntry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_SAVE, _("Save")},
 		{OP_NEXTUNREAD, _("Next Unread")},
 		{OP_OPENINBROWSER, _("Open in Browser")},
@@ -553,14 +553,14 @@ void ItemViewFormAction::handle_cmdline(const std::string& cmd)
 			}
 
 		} else {
-			Formaction::handle_cmdline(cmd);
+			FormAction::handle_cmdline(cmd);
 		}
 	}
 }
 
 void ItemViewFormAction::finished_qna(Operation op )
 {
-	Formaction::finished_qna(op); // important!
+	FormAction::finished_qna(op); // important!
 
 	std::shared_ptr<RssItem> item = feed->get_item_by_guid(guid);
 

@@ -97,7 +97,7 @@ void View::update_bindings()
 	}
 }
 
-void View::set_bindings(std::shared_ptr<Formaction> fa)
+void View::set_bindings(std::shared_ptr<FormAction> fa)
 {
 	std::string upkey("** ");
 	upkey.append(keys->getkey(OP_SK_UP, fa->id()));
@@ -130,7 +130,7 @@ void View::set_bindings(std::shared_ptr<Formaction> fa)
 	fa->get_form()->set("bind_end", endkey);
 }
 
-std::shared_ptr<Formaction> View::get_current_formaction()
+std::shared_ptr<FormAction> View::get_current_formaction()
 {
 	if (formaction_stack.size() > 0 &&
 		current_formaction < formaction_stack_size()) {
@@ -171,7 +171,7 @@ void View::show_error(const std::string& msg)
 int View::run()
 {
 	bool have_macroprefix = false;
-	std::vector<macrocmd> macrocmds;
+	std::vector<MacroCmd> macrocmds;
 
 	// create feedlist
 	auto feedlist =
@@ -195,7 +195,7 @@ int View::run()
 
 	while (formaction_stack_size() > 0) {
 		// first, we take the current formaction.
-		std::shared_ptr<Formaction> fa = get_current_formaction();
+		std::shared_ptr<FormAction> fa = get_current_formaction();
 
 		// we signal "oh, you will receive an operation soon"
 		fa->prepare();
@@ -235,7 +235,7 @@ int View::run()
 				if (fa->id() == "article")
 					std::dynamic_pointer_cast<
 						ItemViewFormAction,
-						Formaction>(fa)
+						FormAction>(fa)
 						->update_percent();
 				continue;
 			}
@@ -299,7 +299,7 @@ int View::run()
 	return EXIT_SUCCESS;
 }
 
-std::string View::run_modal(std::shared_ptr<Formaction> f,
+std::string View::run_modal(std::shared_ptr<FormAction> f,
 	const std::string& value)
 {
 	f->init();
@@ -309,7 +309,7 @@ std::string View::run_modal(std::shared_ptr<Formaction> f,
 	current_formaction = formaction_stack_size() - 1;
 
 	while (formaction_stack.size() > stacksize) {
-		std::shared_ptr<Formaction> fa = get_current_formaction();
+		std::shared_ptr<FormAction> fa = get_current_formaction();
 
 		fa->prepare();
 
@@ -358,13 +358,13 @@ std::string View::get_filename_suggestion(const std::string& s)
 
 void View::push_empty_formaction()
 {
-	formaction_stack.push_back(std::shared_ptr<Formaction>());
+	formaction_stack.push_back(std::shared_ptr<FormAction>());
 	current_formaction = formaction_stack_size() - 1;
 }
 
 void View::open_in_pager(const std::string& filename)
 {
-	formaction_stack.push_back(std::shared_ptr<Formaction>());
+	formaction_stack.push_back(std::shared_ptr<FormAction>());
 	current_formaction = formaction_stack_size() - 1;
 	std::string cmdline;
 	std::string pager = cfg->get_configvalue("pager");
@@ -390,7 +390,7 @@ void View::open_in_pager(const std::string& filename)
 
 void View::open_in_browser(const std::string& url)
 {
-	formaction_stack.push_back(std::shared_ptr<Formaction>());
+	formaction_stack.push_back(std::shared_ptr<FormAction>());
 	current_formaction = formaction_stack_size() - 1;
 	std::string cmdline;
 	std::string browser = cfg->get_configvalue("browser");
@@ -423,7 +423,7 @@ void View::update_visible_feeds(std::vector<std::shared_ptr<RssFeed>> feeds)
 			std::lock_guard<std::mutex> lock(mtx);
 			std::shared_ptr<FeedListFormAction> feedlist =
 				std::dynamic_pointer_cast<FeedListFormAction,
-					Formaction>(formaction_stack[0]);
+					FormAction>(formaction_stack[0]);
 			feedlist->update_visible_feeds(feeds);
 		}
 	} catch (const MatcherException& e) {
@@ -449,7 +449,7 @@ void View::set_feedlist(std::vector<std::shared_ptr<RssFeed>> feeds)
 		if (formaction_stack_size() > 0) {
 			std::shared_ptr<FeedListFormAction> feedlist =
 				std::dynamic_pointer_cast<FeedListFormAction,
-					Formaction>(formaction_stack[0]);
+					FormAction>(formaction_stack[0]);
 			feedlist->set_feedlist(feeds);
 		}
 	} catch (const MatcherException& e) {
@@ -523,7 +523,7 @@ void View::push_itemlist(unsigned int pos)
 	if (feed->total_item_count() > 0) {
 		std::shared_ptr<ItemListFormAction> itemlist =
 			std::dynamic_pointer_cast<ItemListFormAction,
-				Formaction>(get_current_formaction());
+				FormAction>(get_current_formaction());
 		itemlist->set_pos(pos);
 	}
 }
@@ -537,7 +537,7 @@ void View::push_itemview(std::shared_ptr<RssFeed> f,
 
 		std::shared_ptr<ItemListFormAction> itemlist =
 			std::dynamic_pointer_cast<ItemListFormAction,
-				Formaction>(fa);
+				FormAction>(fa);
 		assert(itemlist != nullptr);
 		std::shared_ptr<ItemViewFormAction> itemview(
 			new ItemViewFormAction(this, itemlist, itemview_str));
@@ -663,8 +663,8 @@ char View::confirm(const std::string& prompt, const std::string& charset)
 {
 	LOG(Level::DEBUG, "View::confirm: charset = %s", charset);
 
-	std::shared_ptr<Formaction> f = get_current_formaction();
-	formaction_stack.push_back(std::shared_ptr<Formaction>());
+	std::shared_ptr<FormAction> f = get_current_formaction();
+	formaction_stack.push_back(std::shared_ptr<FormAction>());
 	current_formaction = formaction_stack_size() - 1;
 	f->get_form()->set("msg", prompt);
 
@@ -703,7 +703,7 @@ void View::notify_itemlist_change(std::shared_ptr<RssFeed> feed)
 		if (form != nullptr && form->id() == "articlelist") {
 			std::shared_ptr<ItemListFormAction> itemlist =
 				std::dynamic_pointer_cast<ItemListFormAction,
-					Formaction>(form);
+					FormAction>(form);
 			if (itemlist != nullptr) {
 				std::shared_ptr<RssFeed> f =
 					itemlist->get_feed();
@@ -722,7 +722,7 @@ bool View::get_random_unread(ItemListFormAction* itemlist,
 {
 	unsigned int feedpos;
 	std::shared_ptr<FeedListFormAction> feedlist =
-		std::dynamic_pointer_cast<FeedListFormAction, Formaction>(
+		std::dynamic_pointer_cast<FeedListFormAction, FormAction>(
 			formaction_stack[0]);
 	if (!cfg->get_configvalue_as_bool("goto-next-feed")) {
 		return false;
@@ -754,7 +754,7 @@ bool View::get_previous_unread(ItemListFormAction* itemlist,
 	LOG(Level::DEBUG,
 		"View::get_previous_unread: trying to find previous unread");
 	std::shared_ptr<FeedListFormAction> feedlist =
-		std::dynamic_pointer_cast<FeedListFormAction, Formaction>(
+		std::dynamic_pointer_cast<FeedListFormAction, FormAction>(
 			formaction_stack[0]);
 	if (itemlist->jump_to_previous_unread_item(false)) {
 		LOG(Level::DEBUG,
@@ -794,7 +794,7 @@ bool View::get_previous_unread(ItemListFormAction* itemlist,
 bool View::get_next_unread_feed(ItemListFormAction* itemlist)
 {
 	std::shared_ptr<FeedListFormAction> feedlist =
-		std::dynamic_pointer_cast<FeedListFormAction, Formaction>(
+		std::dynamic_pointer_cast<FeedListFormAction, FormAction>(
 			formaction_stack[0]);
 	unsigned int feedpos;
 	assert(feedlist != nullptr);
@@ -811,7 +811,7 @@ bool View::get_next_unread_feed(ItemListFormAction* itemlist)
 bool View::get_prev_unread_feed(ItemListFormAction* itemlist)
 {
 	std::shared_ptr<FeedListFormAction> feedlist =
-		std::dynamic_pointer_cast<FeedListFormAction, Formaction>(
+		std::dynamic_pointer_cast<FeedListFormAction, FormAction>(
 			formaction_stack[0]);
 	unsigned int feedpos;
 	assert(feedlist != nullptr);
@@ -830,7 +830,7 @@ bool View::get_next_unread(ItemListFormAction* itemlist,
 {
 	unsigned int feedpos;
 	std::shared_ptr<FeedListFormAction> feedlist =
-		std::dynamic_pointer_cast<FeedListFormAction, Formaction>(
+		std::dynamic_pointer_cast<FeedListFormAction, FormAction>(
 			formaction_stack[0]);
 	LOG(Level::DEBUG, "View::get_next_unread: trying to find next unread");
 	if (itemlist->jump_to_next_unread_item(false)) {
@@ -872,7 +872,7 @@ bool View::get_previous(ItemListFormAction* itemlist,
 {
 	unsigned int feedpos;
 	std::shared_ptr<FeedListFormAction> feedlist =
-		std::dynamic_pointer_cast<FeedListFormAction, Formaction>(
+		std::dynamic_pointer_cast<FeedListFormAction, FormAction>(
 			formaction_stack[0]);
 	if (itemlist->jump_to_previous_item(false)) {
 		LOG(Level::DEBUG, "View::get_previous: article in same feed");
@@ -908,7 +908,7 @@ bool View::get_next(ItemListFormAction* itemlist,
 {
 	unsigned int feedpos;
 	std::shared_ptr<FeedListFormAction> feedlist =
-		std::dynamic_pointer_cast<FeedListFormAction, Formaction>(
+		std::dynamic_pointer_cast<FeedListFormAction, FormAction>(
 			formaction_stack[0]);
 	if (itemlist->jump_to_next_item(false)) {
 		LOG(Level::DEBUG, "View::get_next: article in same feed");
@@ -942,7 +942,7 @@ bool View::get_next(ItemListFormAction* itemlist,
 bool View::get_next_feed(ItemListFormAction* itemlist)
 {
 	std::shared_ptr<FeedListFormAction> feedlist =
-		std::dynamic_pointer_cast<FeedListFormAction, Formaction>(
+		std::dynamic_pointer_cast<FeedListFormAction, FormAction>(
 			formaction_stack[0]);
 	unsigned int feedpos;
 	assert(feedlist != nullptr);
@@ -959,7 +959,7 @@ bool View::get_next_feed(ItemListFormAction* itemlist)
 bool View::get_prev_feed(ItemListFormAction* itemlist)
 {
 	std::shared_ptr<FeedListFormAction> feedlist =
-		std::dynamic_pointer_cast<FeedListFormAction, Formaction>(
+		std::dynamic_pointer_cast<FeedListFormAction, FormAction>(
 			formaction_stack[0]);
 	unsigned int feedpos;
 	assert(feedlist != nullptr);
@@ -990,7 +990,7 @@ void View::prepare_query_feed(std::shared_ptr<RssFeed> feed)
 
 void View::force_redraw()
 {
-	std::shared_ptr<Formaction> fa = get_current_formaction();
+	std::shared_ptr<FormAction> fa = get_current_formaction();
 	if (fa != nullptr) {
 		fa->set_redraw(true);
 		fa->prepare();
@@ -1000,7 +1000,7 @@ void View::force_redraw()
 
 void View::pop_current_formaction()
 {
-	std::shared_ptr<Formaction> f = get_current_formaction();
+	std::shared_ptr<FormAction> f = get_current_formaction();
 	auto it = formaction_stack.begin();
 	for (unsigned int i = 0; i < current_formaction; i++)
 		++it;
@@ -1030,7 +1030,7 @@ void View::pop_current_formaction()
 			}
 			i++;
 		}
-		std::shared_ptr<Formaction> f = get_current_formaction();
+		std::shared_ptr<FormAction> f = get_current_formaction();
 		if (f) {
 			f->set_redraw(true);
 			f->get_form()->set("msg", "");
@@ -1047,7 +1047,7 @@ void View::set_current_formaction(unsigned int pos)
 
 void View::remove_formaction(unsigned int pos)
 {
-	std::shared_ptr<Formaction> f = formaction_stack[pos];
+	std::shared_ptr<FormAction> f = formaction_stack[pos];
 	auto it = formaction_stack.begin();
 	for (unsigned int i = 0; i < pos; i++)
 		++it;
@@ -1085,7 +1085,7 @@ void View::apply_colors_to_all_formactions()
 	}
 }
 
-void View::apply_colors(std::shared_ptr<Formaction> fa)
+void View::apply_colors(std::shared_ptr<FormAction> fa)
 {
 	auto fgcit = fg_colors.begin();
 	auto bgcit = bg_colors.begin();
@@ -1160,7 +1160,7 @@ void View::apply_colors(std::shared_ptr<Formaction> fa)
 void View::feedlist_mark_pos_if_visible(unsigned int pos)
 {
 	if (formaction_stack_size() > 0) {
-		std::dynamic_pointer_cast<FeedListFormAction, Formaction>(
+		std::dynamic_pointer_cast<FeedListFormAction, FormAction>(
 			formaction_stack[0])
 			->mark_pos_if_visible(pos);
 	}
@@ -1213,14 +1213,14 @@ void View::inside_cmdline(bool f)
 	is_inside_cmdline = f;
 }
 
-void View::clear_line(std::shared_ptr<Formaction> fa)
+void View::clear_line(std::shared_ptr<FormAction> fa)
 {
 	fa->get_form()->set("qna_value", "");
 	fa->get_form()->set("qna_value_pos", "0");
 	LOG(Level::DEBUG, "View::clear_line: cleared line");
 }
 
-void View::clear_eol(std::shared_ptr<Formaction> fa)
+void View::clear_eol(std::shared_ptr<FormAction> fa)
 {
 	unsigned int pos = Utils::to_u(fa->get_form()->get("qna_value_pos"), 0);
 	std::string val = fa->get_form()->get("qna_value");
@@ -1230,13 +1230,13 @@ void View::clear_eol(std::shared_ptr<Formaction> fa)
 	LOG(Level::DEBUG, "View::clear_eol: cleared to end of line");
 }
 
-void View::cancel_input(std::shared_ptr<Formaction> fa)
+void View::cancel_input(std::shared_ptr<FormAction> fa)
 {
 	fa->process_op(OP_INT_CANCEL_QNA);
 	LOG(Level::DEBUG, "View::cancel_input: cancelled input");
 }
 
-void View::delete_word(std::shared_ptr<Formaction> fa)
+void View::delete_word(std::shared_ptr<FormAction> fa)
 {
 	std::string::size_type curpos =
 		Utils::to_u(fa->get_form()->get("qna_value_pos"), 0);
@@ -1261,7 +1261,7 @@ void View::delete_word(std::shared_ptr<Formaction> fa)
 	fa->get_form()->set("qna_value_pos", std::to_string(firstpos));
 }
 
-void View::handle_cmdline_completion(std::shared_ptr<Formaction> fa)
+void View::handle_cmdline_completion(std::shared_ptr<FormAction> fa)
 {
 	std::string fragment = fa->get_form()->get("qna_value");
 	if (fragment != last_fragment || fragment == "") {

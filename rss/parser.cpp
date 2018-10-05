@@ -47,11 +47,11 @@ Parser::~Parser()
 		xmlFreeDoc(doc);
 }
 
-struct header_values {
+struct HeaderValues {
 	time_t lastmodified;
 	std::string etag;
 
-	header_values()
+	HeaderValues()
 		: lastmodified(0)
 	{
 	}
@@ -60,7 +60,7 @@ struct header_values {
 static size_t handle_headers(void* ptr, size_t size, size_t nmemb, void* data)
 {
 	char* header = new char[size * nmemb + 1];
-	header_values* values = static_cast<header_values*>(data);
+	HeaderValues* values = static_cast<HeaderValues*>(data);
 
 	memcpy(header, ptr, size * nmemb);
 	header[size * nmemb] = '\0';
@@ -152,7 +152,7 @@ Feed Parser::parse_url(const std::string& url,
 		curl_easy_setopt(easyhandle, CURLOPT_CAINFO, curl_ca_bundle);
 	}
 
-	header_values hdrs;
+	HeaderValues hdrs;
 	curl_easy_setopt(easyhandle, CURLOPT_HEADERDATA, &hdrs);
 	curl_easy_setopt(easyhandle, CURLOPT_HEADERFUNCTION, handle_headers);
 

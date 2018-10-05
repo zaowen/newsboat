@@ -11,7 +11,7 @@ namespace newsboat {
 
 class ItemListFormAction;
 
-class ItemViewFormAction : public Formaction {
+class ItemViewFormAction : public FormAction {
 public:
 	ItemViewFormAction(View*,
 		std::shared_ptr<ItemListFormAction> il,
@@ -28,7 +28,7 @@ public:
 		feed = fd;
 	}
 	void set_highlightphrase(const std::string& text);
-	keymap_hint_entry* get_keymap_hint() override;
+	KeymapHintEntry* get_keymap_hint() override;
 	void handle_cmdline(const std::string& cmd) override;
 
 	std::string id() const override

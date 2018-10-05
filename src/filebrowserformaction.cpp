@@ -23,7 +23,7 @@
 namespace newsboat {
 
 FileBrowserFormAction::FileBrowserFormAction(View* vv, std::string formstr)
-	: Formaction(vv, formstr)
+	: FormAction(vv, formstr)
 	, quit(false)
 {
 	// In filebrowser, keyboard focus is at the input field, so user can't
@@ -253,9 +253,9 @@ void FileBrowserFormAction::init()
 			cwdtmp));
 }
 
-keymap_hint_entry* FileBrowserFormAction::get_keymap_hint()
+KeymapHintEntry* FileBrowserFormAction::get_keymap_hint()
 {
-	static keymap_hint_entry hints[] = {{OP_QUIT, _("Cancel")},
+	static KeymapHintEntry hints[] = {{OP_QUIT, _("Cancel")},
 		{OP_OPEN, _("Save")},
 		{OP_NIL, nullptr}};
 	return hints;
@@ -332,7 +332,7 @@ std::string FileBrowserFormAction::get_rwx(unsigned short val)
 
 char FileBrowserFormAction::get_filetype(mode_t mode)
 {
-	static struct flag_char {
+	static struct FlagChar {
 		mode_t flag;
 		char ftype;
 	} flags[] = {{S_IFREG, '-'},

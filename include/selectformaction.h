@@ -6,7 +6,7 @@
 
 namespace newsboat {
 
-class SelectFormAction : public Formaction {
+class SelectFormAction : public FormAction {
 public:
 	enum class SelectionType { TAG, FILTER };
 
@@ -14,7 +14,7 @@ public:
 	~SelectFormAction() override;
 	void prepare() override;
 	void init() override;
-	keymap_hint_entry* get_keymap_hint() override;
+	KeymapHintEntry* get_keymap_hint() override;
 	std::string get_selected_value()
 	{
 		return value;

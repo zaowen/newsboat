@@ -20,7 +20,7 @@ namespace newsboat {
 UrlViewFormAction::UrlViewFormAction(View* vv,
 	std::shared_ptr<RssFeed>& feed,
 	std::string formstr)
-	: Formaction(vv, formstr)
+	: FormAction(vv, formstr)
 	, quit(false)
 	, feed(feed)
 {
@@ -129,9 +129,9 @@ void UrlViewFormAction::init()
 	set_keymap_hints();
 }
 
-keymap_hint_entry* UrlViewFormAction::get_keymap_hint()
+KeymapHintEntry* UrlViewFormAction::get_keymap_hint()
 {
-	static keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
+	static KeymapHintEntry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_OPEN, _("Open in Browser")},
 		{OP_BOOKMARK, _("Save Bookmark")},
 		{OP_NIL, nullptr}};
@@ -148,7 +148,7 @@ void UrlViewFormAction::handle_cmdline(const std::string& cmd)
 			f->set("feedpos", std::to_string(idx - 1));
 		}
 	} else {
-		Formaction::handle_cmdline(cmd);
+		FormAction::handle_cmdline(cmd);
 	}
 }
 

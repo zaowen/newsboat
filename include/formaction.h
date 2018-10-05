@@ -13,17 +13,17 @@ namespace newsboat {
 
 class View;
 
-struct keymap_hint_entry {
+struct KeymapHintEntry {
 	Operation op ;
 	char* text;
 };
 
 typedef std::pair<std::string, std::string> qna_pair;
 
-class Formaction {
+class FormAction {
 public:
-	Formaction(View*, std::string formstr);
-	virtual ~Formaction();
+	FormAction(View*, std::string formstr);
+	virtual ~FormAction();
 	virtual void prepare() = 0;
 	virtual void init() = 0;
 	std::shared_ptr<Stfl::Form> get_form();
@@ -32,7 +32,7 @@ public:
 		do_redraw = b;
 	}
 
-	virtual keymap_hint_entry* get_keymap_hint() = 0;
+	virtual KeymapHintEntry* get_keymap_hint() = 0;
 
 	virtual std::string id() const = 0;
 
@@ -59,11 +59,11 @@ public:
 		Operation finish_op,
 		History* h = nullptr);
 
-	void set_parent_formaction(std::shared_ptr<Formaction> fa)
+	void set_parent_formaction(std::shared_ptr<FormAction> fa)
 	{
 		parent_formaction = fa;
 	}
-	std::shared_ptr<Formaction> get_parent_formaction() const
+	std::shared_ptr<FormAction> get_parent_formaction() const
 	{
 		return parent_formaction;
 	}
@@ -109,13 +109,13 @@ protected:
 	std::vector<std::string> valid_cmds;
 
 private:
-	std::string prepare_keymap_hint(keymap_hint_entry* hints);
+	std::string prepare_keymap_hint(KeymapHintEntry* hints);
 	void start_next_question();
 
 	std::vector<qna_pair> qna_prompts;
 	Operation finish_operation;
 	History* qna_history;
-	std::shared_ptr<Formaction> parent_formaction;
+	std::shared_ptr<FormAction> parent_formaction;
 };
 
 } // namespace newsboat

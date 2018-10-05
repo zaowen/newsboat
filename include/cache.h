@@ -10,30 +10,30 @@
 
 namespace newsboat {
 
-struct schema_version {
+struct SchemaVersion {
 	unsigned int major, minor;
 
-	friend bool operator<(const schema_version& l, const schema_version& r)
+	friend bool operator<(const SchemaVersion& l, const SchemaVersion& r)
 	{
 		return std::tie(l.major, l.minor) < std::tie(r.major, r.minor);
 	}
-	friend bool operator>(const schema_version& l, const schema_version& r)
+	friend bool operator>(const SchemaVersion& l, const SchemaVersion& r)
 	{
 		return r < l;
 	}
-	friend bool operator<=(const schema_version& l, const schema_version& r)
+	friend bool operator<=(const SchemaVersion& l, const SchemaVersion& r)
 	{
 		return !(l > r);
 	}
-	friend bool operator>=(const schema_version& l, const schema_version& r)
+	friend bool operator>=(const SchemaVersion& l, const SchemaVersion& r)
 	{
 		return !(l < r);
 	}
 };
 
-const schema_version unknown_version = {0, 0};
+const SchemaVersion unknown_version = {0, 0};
 
-using schema_patches = std::map<schema_version, std::vector<std::string>>;
+using schema_patches = std::map<SchemaVersion, std::vector<std::string>>;
 
 class Cache {
 public:
@@ -74,7 +74,7 @@ public:
 	void fetch_descriptions(RssFeed* feed);
 
 private:
-	schema_version get_schema_version();
+	SchemaVersion get_schema_version();
 	void populate_tables();
 	void set_pragmas();
 	void delete_item(const std::shared_ptr<RssItem>& item);

@@ -5,13 +5,13 @@
 
 namespace newsboat {
 
-class HelpFormAction : public Formaction {
+class HelpFormAction : public FormAction {
 public:
 	HelpFormAction(View*, std::string formstr);
 	~HelpFormAction() override;
 	void prepare() override;
 	void init() override;
-	keymap_hint_entry* get_keymap_hint() override;
+	KeymapHintEntry* get_keymap_hint() override;
 	std::string id() const override
 	{
 		return "help";

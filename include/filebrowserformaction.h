@@ -5,13 +5,13 @@
 
 namespace newsboat {
 
-class FileBrowserFormAction : public Formaction {
+class FileBrowserFormAction : public FormAction {
 public:
 	FileBrowserFormAction(View*, std::string formstr);
 	~FileBrowserFormAction() override;
 	void prepare() override;
 	void init() override;
-	keymap_hint_entry* get_keymap_hint() override;
+	KeymapHintEntry* get_keymap_hint() override;
 
 	void set_dir(const std::string& d)
 	{

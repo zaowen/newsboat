@@ -269,7 +269,7 @@ void PbView::run_help()
 
 	help_form.set("head", _("Help"));
 
-	std::vector<keymap_desc> descs;
+	std::vector<KeymapDesc> descs;
 	keys->get_keymap_descriptions(descs, KM_PODBOAT);
 
 	std::string code = "{list";
@@ -314,7 +314,7 @@ void PbView::run_help()
 	} while (!quit);
 }
 
-std::string PbView::prepare_keymaphint(keymap_hint_entry* hints)
+std::string PbView::prepare_keymaphint(KeymapHintEntry* hints)
 {
 	std::string keymap_hint;
 	for (int i = 0; hints[i].op != OP_NIL; ++i) {
@@ -328,14 +328,14 @@ std::string PbView::prepare_keymaphint(keymap_hint_entry* hints)
 
 void PbView::set_help_keymap_hint()
 {
-	keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")}, {OP_NIL, nullptr}};
+	KeymapHintEntry hints[] = {{OP_QUIT, _("Quit")}, {OP_NIL, nullptr}};
 	std::string keymap_hint = prepare_keymaphint(hints);
 	help_form.set("help", keymap_hint);
 }
 
 void PbView::set_dllist_keymap_hint()
 {
-	keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
+	KeymapHintEntry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_PB_DOWNLOAD, _("Download")},
 		{OP_PB_CANCEL, _("Cancel")},
 		{OP_PB_DELETE, _("Delete")},

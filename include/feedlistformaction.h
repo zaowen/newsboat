@@ -21,12 +21,12 @@ public:
 	void update_visible_feeds(
 		std::vector<std::shared_ptr<RssFeed>>& feeds);
 	void set_tags(const std::vector<std::string>& t);
-	keymap_hint_entry* get_keymap_hint() override;
+	KeymapHintEntry* get_keymap_hint() override;
 	std::shared_ptr<RssFeed> get_feed();
 
 	void set_redraw(bool b) override
 	{
-		Formaction::set_redraw(b);
+		FormAction::set_redraw(b);
 		apply_filter = !(v->get_cfg()->get_configvalue_as_bool(
 			"show-read-feeds"));
 	}

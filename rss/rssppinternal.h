@@ -40,14 +40,14 @@ protected:
 	std::string globalbase;
 };
 
-struct rss_09x_parser : public RssParser {
+struct Rss09xParser : public RssParser {
 	void parse_feed(Feed& f, xmlNode* rootNode) override;
-	explicit rss_09x_parser(xmlDocPtr doc)
+	explicit Rss09xParser(xmlDocPtr doc)
 		: RssParser(doc)
 		, ns(nullptr)
 	{
 	}
-	~rss_09x_parser() override;
+	~Rss09xParser() override;
 
 protected:
 	const char* ns;
@@ -56,32 +56,32 @@ private:
 	Item parse_item(xmlNode* itemNode);
 };
 
-struct rss_20_parser : public rss_09x_parser {
-	explicit rss_20_parser(xmlDocPtr doc)
-		: rss_09x_parser(doc)
+struct Rss20Parser : public Rss09xParser {
+	explicit Rss20Parser(xmlDocPtr doc)
+		: Rss09xParser(doc)
 	{
 	}
 	void parse_feed(Feed& f, xmlNode* rootNode) override;
-	~rss_20_parser() override {}
+	~Rss20Parser() override {}
 };
 
-struct rss_10_parser : public RssParser {
+struct Rss10Parser : public RssParser {
 	void parse_feed(Feed& f, xmlNode* rootNode) override;
-	explicit rss_10_parser(xmlDocPtr doc)
+	explicit Rss10Parser(xmlDocPtr doc)
 		: RssParser(doc)
 	{
 	}
-	~rss_10_parser() override {}
+	~Rss10Parser() override {}
 };
 
-struct atom_parser : public RssParser {
+struct AtomParser : public RssParser {
 	void parse_feed(Feed& f, xmlNode* rootNode) override;
-	explicit atom_parser(xmlDocPtr doc)
+	explicit AtomParser(xmlDocPtr doc)
 		: RssParser(doc)
 		, ns(0)
 	{
 	}
-	~atom_parser() override {}
+	~AtomParser() override {}
 
 private:
 	Item parse_entry(xmlNode* itemNode);

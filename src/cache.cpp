@@ -51,8 +51,8 @@ void Cache::run_sql_nothrow(const std::string& query,
 	run_sql_impl(query, callback, callback_argument, false);
 }
 
-struct cb_handler {
-	cb_handler()
+struct CbHandler {
+	CbHandler()
 		: c(-1)
 	{
 	}
@@ -69,7 +69,7 @@ private:
 	int c;
 };
 
-struct header_values {
+struct HeaderValues {
 	time_t lastmodified;
 	std::string etag;
 };
@@ -77,7 +77,7 @@ struct header_values {
 static int
 count_callback(void* handler, int argc, char** argv, char** /* azColName */)
 {
-	cb_handler* cbh = static_cast<cb_handler*>(handler);
+	CbHandler* cbh = static_cast<CbHandler*>(handler);
 
 	if (argc > 0) {
 		std::istringstream is(argv[0]);
@@ -128,7 +128,7 @@ static int lastmodified_callback(void* handler,
 	char** argv,
 	char** /* azColName */)
 {
-	header_values* result = static_cast<header_values*>(handler);
+	HeaderValues* result = static_cast<HeaderValues*>(handler);
 	assert(argc == 2);
 	assert(result != nullptr);
 	if (argv[0]) {
@@ -373,7 +373,7 @@ static const schema_patches schemaPatches{
 
 void Cache::populate_tables()
 {
-	const schema_version version = get_schema_version();
+	const SchemaVersion version = get_schema_version();
 	LOG(Level::INFO,
 		"Cache::populate_tables: DB schema version %u.%u",
 		version.major,
@@ -395,7 +395,7 @@ void Cache::populate_tables()
 	}
 
 	for (; patches_it != schemaPatches.cend(); ++patches_it) {
-		const schema_version patch_version = patches_it->first;
+		const SchemaVersion patch_version = patches_it->first;
 		LOG(Level::INFO,
 			"Cache::populate_tables: applying DB schema patches "
 			"for version %u.%u",
@@ -415,7 +415,7 @@ void Cache::fetch_lastmodified(const std::string& feedurl,
 	std::string query = prepare_query(
 		"SELECT lastmodified, etag FROM rss_feed WHERE rssurl = '%q';",
 		feedurl);
-	header_values result = {0, ""};
+	HeaderValues result = {0, ""};
 	run_sql(query, lastmodified_callback, &result);
 	t = result.lastmodified;
 	etag = result.etag;
@@ -481,7 +481,7 @@ void Cache::externalize_rssfeed(std::shared_ptr<RssFeed> feed,
 	std::lock_guard<std::mutex> feedlock(feed->item_mutex);
 	// scope_transaction dbtrans(db);
 
-	cb_handler count_cbh;
+	CbHandler count_cbh;
 	auto query = prepare_query(
 		"SELECT count(*) FROM rss_feed WHERE rssurl = '%q';",
 		feed->rssurl());
@@ -562,7 +562,7 @@ std::shared_ptr<RssFeed> Cache::internalize_rssfeed(std::string rssurl,
 	/* first, we check whether the feed is there at all */
 	std::string query = prepare_query(
 		"SELECT count(*) FROM rss_feed WHERE rssurl = '%q';", rssurl);
-	cb_handler count_cbh;
+	CbHandler count_cbh;
 	run_sql(query, count_callback, &count_cbh);
 
 	if (count_cbh.count() == 0) {
@@ -776,7 +776,7 @@ void Cache::update_rssitem_unlocked(std::shared_ptr<RssItem> item,
 	std::string query = prepare_query(
 		"SELECT count(*) FROM rss_item WHERE guid = '%q';",
 		item->guid());
-	cb_handler count_cbh;
+	CbHandler count_cbh;
 	run_sql(query, count_callback, &count_cbh);
 	if (count_cbh.count() > 0) {
 		if (reset_unread) {
@@ -1004,7 +1004,7 @@ unsigned int Cache::get_unread_count()
 
 	std::string countquery =
 		"SELECT count(id) FROM rss_item WHERE unread = 1;";
-	cb_handler count_cbh;
+	CbHandler count_cbh;
 	run_sql(countquery, count_callback, &count_cbh);
 	unsigned int count = static_cast<unsigned int>(count_cbh.count());
 	LOG(Level::DEBUG, "Cache::get_unread_count: count = %u", count);
@@ -1077,10 +1077,10 @@ void Cache::fetch_descriptions(RssFeed* feed)
 	run_sql(query, fill_content_callback, feed);
 }
 
-schema_version Cache::get_schema_version()
+SchemaVersion Cache::get_schema_version()
 {
 	sqlite3_stmt* stmt{};
-	schema_version result;
+	SchemaVersion result;
 
 	int rc = sqlite3_prepare_v2(db,
 		"SELECT db_schema_version_major, db_schema_version_minor "
