@@ -144,7 +144,7 @@ private:
 	RemoteApi* api;
 	std::mutex feeds_mutex;
 
-	std::unique_ptr<FSLock> fslock;
+	std::unique_ptr<FsLock> fslock;
 
 	ConfigPaths configpaths;
 

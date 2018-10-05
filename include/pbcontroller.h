@@ -82,7 +82,7 @@ private:
 	QueueLoader* ql;
 
 	std::string lock_file;
-	std::unique_ptr<newsboat::FSLock> fslock;
+	std::unique_ptr<newsboat::FsLock> fslock;
 };
 
 } // namespace podboat

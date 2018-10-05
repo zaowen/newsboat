@@ -154,7 +154,7 @@ int Controller::run(const CLIArgsParser& args)
 					     PROGRAM_VERSION)
 				  << std::endl;
 
-		fslock = std::unique_ptr<FSLock>(new FSLock());
+		fslock = std::unique_ptr<FsLock>(new FsLock());
 		pid_t pid;
 		if (!fslock->try_lock(configpaths.lock_file(), pid)) {
 			if (!args.execute_cmds) {
@@ -211,7 +211,7 @@ int Controller::run(const CLIArgsParser& args)
 	std::string cachefilepath = cfg.get_configvalue("cache-file");
 	if (cachefilepath.length() > 0 && !args.set_cache_file) {
 		configpaths.set_cache_file(cachefilepath);
-		fslock = std::unique_ptr<FSLock>(new FSLock());
+		fslock = std::unique_ptr<FsLock>(new FsLock());
 		pid_t pid;
 		if (!fslock->try_lock(configpaths.lock_file(), pid)) {
 			std::cout << StrPrintf::fmt(

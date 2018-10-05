@@ -246,7 +246,7 @@ int PbController::run(int argc, char* argv[])
 			     _("Starting %s %s..."), "podboat", PROGRAM_VERSION)
 		  << std::endl;
 
-	fslock = std::unique_ptr<FSLock>(new FSLock());
+	fslock = std::unique_ptr<FsLock>(new FsLock());
 	pid_t pid;
 	if (!fslock->try_lock(lock_file, pid)) {
 		std::cout << StrPrintf::fmt(
