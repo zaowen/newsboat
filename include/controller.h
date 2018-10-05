@@ -19,7 +19,7 @@
 
 namespace newsboat {
 
-class view;
+class View;
 
 class CurlHandle;
 
@@ -27,8 +27,8 @@ class Controller {
 public:
 	Controller();
 	~Controller();
-	void set_view(view* vv);
-	view* get_view()
+	void set_view(View* vv);
+	View* get_view()
 	{
 		return v;
 	}
@@ -64,7 +64,7 @@ public:
 		return filters;
 	}
 
-	cache* get_cache()
+	Cache* get_cache()
 	{
 		return rsscache;
 	}
@@ -129,9 +129,9 @@ private:
 	void import_read_information(const std::string& readinfofile);
 	void export_read_information(const std::string& readinfofile);
 
-	view* v;
+	View* v;
 	UrlReader* urlcfg;
-	cache* rsscache;
+	Cache* rsscache;
 	bool refresh_on_start;
 	ConfigContainer cfg;
 	RssIgnores ign;

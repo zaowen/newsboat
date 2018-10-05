@@ -9,7 +9,7 @@ using namespace newsboat;
 
 namespace rsspp {
 
-void rss_20_parser::parse_feed(feed& f, xmlNode* rootNode)
+void rss_20_parser::parse_feed(Feed& f, xmlNode* rootNode)
 {
 	if (!rootNode)
 		throw Exception(_("XML root node is NULL"));
@@ -24,7 +24,7 @@ void rss_20_parser::parse_feed(feed& f, xmlNode* rootNode)
 	rss_09x_parser::parse_feed(f, rootNode);
 }
 
-void rss_09x_parser::parse_feed(feed& f, xmlNode* rootNode)
+void rss_09x_parser::parse_feed(Feed& f, xmlNode* rootNode)
 {
 	if (!rootNode)
 		throw Exception(_("XML root node is NULL"));
@@ -58,9 +58,9 @@ void rss_09x_parser::parse_feed(feed& f, xmlNode* rootNode)
 	}
 }
 
-item rss_09x_parser::parse_item(xmlNode* itemNode)
+Item rss_09x_parser::parse_item(xmlNode* itemNode)
 {
-	item it;
+	Item it;
 	std::string author;
 	std::string dc_date;
 

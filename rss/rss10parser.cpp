@@ -8,7 +8,7 @@
 
 namespace rsspp {
 
-void rss_10_parser::parse_feed(feed& f, xmlNode* rootNode)
+void rss_10_parser::parse_feed(Feed& f, xmlNode* rootNode)
 {
 	if (!rootNode)
 		throw Exception(_("XML root node is NULL"));
@@ -35,7 +35,7 @@ void rss_10_parser::parse_feed(feed& f, xmlNode* rootNode)
 				}
 			}
 		} else if (node_is(node, "item", RSS_1_0_NS)) {
-			item it;
+			Item it;
 			it.guid = get_prop(node, "about", RDF_URI);
 			for (xmlNode* itnode = node->children;
 				itnode != nullptr;

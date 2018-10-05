@@ -10,12 +10,12 @@
 namespace newsboat {
 
 class ConfigContainer;
-class cache;
+class Cache;
 
 class RssParser {
 public:
 	RssParser(const std::string& uri,
-		cache* c,
+		Cache* c,
 		ConfigContainer*,
 		RssIgnores* ii,
 		RemoteApi* a = 0);
@@ -47,34 +47,34 @@ private:
 
 	void set_item_title(std::shared_ptr<RssFeed> feed,
 		std::shared_ptr<RssItem> x,
-		const rsspp::item& item);
+		const rsspp::Item& item);
 	void set_item_author(std::shared_ptr<RssItem> x,
-		const rsspp::item& item);
+		const rsspp::Item& item);
 	void set_item_content(std::shared_ptr<RssItem> x,
-		const rsspp::item& item);
+		const rsspp::Item& item);
 	void set_item_enclosure(std::shared_ptr<RssItem> x,
-		const rsspp::item& item);
-	std::string get_guid(const rsspp::item& item) const;
+		const rsspp::Item& item);
+	std::string get_guid(const rsspp::Item& item) const;
 
 	void add_item_to_feed(std::shared_ptr<RssFeed> feed,
 		std::shared_ptr<RssItem> item);
 
 	void handle_content_encoded(std::shared_ptr<RssItem> x,
-		const rsspp::item& item) const;
+		const rsspp::Item& item) const;
 	void handle_itunes_summary(std::shared_ptr<RssItem> x,
-		const rsspp::item& item);
+		const rsspp::Item& item);
 	bool is_html_type(const std::string& type);
 	void fetch_ttrss(const std::string& feed_id);
 	void fetch_newsblur(const std::string& feed_id);
 	void fetch_ocnews(const std::string& feed_id);
 
 	std::string my_uri;
-	cache* ch;
+	Cache* ch;
 	ConfigContainer* cfgcont;
 	bool skip_parsing;
 	bool is_valid;
 	RssIgnores* ign;
-	rsspp::feed f;
+	rsspp::Feed f;
 	RemoteApi* api;
 	bool is_ttrss;
 	bool is_newsblur;

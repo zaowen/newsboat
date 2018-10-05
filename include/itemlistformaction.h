@@ -17,7 +17,7 @@ enum class InvalidationMode { PARTIAL, COMPLETE };
 
 class ItemListFormAction : public ListFormAction {
 public:
-	ItemListFormAction(view*, std::string formstr);
+	ItemListFormAction(View*, std::string formstr);
 	~ItemListFormAction() override;
 	void prepare() override;
 	void init() override;

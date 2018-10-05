@@ -10,7 +10,7 @@ namespace podboat {
 class PbView;
 }
 
-class view;
+class View;
 
 namespace newsboat {
 

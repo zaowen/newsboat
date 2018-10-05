@@ -7,7 +7,7 @@ namespace newsboat {
 
 class DialogsFormAction : public Formaction {
 public:
-	DialogsFormAction(view*, std::string formstr);
+	DialogsFormAction(View*, std::string formstr);
 	~DialogsFormAction() override;
 	void prepare() override;
 	void init() override;

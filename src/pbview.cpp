@@ -35,7 +35,7 @@ PbView::PbView(PbController* c)
 
 PbView::~PbView()
 {
-	stfl::reset();
+	Stfl::reset();
 }
 
 void PbView::run(bool auto_download)
@@ -87,7 +87,7 @@ void PbView::run(bool auto_download)
 				code.append(
 					StrPrintf::fmt("{listitem[%u] text:%s}",
 						i,
-						stfl::quote(lbuf)));
+						Stfl::quote(lbuf)));
 				i++;
 			}
 
@@ -283,7 +283,7 @@ void PbView::run_help()
 		descline.append(desc.cmd);
 		descline.append(24 - desc.cmd.length(), ' ');
 		descline.append(desc.desc);
-		line.append(stfl::quote(descline));
+		line.append(Stfl::quote(descline));
 
 		line.append("}");
 

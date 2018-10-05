@@ -23,7 +23,7 @@
 namespace newsboat {
 
 RssParser::RssParser(const std::string& uri,
-	cache* c,
+	Cache* c,
 	ConfigContainer* cfg,
 	RssIgnores* ii,
 	RemoteApi* a)
@@ -195,7 +195,7 @@ void RssParser::download_http(const std::string& uri)
 			LOG(Level::DEBUG,
 				"RssParser::download_http: user-agent = %s",
 				useragent);
-			rsspp::parser p(cfgcont->get_configvalue_as_int(
+			rsspp::Parser p(cfgcont->get_configvalue_as_int(
 						"download-timeout"),
 				useragent.c_str(),
 				proxy.c_str(),
@@ -256,7 +256,7 @@ void RssParser::get_execplugin(const std::string& plugin)
 	std::string buf = Utils::get_command_output(plugin);
 	is_valid = false;
 	try {
-		rsspp::parser p;
+		rsspp::Parser p;
 		f = p.parse_buffer(buf);
 		is_valid = true;
 	} catch (rsspp::Exception& e) {
@@ -273,7 +273,7 @@ void RssParser::parse_file(const std::string& file)
 {
 	is_valid = false;
 	try {
-		rsspp::parser p;
+		rsspp::Parser p;
 		f = p.parse_file(file);
 		is_valid = true;
 	} catch (rsspp::Exception& e) {
@@ -302,7 +302,7 @@ void RssParser::download_filterplugin(const std::string& filter,
 		result);
 	is_valid = false;
 	try {
-		rsspp::parser p;
+		rsspp::Parser p;
 		f = p.parse_buffer(result);
 		is_valid = true;
 	} catch (rsspp::Exception& e) {
@@ -449,7 +449,7 @@ void RssParser::fill_feed_items(std::shared_ptr<RssFeed> feed)
 
 void RssParser::set_item_title(std::shared_ptr<RssFeed> feed,
 	std::shared_ptr<RssItem> x,
-	const rsspp::item& item)
+	const rsspp::Item& item)
 {
 	std::string title = item.title;
 
@@ -466,7 +466,7 @@ void RssParser::set_item_title(std::shared_ptr<RssFeed> feed,
 }
 
 void RssParser::set_item_author(std::shared_ptr<RssItem> x,
-	const rsspp::item& item)
+	const rsspp::Item& item)
 {
 	/*
 	 * some feeds only have a feed-wide managingEditor, which we use as an
@@ -484,7 +484,7 @@ void RssParser::set_item_author(std::shared_ptr<RssItem> x,
 }
 
 void RssParser::set_item_content(std::shared_ptr<RssItem> x,
-	const rsspp::item& item)
+	const rsspp::Item& item)
 {
 	handle_content_encoded(x, item);
 
@@ -513,7 +513,7 @@ void RssParser::set_item_content(std::shared_ptr<RssItem> x,
 		x->description());
 }
 
-std::string RssParser::get_guid(const rsspp::item& item) const
+std::string RssParser::get_guid(const rsspp::Item& item) const
 {
 	/*
 	 * We try to find a GUID (some unique identifier) for an item. If the
@@ -535,7 +535,7 @@ std::string RssParser::get_guid(const rsspp::item& item) const
 }
 
 void RssParser::set_item_enclosure(std::shared_ptr<RssItem> x,
-	const rsspp::item& item)
+	const rsspp::Item& item)
 {
 	x->set_enclosure_url(item.enclosure_url);
 	x->set_enclosure_type(item.enclosure_type);
@@ -572,7 +572,7 @@ void RssParser::add_item_to_feed(std::shared_ptr<RssFeed> feed,
 }
 
 void RssParser::handle_content_encoded(std::shared_ptr<RssItem> x,
-	const rsspp::item& item) const
+	const rsspp::Item& item) const
 {
 	if (x->description() != "")
 		return;
@@ -588,7 +588,7 @@ void RssParser::handle_content_encoded(std::shared_ptr<RssItem> x,
 }
 
 void RssParser::handle_itunes_summary(std::shared_ptr<RssItem> x,
-	const rsspp::item& item)
+	const rsspp::Item& item)
 {
 	if (x->description() != "")
 		return;

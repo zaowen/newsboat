@@ -19,7 +19,7 @@ namespace newsboat {
  * a few places.
  */
 
-SelectFormAction::SelectFormAction(view* vv, std::string formstr)
+SelectFormAction::SelectFormAction(View* vv, std::string formstr)
 	: Formaction(vv, formstr)
 	, quit(false)
 	, type(SelectionType::TAG)

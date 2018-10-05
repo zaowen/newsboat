@@ -15,7 +15,7 @@
 
 namespace newsboat {
 
-ItemViewFormAction::ItemViewFormAction(view* vv,
+ItemViewFormAction::ItemViewFormAction(View* vv,
 	std::shared_ptr<ItemListFormAction> il,
 	std::string formstr)
 	: Formaction(vv, formstr)
@@ -579,7 +579,7 @@ void ItemViewFormAction::finished_qna(Operation op )
 		std::ostringstream ostr;
 		v->get_ctrl()->write_item(feed->get_item_by_guid(guid), ostr);
 		v->push_empty_formaction();
-		stfl::reset();
+		Stfl::reset();
 		FILE* f = popen(cmd.c_str(), "w");
 		if (f) {
 			std::string data = ostr.str();

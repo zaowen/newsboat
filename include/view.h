@@ -22,10 +22,10 @@ class formaction;
 class ItemListFormAction;
 class ItemViewFormAction;
 
-class view {
+class View {
 public:
-	explicit view(Controller*);
-	~view();
+	explicit View(Controller*);
+	~View();
 	int run();
 	std::string run_modal(std::shared_ptr<Formaction> f,
 		const std::string& value = "");

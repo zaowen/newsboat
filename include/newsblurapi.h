@@ -11,7 +11,7 @@
 
 namespace newsboat {
 
-typedef std::map<std::string, rsspp::feed> feedmap;
+typedef std::map<std::string, rsspp::Feed> feedmap;
 
 class NewsBlurApi : public RemoteApi {
 public:
@@ -25,7 +25,7 @@ public:
 	bool update_article_flags(const std::string& oldflags,
 		const std::string& newflags,
 		const std::string& guid) override;
-	rsspp::feed fetch_feed(const std::string& id);
+	rsspp::Feed fetch_feed(const std::string& id);
 	// TODO
 private:
 	std::string retrieve_auth();

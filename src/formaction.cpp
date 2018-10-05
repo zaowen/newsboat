@@ -14,9 +14,9 @@ namespace newsboat {
 History Formaction::searchhistory;
 History Formaction::cmdlinehistory;
 
-Formaction::Formaction(view* vv, std::string formstr)
+Formaction::Formaction(View* vv, std::string formstr)
 	: v(vv)
-	, f(new stfl::form(formstr))
+	, f(new Stfl::Form(formstr))
 	, do_redraw(true)
 	, finish_operation(OP_NIL)
 	, qna_history(nullptr)
@@ -55,7 +55,7 @@ void Formaction::recalculate_form()
 
 Formaction::~Formaction() {}
 
-std::shared_ptr<stfl::form> Formaction::get_form()
+std::shared_ptr<Stfl::Form> Formaction::get_form()
 {
 	return f;
 }
@@ -99,7 +99,7 @@ void Formaction::process_op(Operation op ,
 	switch (op) {
 	case OP_REDRAW:
 		LOG(Level::DEBUG, "Formaction::process_op: redrawing screen");
-		stfl::reset();
+		Stfl::reset();
 		break;
 	case OP_CMDLINE:
 		start_cmdline();
@@ -110,7 +110,7 @@ void Formaction::process_op(Operation op ,
 			if (args) {
 				for (const auto& arg : *args) {
 					cmdline.append(StrPrintf::fmt(
-						"%s ", stfl::quote(arg)));
+						"%s ", Stfl::quote(arg)));
 				}
 			}
 			LOG(Level::DEBUG,
@@ -467,13 +467,13 @@ void Formaction::start_next_question()
 	if (qna_prompts.size() > 0) {
 		std::string replacestr(
 			"{hbox[lastline] .expand:0 {label .expand:0 text:");
-		replacestr.append(stfl::quote(qna_prompts[0].first));
+		replacestr.append(Stfl::quote(qna_prompts[0].first));
 		replacestr.append(
 			"}{input[qnainput] on_ESC:cancel-qna "
 			"on_UP:qna-prev-history on_DOWN:qna-next-history "
 			"on_ENTER:end-question modal:1 .expand:h @bind_home:** "
 			"@bind_end:** text[qna_value]:");
-		replacestr.append(stfl::quote(qna_prompts[0].second));
+		replacestr.append(Stfl::quote(qna_prompts[0].second));
 		replacestr.append(" pos[qna_value_pos]:0");
 		replacestr.append("}}");
 		f->modify("lastline", "replace", replacestr);
@@ -535,7 +535,7 @@ std::string Formaction::bookmark(const std::string& url,
 
 		if (is_interactive) {
 			v->push_empty_formaction();
-			stfl::reset();
+			Stfl::reset();
 			Utils::run_interactively(
 				cmdline, "Formaction::bookmark");
 			v->pop_current_formaction();

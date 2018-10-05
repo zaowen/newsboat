@@ -7,7 +7,7 @@ namespace newsboat {
 
 class FileBrowserFormAction : public Formaction {
 public:
-	FileBrowserFormAction(view*, std::string formstr);
+	FileBrowserFormAction(View*, std::string formstr);
 	~FileBrowserFormAction() override;
 	void prepare() override;
 	void init() override;

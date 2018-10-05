@@ -22,10 +22,10 @@ public:
 		const std::string& newflags,
 		const std::string& guid) override;
 	void add_custom_headers(curl_slist**) override;
-	rsspp::feed fetch_feed(const std::string& feed_id);
+	rsspp::Feed fetch_feed(const std::string& feed_id);
 
 private:
-	typedef std::map<std::string, std::pair<rsspp::feed, long>> feedmap;
+	typedef std::map<std::string, std::pair<rsspp::Feed, long>> feedmap;
 	std::string retrieve_auth();
 	bool query(const std::string& query,
 		json_object** result = nullptr,

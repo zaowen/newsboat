@@ -17,7 +17,7 @@ namespace newsboat {
  * in a browser or to bookmark them.
  */
 
-UrlViewFormAction::UrlViewFormAction(view* vv,
+UrlViewFormAction::UrlViewFormAction(View* vv,
 	std::shared_ptr<RssFeed>& feed,
 	std::string formstr)
 	: Formaction(vv, formstr)

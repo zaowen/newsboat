@@ -360,9 +360,9 @@ bool TtRssApi::update_article_flags(const std::string& oldflags,
 	return success;
 }
 
-rsspp::feed TtRssApi::fetch_feed(const std::string& id, CURL* cached_handle)
+rsspp::Feed TtRssApi::fetch_feed(const std::string& id, CURL* cached_handle)
 {
-	rsspp::feed f;
+	rsspp::Feed f;
 
 	f.rss_version = rsspp::TTRSS_JSON;
 
@@ -385,7 +385,7 @@ rsspp::feed TtRssApi::fetch_feed(const std::string& id, CURL* cached_handle)
 
 	try {
 		for (const auto& item_obj : content) {
-			rsspp::item item;
+			rsspp::Item item;
 
 			if (!item_obj["title"].is_null()) {
 				item.title = item_obj["title"];
@@ -448,7 +448,7 @@ rsspp::feed TtRssApi::fetch_feed(const std::string& id, CURL* cached_handle)
 
 	std::sort(f.items.begin(),
 		f.items.end(),
-		[](const rsspp::item& a, const rsspp::item& b) {
+		[](const rsspp::Item& a, const rsspp::Item& b) {
 			return a.pubDate_ts > b.pubDate_ts;
 		});
 

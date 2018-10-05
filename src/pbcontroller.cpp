@@ -30,7 +30,7 @@ using namespace newsboat;
 static void ctrl_c_action(int sig)
 {
 	LOG(Level::DEBUG, "caugh signal %d", sig);
-	stfl::reset();
+	Stfl::reset();
 	::exit(EXIT_FAILURE);
 }
 
@@ -304,7 +304,7 @@ int PbController::run(int argc, char* argv[])
 
 	v->run(automatic_dl);
 
-	stfl::reset();
+	Stfl::reset();
 
 	std::cout << _("Cleaning up queue...");
 	std::cout.flush();
@@ -447,7 +447,7 @@ void PbController::play_file(const std::string& file)
 	cmdline.append(" '");
 	cmdline.append(Utils::replace_all(file, "'", "%27"));
 	cmdline.append("'");
-	stfl::reset();
+	Stfl::reset();
 	Utils::run_interactively(cmdline, "PbController::play_file");
 }
 

@@ -22,7 +22,7 @@
 
 namespace newsboat {
 
-FileBrowserFormAction::FileBrowserFormAction(view* vv, std::string formstr)
+FileBrowserFormAction::FileBrowserFormAction(View* vv, std::string formstr)
 	: Formaction(vv, formstr)
 	, quit(false)
 {
@@ -284,8 +284,8 @@ std::string FileBrowserFormAction::add_file(std::string filename)
 			formattedfilename);
 		retval = StrPrintf::fmt("{listitem[%c%s] text:%s}",
 			ftype,
-			stfl::quote(filename),
-			stfl::quote(line));
+			Stfl::quote(filename),
+			Stfl::quote(line));
 	}
 	return retval;
 }

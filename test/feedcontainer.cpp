@@ -12,7 +12,7 @@ using namespace newsboat;
 
 namespace {
 
-std::vector<std::shared_ptr<RssFeed>> get_five_empty_feeds(cache* rsscache)
+std::vector<std::shared_ptr<RssFeed>> get_five_empty_feeds(Cache* rsscache)
 {
 	std::vector<std::shared_ptr<RssFeed>> feeds;
 	for (int i = 0; i < 5; ++i) {

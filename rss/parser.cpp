@@ -24,7 +24,7 @@ my_write_data(void* buffer, size_t size, size_t nmemb, void* userp)
 
 namespace rsspp {
 
-parser::parser(unsigned int timeout,
+Parser::Parser(unsigned int timeout,
 	const std::string& user_agent,
 	const std::string& proxy,
 	const std::string& proxy_auth,
@@ -41,7 +41,7 @@ parser::parser(unsigned int timeout,
 {
 }
 
-parser::~parser()
+Parser::~Parser()
 {
 	if (doc)
 		xmlFreeDoc(doc);
@@ -92,7 +92,7 @@ static size_t handle_headers(void* ptr, size_t size, size_t nmemb, void* data)
 	return size * nmemb;
 }
 
-feed parser::parse_url(const std::string& url,
+Feed Parser::parse_url(const std::string& url,
 	time_t lastmodified,
 	const std::string& etag,
 	newsboat::RemoteApi* api,
@@ -190,7 +190,7 @@ feed parser::parse_url(const std::string& url,
 	}
 
 	LOG(Level::DEBUG,
-		"rsspp::parser::parse_url: ret = %d (%s)",
+		"rsspp::Parser::parse_url: ret = %d (%s)",
 		ret,
 		curl_easy_strerror(ret));
 
@@ -209,7 +209,7 @@ feed parser::parse_url(const std::string& url,
 
 	if (ret != 0) {
 		LOG(Level::ERROR,
-			"rsspp::parser::parse_url: curl_easy_perform returned "
+			"rsspp::Parser::parse_url: curl_easy_perform returned "
 			"err "
 			"%d: %s",
 			ret,
@@ -225,21 +225,21 @@ feed parser::parse_url(const std::string& url,
 	}
 
 	LOG(Level::INFO,
-		"parser::parse_url: retrieved data for %s: %s",
+		"Parser::parse_url: retrieved data for %s: %s",
 		url,
 		buf);
 
 	if (buf.length() > 0) {
 		LOG(Level::DEBUG,
-			"parser::parse_url: handing over data to "
+			"Parser::parse_url: handing over data to "
 			"parse_buffer()");
 		return parse_buffer(buf, url);
 	}
 
-	return feed();
+	return Feed();
 }
 
-feed parser::parse_buffer(const std::string& buffer, const std::string& url)
+Feed Parser::parse_buffer(const std::string& buffer, const std::string& url)
 {
 	doc = xmlReadMemory(buffer.c_str(),
 		buffer.length(),
@@ -252,18 +252,18 @@ feed parser::parse_buffer(const std::string& buffer, const std::string& url)
 
 	xmlNode* root_element = xmlDocGetRootElement(doc);
 
-	feed f = parse_xmlnode(root_element);
+	Feed f = parse_xmlnode(root_element);
 
 	if (doc->encoding) {
 		f.encoding = (const char*)doc->encoding;
 	}
 
-	LOG(Level::INFO, "parser::parse_buffer: encoding = %s", f.encoding);
+	LOG(Level::INFO, "Parser::parse_buffer: encoding = %s", f.encoding);
 
 	return f;
 }
 
-feed parser::parse_file(const std::string& filename)
+Feed Parser::parse_file(const std::string& filename)
 {
 	doc = xmlReadFile(filename.c_str(),
 		nullptr,
@@ -274,20 +274,20 @@ feed parser::parse_file(const std::string& filename)
 		throw Exception(_("could not parse file"));
 	}
 
-	feed f = parse_xmlnode(root_element);
+	Feed f = parse_xmlnode(root_element);
 
 	if (doc->encoding) {
 		f.encoding = (const char*)doc->encoding;
 	}
 
-	LOG(Level::INFO, "parser::parse_file: encoding = %s", f.encoding);
+	LOG(Level::INFO, "Parser::parse_file: encoding = %s", f.encoding);
 
 	return f;
 }
 
-feed parser::parse_xmlnode(xmlNode* node)
+Feed Parser::parse_xmlnode(xmlNode* node)
 {
-	feed f;
+	Feed f;
 
 	if (node) {
 		if (node->name && node->type == XML_ELEMENT_NODE) {
@@ -367,13 +367,13 @@ feed parser::parse_xmlnode(xmlNode* node)
 	return f;
 }
 
-void parser::global_init()
+void Parser::global_init()
 {
 	LIBXML_TEST_VERSION
 	curl_global_init(CURL_GLOBAL_ALL);
 }
 
-void parser::global_cleanup()
+void Parser::global_cleanup()
 {
 	xmlCleanupParser();
 	curl_global_cleanup();

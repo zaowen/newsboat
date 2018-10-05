@@ -11,7 +11,7 @@
 
 namespace newsboat {
 
-class view;
+class View;
 
 struct keymap_hint_entry {
 	Operation op ;
@@ -22,11 +22,11 @@ typedef std::pair<std::string, std::string> qna_pair;
 
 class Formaction {
 public:
-	Formaction(view*, std::string formstr);
+	Formaction(View*, std::string formstr);
 	virtual ~Formaction();
 	virtual void prepare() = 0;
 	virtual void init() = 0;
-	std::shared_ptr<stfl::form> get_form();
+	std::shared_ptr<Stfl::Form> get_form();
 	virtual void set_redraw(bool b)
 	{
 		do_redraw = b;
@@ -97,8 +97,8 @@ protected:
 	void open_unread_items_in_browser(std::shared_ptr<RssFeed> feed,
 		bool markread);
 
-	view* v;
-	std::shared_ptr<stfl::form> f;
+	View* v;
+	std::shared_ptr<Stfl::Form> f;
 	bool do_redraw;
 
 	std::vector<std::string> qna_responses;

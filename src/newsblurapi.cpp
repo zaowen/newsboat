@@ -89,7 +89,7 @@ std::vector<tagged_feedurl> NewsBlurApi::get_subscribed_urls()
 	while (!json_object_iter_equal(&it, &itEnd)) {
 		const char* feed_id = json_object_iter_peek_name(&it);
 		json_object* node{};
-		rsspp::feed current_feed;
+		rsspp::Feed current_feed;
 
 		current_feed.rss_version = rsspp::NEWSBLUR_JSON;
 
@@ -220,9 +220,9 @@ time_t parse_date(const char* raw)
 	return mktime(&tm);
 }
 
-rsspp::feed NewsBlurApi::fetch_feed(const std::string& id)
+rsspp::Feed NewsBlurApi::fetch_feed(const std::string& id)
 {
-	rsspp::feed f = known_feeds[id];
+	rsspp::Feed f = known_feeds[id];
 
 	LOG(Level::INFO,
 		"NewsBlurApi::fetch_feed: about to fetch %u pages of feed %s",
@@ -264,7 +264,7 @@ rsspp::feed NewsBlurApi::fetch_feed(const std::string& id)
 			json_object* item_obj =
 				(json_object*)array_list_get_idx(items, i);
 
-			rsspp::item item;
+			rsspp::Item item;
 
 			json_object* node{};
 
@@ -329,7 +329,7 @@ rsspp::feed NewsBlurApi::fetch_feed(const std::string& id)
 
 	std::sort(f.items.begin(),
 		f.items.end(),
-		[](const rsspp::item& a, const rsspp::item& b) {
+		[](const rsspp::Item& a, const rsspp::Item& b) {
 			return a.pubDate_ts > b.pubDate_ts;
 		});
 

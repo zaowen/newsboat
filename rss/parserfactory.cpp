@@ -4,7 +4,7 @@
 
 namespace rsspp {
 
-std::shared_ptr<RssParser> RssParserFactory::get_object(feed& f,
+std::shared_ptr<RssParser> RssParserFactory::get_object(Feed& f,
 	xmlDocPtr doc)
 {
 	switch (f.rss_version) {

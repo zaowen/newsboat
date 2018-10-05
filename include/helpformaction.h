@@ -7,7 +7,7 @@ namespace newsboat {
 
 class HelpFormAction : public Formaction {
 public:
-	HelpFormAction(view*, std::string formstr);
+	HelpFormAction(View*, std::string formstr);
 	~HelpFormAction() override;
 	void prepare() override;
 	void init() override;

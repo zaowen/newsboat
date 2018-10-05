@@ -13,7 +13,7 @@ class ItemListFormAction;
 
 class ItemViewFormAction : public Formaction {
 public:
-	ItemViewFormAction(view*,
+	ItemViewFormAction(View*,
 		std::shared_ptr<ItemListFormAction> il,
 		std::string formstr);
 	~ItemViewFormAction() override;

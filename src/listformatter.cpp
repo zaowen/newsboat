@@ -82,12 +82,12 @@ std::string ListFormatter::format_list(RegexManager* rxman,
 			rxman->quote_and_highlight(str, location);
 		if (line.second == UINT_MAX) {
 			format_cache.append(StrPrintf::fmt(
-				"{listitem text:%s}", stfl::quote(str)));
+				"{listitem text:%s}", Stfl::quote(str)));
 		} else {
 			format_cache.append(
 				StrPrintf::fmt("{listitem[%u] text:%s}",
 					line.second,
-					stfl::quote(str)));
+					Stfl::quote(str)));
 		}
 	}
 	format_cache.append(1, '}');

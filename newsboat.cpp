@@ -161,10 +161,10 @@ int main(int argc, char* argv[])
 	bindtextdomain(PACKAGE, LOCALEDIR);
 	textdomain(PACKAGE);
 
-	rsspp::parser::global_init();
+	rsspp::Parser::global_init();
 
 	Controller c;
-	newsboat::view v(&c);
+	newsboat::View v(&c);
 	c.set_view(&v);
 	CLIArgsParser args(argc, argv);
 
@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
 		::exit(EXIT_FAILURE);
 	}
 
-	rsspp::parser::global_cleanup();
+	rsspp::Parser::global_cleanup();
 
 	return ret;
 }

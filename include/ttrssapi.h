@@ -25,7 +25,7 @@ public:
 	bool update_article_flags(const std::string& oldflags,
 		const std::string& newflags,
 		const std::string& guid) override;
-	rsspp::feed fetch_feed(const std::string& id, CURL* cached_handle);
+	rsspp::Feed fetch_feed(const std::string& id, CURL* cached_handle);
 	bool update_article(const std::string& guid, int mode, int field);
 
 private:

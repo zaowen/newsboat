@@ -24,7 +24,7 @@
 
 namespace newsboat {
 
-RssItem::RssItem(cache* c)
+RssItem::RssItem(Cache* c)
 	: ch(c)
 	, idx(0)
 	, size_(0)
@@ -38,7 +38,7 @@ RssItem::RssItem(cache* c)
 
 RssItem::~RssItem() {}
 
-RssFeed::RssFeed(cache* c)
+RssFeed::RssFeed(Cache* c)
 	: pubDate_(0)
 	, ch(c)
 	, empty(true)

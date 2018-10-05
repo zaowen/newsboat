@@ -13,7 +13,7 @@
 
 namespace newsboat {
 
-HelpFormAction::HelpFormAction(view* vv, std::string formstr)
+HelpFormAction::HelpFormAction(View* vv, std::string formstr)
 	: Formaction(vv, formstr)
 	, quit(false)
 	, apply_search(false)

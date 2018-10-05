@@ -18,7 +18,7 @@
 
 namespace newsboat {
 
-ItemListFormAction::ItemListFormAction(view* vv, std::string formstr)
+ItemListFormAction::ItemListFormAction(View* vv, std::string formstr)
 	: ListFormAction(vv, formstr)
 	, pos(0)
 	, apply_filter(false)
@@ -733,7 +733,7 @@ void ItemListFormAction::finished_qna(Operation op )
 			v->get_ctrl()->write_item(
 				visible_items[itempos].first, ostr);
 			v->push_empty_formaction();
-			stfl::reset();
+			Stfl::reset();
 			FILE* f = popen(cmd.c_str(), "w");
 			if (f) {
 				std::string data = ostr.str();

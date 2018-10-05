@@ -56,7 +56,7 @@ namespace newsboat {
 void sighup_action(int /* sig */)
 {
 	LOG(Level::DEBUG, "caught SIGHUP");
-	stfl::reset();
+	Stfl::reset();
 	::exit(EXIT_FAILURE);
 }
 
@@ -94,14 +94,14 @@ Controller::~Controller()
 	feedcontainer.feeds.clear();
 }
 
-void Controller::set_view(view* vv)
+void Controller::set_view(View* vv)
 {
 	v = vv;
 }
 
 int Controller::run(const CLIArgsParser& args)
 {
-	::signal(SIGINT, view::ctrl_c_action);
+	::signal(SIGINT, View::ctrl_c_action);
 	::signal(SIGPIPE, ignore_signal);
 	::signal(SIGHUP, sighup_action);
 	::signal(SIGCHLD, omg_a_child_died);
@@ -229,7 +229,7 @@ int Controller::run(const CLIArgsParser& args)
 		std::cout.flush();
 	}
 	try {
-		rsscache = new cache(configpaths.cache_file(), &cfg);
+		rsscache = new Cache(configpaths.cache_file(), &cfg);
 	} catch (const DbException& e) {
 		std::cerr << StrPrintf::fmt(
 				     _("Error: opening the cache file `%s' "
@@ -450,7 +450,7 @@ int Controller::run(const CLIArgsParser& args)
 		return EXIT_SUCCESS;
 	}
 
-	// hand over the important objects to the view
+	// hand over the important objects to the View
 	v->set_config_container(&cfg);
 	v->set_keymap(&keys);
 	v->set_tags(tags);
@@ -470,7 +470,7 @@ int Controller::run(const CLIArgsParser& args)
 	Formaction::load_histories(
 		configpaths.search_file(), configpaths.cmdline_file());
 
-	// run the view
+	// run the View
 	int ret = v->run();
 
 	unsigned int history_limit =
@@ -690,7 +690,7 @@ void Controller::enqueue_url(const std::string& url,
 			std::fstream::app | std::fstream::out);
 		std::string filename =
 			generate_enqueue_filename(url, title, pubDate, feed);
-		f << url << " " << stfl::quote(filename) << std::endl;
+		f << url << " " << Stfl::quote(filename) << std::endl;
 		f.close();
 	}
 }
@@ -751,7 +751,7 @@ void Controller::edit_urls_file()
 		Utils::replace_all(configpaths.url_file(), "\"", "\\\""));
 
 	v->push_empty_formaction();
-	stfl::reset();
+	Stfl::reset();
 
 	Utils::run_interactively(cmdline, "Controller::edit_urls_file");
 

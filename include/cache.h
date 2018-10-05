@@ -35,10 +35,10 @@ const schema_version unknown_version = {0, 0};
 
 using schema_patches = std::map<schema_version, std::vector<std::string>>;
 
-class cache {
+class Cache {
 public:
-	cache(const std::string& cachefile, ConfigContainer* c);
-	~cache();
+	Cache(const std::string& cachefile, ConfigContainer* c);
+	~Cache();
 	void externalize_rssfeed(std::shared_ptr<RssFeed> feed,
 		bool reset_unread);
 	std::shared_ptr<RssFeed> internalize_rssfeed(std::string rssurl,

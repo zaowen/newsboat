@@ -7,7 +7,7 @@
 
 namespace rsspp {
 
-void atom_parser::parse_feed(feed& f, xmlNode* rootNode)
+void atom_parser::parse_feed(Feed& f, xmlNode* rootNode)
 {
 	if (!rootNode)
 		throw Exception(_("XML root node is NULL"));
@@ -53,9 +53,9 @@ void atom_parser::parse_feed(feed& f, xmlNode* rootNode)
 	}
 }
 
-item atom_parser::parse_entry(xmlNode* entryNode)
+Item atom_parser::parse_entry(xmlNode* entryNode)
 {
-	item it;
+	Item it;
 	std::string summary;
 	std::string summary_type;
 	std::string updated;

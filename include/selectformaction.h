@@ -10,7 +10,7 @@ class SelectFormAction : public Formaction {
 public:
 	enum class SelectionType { TAG, FILTER };
 
-	SelectFormAction(view*, std::string formstr);
+	SelectFormAction(View*, std::string formstr);
 	~SelectFormAction() override;
 	void prepare() override;
 	void init() override;

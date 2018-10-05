@@ -8,7 +8,7 @@ namespace newsboat {
 
 class UrlViewFormAction : public Formaction {
 public:
-	UrlViewFormAction(view*,
+	UrlViewFormAction(View*,
 		std::shared_ptr<RssFeed>& feed,
 		std::string formstr);
 	~UrlViewFormAction() override;

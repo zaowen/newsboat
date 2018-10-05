@@ -8,32 +8,32 @@
 #include "rssppinternal.h"
 #include "test-helpers.h"
 
-TEST_CASE("Throws exception if file doesn't exist", "[rsspp::parser]")
+TEST_CASE("Throws exception if file doesn't exist", "[rsspp::Parser]")
 {
 	using TestHelpers::ExceptionWithMsg;
 
-	rsspp::parser p;
+	rsspp::Parser p;
 
 	REQUIRE_THROWS_MATCHES(p.parse_file("data/non-existent.xml"),
 		rsspp::Exception,
 		ExceptionWithMsg<rsspp::Exception>("could not parse file"));
 }
 
-TEST_CASE("Throws exception if file can't be parsed", "[rsspp::parser]")
+TEST_CASE("Throws exception if file can't be parsed", "[rsspp::Parser]")
 {
 	using TestHelpers::ExceptionWithMsg;
 
-	rsspp::parser p;
+	rsspp::Parser p;
 
 	REQUIRE_THROWS_MATCHES(p.parse_file("data/empty.xml"),
 		rsspp::Exception,
 		ExceptionWithMsg<rsspp::Exception>("could not parse file"));
 }
 
-TEST_CASE("Extracts data from RSS 0.91", "[rsspp::parser]")
+TEST_CASE("Extracts data from RSS 0.91", "[rsspp::Parser]")
 {
-	rsspp::parser p;
-	rsspp::feed f;
+	rsspp::Parser p;
+	rsspp::Feed f;
 
 	REQUIRE_NOTHROW(f = p.parse_file("data/rss091_1.xml"));
 
@@ -53,10 +53,10 @@ TEST_CASE("Extracts data from RSS 0.91", "[rsspp::parser]")
 	REQUIRE(f.items[0].guid == "");
 }
 
-TEST_CASE("Extracts data from RSS 0.92", "[rsspp::parser]")
+TEST_CASE("Extracts data from RSS 0.92", "[rsspp::Parser]")
 {
-	rsspp::parser p;
-	rsspp::feed f;
+	rsspp::Parser p;
+	rsspp::Feed f;
 
 	REQUIRE_NOTHROW(f = p.parse_file("data/rss092_1.xml"));
 
@@ -85,10 +85,10 @@ TEST_CASE("Extracts data from RSS 0.92", "[rsspp::parser]")
 	REQUIRE(f.items[2].base == "http://example.com/desc/rss_testing.html");
 }
 
-TEST_CASE("Extracts data fro RSS 2.0", "[rsspp::parser]")
+TEST_CASE("Extracts data fro RSS 2.0", "[rsspp::Parser]")
 {
-	rsspp::parser p;
-	rsspp::feed f;
+	rsspp::Parser p;
+	rsspp::Feed f;
 
 	REQUIRE_NOTHROW(f = p.parse_file("data/rss20_1.xml"));
 
@@ -110,10 +110,10 @@ TEST_CASE("Extracts data fro RSS 2.0", "[rsspp::parser]")
 	REQUIRE_FALSE(f.items[0].guid_isPermaLink);
 }
 
-TEST_CASE("Extracts data from RSS 1.0", "[rsspp::parser]")
+TEST_CASE("Extracts data from RSS 1.0", "[rsspp::Parser]")
 {
-	rsspp::parser p;
-	rsspp::feed f;
+	rsspp::Parser p;
+	rsspp::Feed f;
 
 	REQUIRE_NOTHROW(f = p.parse_file("data/rss10_1.xml"));
 
@@ -132,10 +132,10 @@ TEST_CASE("Extracts data from RSS 1.0", "[rsspp::parser]")
 	REQUIRE(f.items[0].pubDate == "Tue, 30 Dec 2008 07:20:00 +0000");
 }
 
-TEST_CASE("Extracts data from Atom 1.0", "[rsspp::parser]")
+TEST_CASE("Extracts data from Atom 1.0", "[rsspp::Parser]")
 {
-	rsspp::parser p;
-	rsspp::feed f;
+	rsspp::Parser p;
+	rsspp::Feed f;
 
 	REQUIRE_NOTHROW(f = p.parse_file("data/atom10_1.xml"));
 
@@ -288,7 +288,7 @@ TEST_CASE("RssItem::sort_flags() cleans up flags", "[rss]")
 {
 	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
-	rss_item item(&rsscache);
+	rss_Item item(&rsscache);
 
 	SECTION("Repeated letters do not erase other letters")
 	{

@@ -4,7 +4,7 @@
 
 namespace newsboat {
 
-ListFormAction::ListFormAction(view* v, std::string formstr)
+ListFormAction::ListFormAction(View* v, std::string formstr)
 	: Formaction(v, formstr)
 {
 }

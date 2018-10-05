@@ -83,7 +83,7 @@ std::vector<tagged_feedurl> OcNewsApi::get_subscribed_urls()
 		folders_map[folder_id] = json_object_get_string(node);
 	}
 
-	rsspp::feed starred;
+	rsspp::Feed starred;
 	starred.title = "Starred";
 	starred.link = server;
 	starred.rss_version = rsspp::OCNEWS_JSON;
@@ -101,7 +101,7 @@ std::vector<tagged_feedurl> OcNewsApi::get_subscribed_urls()
 		json_object* feed =
 			static_cast<json_object*>(feeds_list->array[i]);
 		json_object* node;
-		rsspp::feed current_feed;
+		rsspp::Feed current_feed;
 
 		current_feed.rss_version = rsspp::OCNEWS_JSON;
 
@@ -185,9 +185,9 @@ bool OcNewsApi::update_article_flags(const std::string& oldflags,
 	;
 }
 
-rsspp::feed OcNewsApi::fetch_feed(const std::string& feed_id)
+rsspp::Feed OcNewsApi::fetch_feed(const std::string& feed_id)
 {
-	rsspp::feed feed = known_feeds[feed_id].first;
+	rsspp::Feed feed = known_feeds[feed_id].first;
 
 	std::string query = "items?";
 	query += "type=" +
@@ -215,7 +215,7 @@ rsspp::feed OcNewsApi::fetch_feed(const std::string& feed_id)
 	for (int i = 0; i < array_length; i++) {
 		json_object* item_j = static_cast<json_object*>(list->array[i]);
 		json_object* node;
-		rsspp::item item;
+		rsspp::Item item;
 
 		json_object_object_get_ex(item_j, "title", &node);
 		item.title = json_object_get_string(node);

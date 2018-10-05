@@ -44,8 +44,8 @@ private:
 			unsigned int pos,
 			unsigned int width);
 	PbController* ctrl;
-	newsboat::stfl::form dllist_form;
-	newsboat::stfl::form help_form;
+	newsboat::Stfl::Form dllist_form;
+	newsboat::Stfl::Form help_form;
 	newsboat::Keymap* keys;
 };
 

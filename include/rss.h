@@ -17,12 +17,12 @@ typedef std::pair<std::string, Matcher*> feedurl_expr_pair;
 
 enum class DlStatus { SUCCESS, TO_BE_DOWNLOADED, DURING_DOWNLOAD, DL_ERROR };
 
-class cache;
+class Cache;
 class RssFeed;
 
 class RssItem : public Matchable {
 public:
-	explicit RssItem(cache* c);
+	explicit RssItem(Cache* c);
 	~RssItem() override;
 
 	std::string title() const;
@@ -86,7 +86,7 @@ public:
 	void set_unread_nowrite(bool u);
 	void set_unread_nowrite_notify(bool u, bool notify);
 
-	void set_cache(cache* c)
+	void set_cache(Cache* c)
 	{
 		ch = c;
 	}
@@ -190,7 +190,7 @@ private:
 	std::string description_;
 	std::string guid_;
 	std::string feedurl_;
-	cache* ch;
+	Cache* ch;
 	std::string enclosure_url_;
 	std::string enclosure_type_;
 	std::string flags_;
@@ -208,7 +208,7 @@ private:
 
 class RssFeed : public Matchable {
 public:
-	explicit RssFeed(cache* c);
+	explicit RssFeed(Cache* c);
 	RssFeed();
 	~RssFeed() override;
 	std::string title_raw() const
@@ -393,7 +393,7 @@ public:
 	void mark_all_items_read();
 
 	std::mutex item_mutex; // this is ugly, but makes it possible to lock
-			       // items use e.g. from the cache class
+			       // items use e.g. from the Cache class
 private:
 	std::string title_;
 	std::string description_;
@@ -406,7 +406,7 @@ private:
 	std::vector<std::string> tags_;
 	std::string query;
 
-	cache* ch;
+	Cache* ch;
 
 	bool empty;
 	bool is_rtl_;

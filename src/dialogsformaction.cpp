@@ -11,7 +11,7 @@
 
 namespace newsboat {
 
-DialogsFormAction::DialogsFormAction(view* vv, std::string formstr)
+DialogsFormAction::DialogsFormAction(View* vv, std::string formstr)
 	: Formaction(vv, formstr)
 	, update_list(true)
 {

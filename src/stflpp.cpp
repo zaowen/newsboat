@@ -17,7 +17,7 @@ namespace newsboat {
  * especially related to stuff like multithreading fuckups.
  */
 
-stfl::form::form(const std::string& text)
+Stfl::Form::Form(const std::string& text)
 	: f(0)
 {
 	ipool = stfl_ipool_create(
@@ -31,7 +31,7 @@ stfl::form::form(const std::string& text)
 	}
 }
 
-stfl::form::~form()
+Stfl::Form::~Form()
 {
 	if (f)
 		stfl_free(f);
@@ -39,12 +39,12 @@ stfl::form::~form()
 		stfl_ipool_destroy(ipool);
 }
 
-const char* stfl::form::run(int timeout)
+const char* Stfl::Form::run(int timeout)
 {
 	return stfl_ipool_fromwc(ipool, stfl_run(f, timeout));
 }
 
-std::string stfl::form::get(const std::string& name)
+std::string Stfl::Form::get(const std::string& name)
 {
 	const char* text = stfl_ipool_fromwc(
 		ipool, stfl_get(f, stfl_ipool_towc(ipool, name.c_str())));
@@ -55,7 +55,7 @@ std::string stfl::form::get(const std::string& name)
 	return retval;
 }
 
-void stfl::form::set(const std::string& name, const std::string& value)
+void Stfl::Form::set(const std::string& name, const std::string& value)
 {
 	stfl_set(f,
 		stfl_ipool_towc(ipool, name.c_str()),
@@ -63,7 +63,7 @@ void stfl::form::set(const std::string& name, const std::string& value)
 	stfl_ipool_flush(ipool);
 }
 
-std::string stfl::form::get_focus()
+std::string Stfl::Form::get_focus()
 {
 	const char* focus = stfl_ipool_fromwc(ipool, stfl_get_focus(f));
 	std::string retval;
@@ -73,13 +73,13 @@ std::string stfl::form::get_focus()
 	return retval;
 }
 
-void stfl::form::set_focus(const std::string& name)
+void Stfl::Form::set_focus(const std::string& name)
 {
 	stfl_set_focus(f, stfl_ipool_towc(ipool, name.c_str()));
-	LOG(Level::DEBUG, "stfl::form::set_focus: %s", name);
+	LOG(Level::DEBUG, "Stfl::Form::set_focus: %s", name);
 }
 
-void stfl::form::modify(const std::string& name,
+void Stfl::Form::modify(const std::string& name,
 	const std::string& mode,
 	const std::string& text)
 {
@@ -91,14 +91,14 @@ void stfl::form::modify(const std::string& name,
 	stfl_ipool_flush(ipool);
 }
 
-void stfl::reset()
+void Stfl::reset()
 {
 	stfl_reset();
 }
 
 static std::mutex quote_mtx;
 
-std::string stfl::quote(const std::string& text)
+std::string Stfl::quote(const std::string& text)
 {
 	std::lock_guard<std::mutex> lock(quote_mtx);
 	stfl_ipool* ipool = stfl_ipool_create(
@@ -110,7 +110,7 @@ std::string stfl::quote(const std::string& text)
 }
 
 std::string
-stfl::form::dump(const std::string& name, const std::string& prefix, int focus)
+Stfl::Form::dump(const std::string& name, const std::string& prefix, int focus)
 {
 	const char* text = stfl_ipool_fromwc(ipool,
 		stfl_dump(f,

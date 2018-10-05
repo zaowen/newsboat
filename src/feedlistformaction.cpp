@@ -22,7 +22,7 @@
 
 namespace newsboat {
 
-FeedListFormAction::FeedListFormAction(view* vv, std::string formstr)
+FeedListFormAction::FeedListFormAction(View* vv, std::string formstr)
 	: ListFormAction(vv, formstr)
 	, zero_feedpos(false)
 	, feeds_shown(0)
