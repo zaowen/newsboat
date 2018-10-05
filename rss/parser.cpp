@@ -107,7 +107,7 @@ feed parser::parse_url(const std::string& url,
 	if (!easyhandle) {
 		easyhandle = curl_easy_init();
 		if (!easyhandle) {
-			throw exception(_("couldn't initialize libcurl"));
+			throw Exception(_("couldn't initialize libcurl"));
 		}
 	}
 
@@ -221,7 +221,7 @@ feed parser::parse_url(const std::string& url,
 		} else {
 			msg = curl_easy_strerror(ret);
 		}
-		throw exception(msg);
+		throw Exception(msg);
 	}
 
 	LOG(Level::INFO,
@@ -247,7 +247,7 @@ feed parser::parse_buffer(const std::string& buffer, const std::string& url)
 		nullptr,
 		XML_PARSE_RECOVER | XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
 	if (doc == nullptr) {
-		throw exception(_("could not parse buffer"));
+		throw Exception(_("could not parse buffer"));
 	}
 
 	xmlNode* root_element = xmlDocGetRootElement(doc);
@@ -271,7 +271,7 @@ feed parser::parse_file(const std::string& filename)
 	xmlNode* root_element = xmlDocGetRootElement(doc);
 
 	if (root_element == nullptr) {
-		throw exception(_("could not parse file"));
+		throw Exception(_("could not parse file"));
 	}
 
 	feed f = parse_xmlnode(root_element);
@@ -295,7 +295,7 @@ feed parser::parse_xmlnode(xmlNode* node)
 				const char* version = (const char*)xmlGetProp(
 					node, (const xmlChar*)"version");
 				if (!version) {
-					throw exception(_("no RSS version"));
+					throw Exception(_("no RSS version"));
 				}
 				if (strcmp(version, "0.91") == 0)
 					f.rss_version = RSS_0_91;
@@ -310,7 +310,7 @@ feed parser::parse_xmlnode(xmlNode* node)
 					f.rss_version = RSS_0_91;
 				else {
 					xmlFree((void*)version);
-					throw exception(
+					throw Exception(
 						_("invalid RSS version"));
 				}
 				xmlFree((void*)version);
@@ -330,7 +330,7 @@ feed parser::parse_xmlnode(xmlNode* node)
 					} else {
 						const char * version = (const char *)xmlGetProp(node, (const xmlChar *)"version");
 						if (!version) {
-							throw exception(_(
+							throw Exception(_(
 								"invalid Atom "
 								"version"));
 						}
@@ -341,13 +341,13 @@ feed parser::parse_xmlnode(xmlNode* node)
 								ATOM_0_3_NONS;
 						} else {
 							xmlFree((void*)version);
-							throw exception(_(
+							throw Exception(_(
 								"invalid Atom "
 								"version"));
 						}
 					}
 				} else {
-					throw exception(_("no Atom version"));
+					throw Exception(_("no Atom version"));
 				}
 			}
 
@@ -356,12 +356,12 @@ feed parser::parse_xmlnode(xmlNode* node)
 
 			try {
 				parser->parse_feed(f, node);
-			} catch (exception& e) {
+			} catch (Exception& e) {
 				throw;
 			}
 		}
 	} else {
-		throw exception(_("XML root node is NULL"));
+		throw Exception(_("XML root node is NULL"));
 	}
 
 	return f;

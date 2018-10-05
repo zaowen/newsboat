@@ -13,7 +13,7 @@ using json = nlohmann::json;
 
 namespace newsboat {
 
-TtRssApi::TtRssApi(configcontainer* c)
+TtRssApi::TtRssApi(ConfigContainer* c)
 	: RemoteApi(c)
 {
 	single = (cfg->get_configvalue("ttrss-mode") == "single");

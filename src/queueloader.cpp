@@ -140,7 +140,7 @@ void QueueLoader::reload(std::vector<Download>& downloads, bool remove_unplayed)
 									ALREADY_DOWNLOADED); // TODO: scrap DlStatus::ALREADY_DOWNLOADED state
 					} else if (
 						access((fn +
-							       configcontainer::
+							       ConfigContainer::
 								       PARTIAL_FILE_SUFFIX)
 								.c_str(),
 							F_OK) == 0) {
@@ -151,7 +151,7 @@ void QueueLoader::reload(std::vector<Download>& downloads, bool remove_unplayed)
 							"-> mark as partially "
 							"downloaded",
 							fn +
-								configcontainer::
+								ConfigContainer::
 									PARTIAL_FILE_SUFFIX);
 						d.set_status(DlStatus::
 								ALREADY_DOWNLOADED);

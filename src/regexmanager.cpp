@@ -10,7 +10,7 @@
 
 namespace newsboat {
 
-regexmanager::regexmanager()
+RegexManager::RegexManager()
 {
 	// this creates the entries in the map. we need them there to have the
 	// "all" location work.
@@ -19,7 +19,7 @@ regexmanager::regexmanager()
 	locations["feedlist"];
 }
 
-regexmanager::~regexmanager()
+RegexManager::~RegexManager()
 {
 	for (const auto& location : locations) {
 		if (location.second.first.size() > 0) {
@@ -30,25 +30,25 @@ regexmanager::~regexmanager()
 	}
 }
 
-void regexmanager::dump_config(std::vector<std::string>& config_output)
+void RegexManager::dump_config(std::vector<std::string>& config_output)
 {
 	for (const auto& foo : cheat_store_for_dump_config) {
 		config_output.push_back(foo);
 	}
 }
 
-void regexmanager::handle_action(const std::string& action,
+void RegexManager::handle_action(const std::string& action,
 	const std::vector<std::string>& params)
 {
 	if (action == "highlight") {
 		if (params.size() < 3)
-			throw confighandlerexception(
+			throw ConfigHandlerException(
 				ActionHandlerStatus::TOO_FEW_PARAMS);
 
 		std::string location = params[0];
 		if (location != "all" && location != "article" &&
 			location != "articlelist" && location != "feedlist")
-			throw confighandlerexception(StrPrintf::fmt(
+			throw ConfigHandlerException(StrPrintf::fmt(
 				_("`%s' is an invalid dialog type"), location));
 
 		regex_t* rx = new regex_t;
@@ -59,7 +59,7 @@ void regexmanager::handle_action(const std::string& action,
 			char buf[1024];
 			regerror(err, rx, buf, sizeof(buf));
 			delete rx;
-			throw confighandlerexception(StrPrintf::fmt(
+			throw ConfigHandlerException(StrPrintf::fmt(
 				_("`%s' is not a valid regular expression: %s"),
 				params[1],
 				buf));
@@ -68,7 +68,7 @@ void regexmanager::handle_action(const std::string& action,
 		if (params[2] != "default") {
 			colorstr.append("fg=");
 			if (!Utils::is_valid_color(params[2]))
-				throw confighandlerexception(StrPrintf::fmt(
+				throw ConfigHandlerException(StrPrintf::fmt(
 					_("`%s' is not a valid color"),
 					params[2]));
 			colorstr.append(params[2]);
@@ -79,7 +79,7 @@ void regexmanager::handle_action(const std::string& action,
 					colorstr.append(",");
 				colorstr.append("bg=");
 				if (!Utils::is_valid_color(params[3]))
-					throw confighandlerexception(
+					throw ConfigHandlerException(
 						StrPrintf::fmt(
 							_("`%s' is not a valid "
 							  "color"),
@@ -93,7 +93,7 @@ void regexmanager::handle_action(const std::string& action,
 					colorstr.append("attr=");
 					if (!Utils::is_valid_attribute(
 						    params[i]))
-						throw confighandlerexception(
+						throw ConfigHandlerException(
 							StrPrintf::fmt(
 								_("`%s' is not "
 								  "a valid "
@@ -105,7 +105,7 @@ void regexmanager::handle_action(const std::string& action,
 		}
 		if (location != "all") {
 			LOG(Level::DEBUG,
-				"regexmanager::handle_action: adding rx = %s "
+				"RegexManager::handle_action: adding rx = %s "
 				"colorstr = %s to location %s",
 				params[1],
 				colorstr,
@@ -116,7 +116,7 @@ void regexmanager::handle_action(const std::string& action,
 			delete rx;
 			for (auto& location : locations) {
 				LOG(Level::DEBUG,
-					"regexmanager::handle_action: adding "
+					"RegexManager::handle_action: adding "
 					"rx = "
 					"%s colorstr = %s to location %s",
 					params[1],
@@ -140,7 +140,7 @@ void regexmanager::handle_action(const std::string& action,
 		cheat_store_for_dump_config.push_back(line);
 	} else if (action == "highlight-article") {
 		if (params.size() < 3)
-			throw confighandlerexception(
+			throw ConfigHandlerException(
 				ActionHandlerStatus::TOO_FEW_PARAMS);
 
 		std::string expr = params[0];
@@ -151,7 +151,7 @@ void regexmanager::handle_action(const std::string& action,
 		if (fgcolor != "default") {
 			colorstr.append("fg=");
 			if (!Utils::is_valid_color(fgcolor))
-				throw confighandlerexception(StrPrintf::fmt(
+				throw ConfigHandlerException(StrPrintf::fmt(
 					_("`%s' is not a valid color"),
 					fgcolor));
 			colorstr.append(fgcolor);
@@ -161,7 +161,7 @@ void regexmanager::handle_action(const std::string& action,
 				colorstr.append(",");
 			colorstr.append("bg=");
 			if (!Utils::is_valid_color(bgcolor))
-				throw confighandlerexception(StrPrintf::fmt(
+				throw ConfigHandlerException(StrPrintf::fmt(
 					_("`%s' is not a valid color"),
 					bgcolor));
 			colorstr.append(bgcolor);
@@ -173,7 +173,7 @@ void regexmanager::handle_action(const std::string& action,
 					colorstr.append(",");
 				colorstr.append("attr=");
 				if (!Utils::is_valid_attribute(params[i]))
-					throw confighandlerexception(
+					throw ConfigHandlerException(
 						StrPrintf::fmt(
 							_("`%s' is not a valid "
 							  "attribute"),
@@ -184,7 +184,7 @@ void regexmanager::handle_action(const std::string& action,
 
 		std::shared_ptr<Matcher> m(new Matcher());
 		if (!m->parse(params[0])) {
-			throw confighandlerexception(StrPrintf::fmt(
+			throw ConfigHandlerException(StrPrintf::fmt(
 				_("couldn't parse filter expression `%s': %s"),
 				params[0],
 				m->get_parse_error()));
@@ -199,11 +199,11 @@ void regexmanager::handle_action(const std::string& action,
 			std::pair<std::shared_ptr<Matcher>, int>(m, pos));
 
 	} else
-		throw confighandlerexception(
+		throw ConfigHandlerException(
 			ActionHandlerStatus::INVALID_COMMAND);
 }
 
-int regexmanager::article_matches(Matchable* item)
+int RegexManager::article_matches(Matchable* item)
 {
 	for (const auto& Matcher : matchers) {
 		if (Matcher.first->matches(item)) {
@@ -213,7 +213,7 @@ int regexmanager::article_matches(Matchable* item)
 	return -1;
 }
 
-void regexmanager::remove_last_regex(const std::string& location)
+void RegexManager::remove_last_regex(const std::string& location)
 {
 	std::vector<regex_t*>& regexes = locations[location].first;
 
@@ -222,7 +222,7 @@ void regexmanager::remove_last_regex(const std::string& location)
 	regexes.erase(it);
 }
 
-std::string regexmanager::extract_initial_marker(const std::string& str)
+std::string RegexManager::extract_initial_marker(const std::string& str)
 {
 	if (str.length() == 0)
 		return "";
@@ -236,7 +236,7 @@ std::string regexmanager::extract_initial_marker(const std::string& str)
 	return "";
 }
 
-void regexmanager::quote_and_highlight(std::string& str,
+void RegexManager::quote_and_highlight(std::string& str,
 	const std::string& location)
 {
 	std::vector<regex_t*>& regexes = locations[location].first;

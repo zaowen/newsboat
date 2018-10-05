@@ -11,8 +11,8 @@
 
 namespace newsboat {
 
-history Formaction::searchhistory;
-history Formaction::cmdlinehistory;
+History Formaction::searchhistory;
+History Formaction::cmdlinehistory;
 
 Formaction::Formaction(view* vv, std::string formstr)
 	: v(vv)
@@ -239,7 +239,7 @@ void Formaction::handle_cmdline(const std::string& cmdline)
 	 */
 	std::vector<std::string> tokens =
 		Utils::tokenize_quoted(cmdline, " \t=");
-	configcontainer* cfg = v->get_cfg();
+	ConfigContainer* cfg = v->get_cfg();
 	assert(cfg != nullptr);
 	if (!tokens.empty()) {
 		std::string cmd = tokens[0];
@@ -269,7 +269,7 @@ void Formaction::handle_cmdline(const std::string& cmdline)
 				}
 			} else if (tokens.size() == 2) {
 				std::string result =
-					configparser::evaluate_backticks(
+					ConfigParser::evaluate_backticks(
 						tokens[1]);
 				Utils::trim_end(result);
 				cfg->set_configvalue(tokens[0], result);
@@ -293,7 +293,7 @@ void Formaction::handle_cmdline(const std::string& cmdline)
 						v->get_ctrl()->load_configfile(
 							Utils::resolve_tilde(
 								token));
-					} catch (const configexception& ex) {
+					} catch (const ConfigException& ex) {
 						v->show_error(ex.what());
 						break;
 					}
@@ -320,7 +320,7 @@ void Formaction::handle_cmdline(const std::string& cmdline)
 
 void Formaction::start_qna(const std::vector<qna_pair>& prompts,
 	Operation finish_op,
-	history* h)
+	History* h)
 {
 	/*
 	 * the formaction base class contains a "Q&A" mechanism that makes it

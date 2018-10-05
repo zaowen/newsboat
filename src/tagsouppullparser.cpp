@@ -136,7 +136,7 @@ std::string TagSoupPullParser::read_tag()
 	std::string s;
 	getline(*inputstream, s, '>');
 	if (inputstream->eof()) {
-		throw xmlexception(
+		throw XmlException(
 			_("EOF found while reading XML tag")); // TODO: test
 							       // whether this
 							       // works reliably
@@ -601,7 +601,7 @@ void TagSoupPullParser::handle_tag()
 	std::string s;
 	try {
 		s = read_tag();
-	} catch (const xmlexception&) {
+	} catch (const XmlException&) {
 		current_event = Event::END_DOCUMENT;
 		return;
 	}

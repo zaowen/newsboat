@@ -85,7 +85,7 @@ void Reloader::reload(unsigned int pos,
 			}
 			oldfeed->set_status(DlStatus::SUCCESS);
 			ctrl->get_view()->set_status("");
-		} catch (const dbexception& e) {
+		} catch (const DbException& e) {
 			errmsg = StrPrintf::fmt(
 				_("Error while retrieving %s: %s"),
 				Utils::censor_url(oldfeed->rssurl()),
@@ -95,7 +95,7 @@ void Reloader::reload(unsigned int pos,
 				_("Error while retrieving %s: %s"),
 				Utils::censor_url(oldfeed->rssurl()),
 				emsg);
-		} catch (rsspp::exception& e) {
+		} catch (rsspp::Exception& e) {
 			errmsg = StrPrintf::fmt(
 				_("Error while retrieving %s: %s"),
 				Utils::censor_url(oldfeed->rssurl()),

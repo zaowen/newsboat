@@ -10,7 +10,7 @@ namespace rsspp {
 void atom_parser::parse_feed(feed& f, xmlNode* rootNode)
 {
 	if (!rootNode)
-		throw exception(_("XML root node is NULL"));
+		throw Exception(_("XML root node is NULL"));
 
 	switch (f.rss_version) {
 	case ATOM_0_3:

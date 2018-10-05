@@ -293,7 +293,7 @@ REDO:
 					f->set("feedpos",
 						std::to_string(pos + 1));
 				}
-			} catch (const dbexception& e) {
+			} catch (const DbException& e) {
 				v->show_error(StrPrintf::fmt(
 					_("Error: couldn't mark feed read: %s"),
 					e.what()));
@@ -857,7 +857,7 @@ void FeedListFormAction::save_filterpos()
 	}
 }
 
-void FeedListFormAction::set_regexmanager(regexmanager* r)
+void FeedListFormAction::set_regexmanager(RegexManager* r)
 {
 	rxman = r;
 	std::vector<std::string>& attrs = r->get_attrs("feedlist");
@@ -911,7 +911,7 @@ void FeedListFormAction::op_start_search()
 				searchphrase, "utf-8", nl_langinfo(CODESET));
 			items = v->get_ctrl()->search_for_items(
 				utf8searchphrase, nullptr);
-		} catch (const dbexception& e) {
+		} catch (const DbException& e) {
 			v->show_error(StrPrintf::fmt(
 				_("Error while searching for `%s': %s"),
 				searchphrase,

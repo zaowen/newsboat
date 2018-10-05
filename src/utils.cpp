@@ -434,7 +434,7 @@ my_write_data(void* buffer, size_t size, size_t nmemb, void* userp)
 }
 
 std::string Utils::retrieve_url(const std::string& url,
-	configcontainer* cfgcont,
+	ConfigContainer* cfgcont,
 	const std::string& authinfo,
 	const std::string* postdata,
 	CURL* cached_handle)
@@ -653,7 +653,7 @@ std::string Utils::absolute_url(const std::string& url, const std::string& link)
 	return retval;
 }
 
-std::string Utils::get_useragent(configcontainer* cfgcont)
+std::string Utils::get_useragent(ConfigContainer* cfgcont)
 {
 	std::string ua_pref = cfgcont->get_configvalue("user-agent");
 	if (ua_pref.length() == 0) {
@@ -745,7 +745,7 @@ void Utils::append_escapes(std::string& str, char c)
 		str.append("\"");
 		break;
 	// escaped backticks are passed through, still escaped. We un-escape
-	// them in configparser::evaluate_backticks
+	// them in ConfigParser::evaluate_backticks
 	case '`':
 		str.append("\\`");
 		break;
@@ -1080,7 +1080,7 @@ std::string Utils::quote_if_necessary(const std::string& str)
 	return result;
 }
 
-void Utils::set_common_curl_options(CURL* handle, configcontainer* cfg)
+void Utils::set_common_curl_options(CURL* handle, ConfigContainer* cfg)
 {
 	if (cfg) {
 		if (cfg->get_configvalue_as_bool("use-proxy")) {

@@ -24,7 +24,7 @@ namespace newsboat {
 
 RssParser::RssParser(const std::string& uri,
 	cache* c,
-	configcontainer* cfg,
+	ConfigContainer* cfg,
 	RssIgnores* ii,
 	RemoteApi* a)
 	: my_uri(uri)
@@ -240,7 +240,7 @@ void RssParser::download_http(const std::string& uri)
 							       : "");
 			}
 			is_valid = true;
-		} catch (rsspp::exception& e) {
+		} catch (rsspp::Exception& e) {
 			is_valid = false;
 			throw;
 		}
@@ -259,7 +259,7 @@ void RssParser::get_execplugin(const std::string& plugin)
 		rsspp::parser p;
 		f = p.parse_buffer(buf);
 		is_valid = true;
-	} catch (rsspp::exception& e) {
+	} catch (rsspp::Exception& e) {
 		is_valid = false;
 		throw;
 	}
@@ -276,7 +276,7 @@ void RssParser::parse_file(const std::string& file)
 		rsspp::parser p;
 		f = p.parse_file(file);
 		is_valid = true;
-	} catch (rsspp::exception& e) {
+	} catch (rsspp::Exception& e) {
 		is_valid = false;
 		throw;
 	}
@@ -305,7 +305,7 @@ void RssParser::download_filterplugin(const std::string& filter,
 		rsspp::parser p;
 		f = p.parse_buffer(result);
 		is_valid = true;
-	} catch (rsspp::exception& e) {
+	} catch (rsspp::Exception& e) {
 		is_valid = false;
 		throw;
 	}

@@ -12,7 +12,7 @@ namespace newsboat {
 
 class OcNewsApi : public RemoteApi {
 public:
-	explicit OcNewsApi(configcontainer* cfg);
+	explicit OcNewsApi(ConfigContainer* cfg);
 	~OcNewsApi() override;
 	bool authenticate() override;
 	std::vector<tagged_feedurl> get_subscribed_urls() override;

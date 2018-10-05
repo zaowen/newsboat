@@ -261,13 +261,13 @@ int PbController::run(int argc, char* argv[])
 	std::cout << _("Loading configuration...");
 	std::cout.flush();
 
-	configparser cfgparser;
-	cfg = new configcontainer();
+	ConfigParser cfgparser;
+	cfg = new ConfigContainer();
 	cfg->register_commands(cfgparser);
-	colormanager* colorman = new colormanager();
+	ColorManager* colorman = new ColorManager();
 	colorman->register_commands(cfgparser);
 
-	keymap keys(KM_PODBOAT);
+	Keymap keys(KM_PODBOAT);
 	cfgparser.register_handler("bind-key", &keys);
 	cfgparser.register_handler("unbind-key", &keys);
 
@@ -283,7 +283,7 @@ int PbController::run(int argc, char* argv[])
 	try {
 		cfgparser.parse("/etc/newsboat/config");
 		cfgparser.parse(config_file);
-	} catch (const configexception& ex) {
+	} catch (const ConfigException& ex) {
 		std::cout << ex.what() << std::endl;
 		delete colorman;
 		return EXIT_FAILURE;

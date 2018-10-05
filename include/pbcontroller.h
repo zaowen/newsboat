@@ -55,7 +55,7 @@ public:
 
 	void play_file(const std::string& str);
 
-	newsboat::configcontainer* get_cfgcont()
+	newsboat::ConfigContainer* get_cfgcont()
 	{
 		return cfg;
 	}
@@ -67,7 +67,7 @@ private:
 	PbView* v;
 	std::string config_file;
 	std::string queue_file;
-	newsboat::configcontainer* cfg;
+	newsboat::ConfigContainer* cfg;
 	bool view_update_;
 	std::vector<Download> downloads_;
 

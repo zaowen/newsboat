@@ -206,7 +206,7 @@ void ItemViewFormAction::process_operation(Operation op ,
 		if (old_unread) {
 			v->get_ctrl()->mark_article_read(item->guid(), true);
 		}
-	} catch (const dbexception& e) {
+	} catch (const DbException& e) {
 		v->show_error(StrPrintf::fmt(
 			_("Error while marking article as read: %s"),
 			e.what()));
@@ -397,7 +397,7 @@ void ItemViewFormAction::process_operation(Operation op ,
 		try {
 			item->set_unread(true);
 			v->get_ctrl()->mark_article_read(item->guid(), false);
-		} catch (const dbexception& e) {
+		} catch (const DbException& e) {
 			v->show_error(StrPrintf::fmt(
 				_("Error while marking article as unread: %s"),
 				e.what()));
@@ -638,7 +638,7 @@ std::vector<std::pair<LineType, std::string>> ItemViewFormAction::render_html(
 	return result;
 }
 
-void ItemViewFormAction::set_regexmanager(regexmanager* r)
+void ItemViewFormAction::set_regexmanager(RegexManager* r)
 {
 	rxman = r;
 	std::vector<std::string>& attrs = r->get_attrs("article");
@@ -737,7 +737,7 @@ void ItemViewFormAction::highlight_text(const std::string& searchphrase)
 
 		in_search = true;
 		do_redraw = true;
-	} catch (const confighandlerexception& e) {
+	} catch (const ConfigHandlerException& e) {
 		LOG(Level::ERROR,
 			"ItemViewFormAction::highlight_text: handle_action "
 			"failed, error = %s",

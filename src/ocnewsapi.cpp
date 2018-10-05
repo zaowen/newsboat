@@ -17,7 +17,7 @@ namespace newsboat {
 typedef std::unique_ptr<json_object, decltype(*json_object_put)> json_uptr;
 typedef std::unique_ptr<CURL, decltype(*curl_easy_cleanup)> curl_uptr;
 
-OcNewsApi::OcNewsApi(configcontainer* c)
+OcNewsApi::OcNewsApi(ConfigContainer* c)
 	: RemoteApi(c)
 {
 	server = cfg->get_configvalue("ocnews-url");

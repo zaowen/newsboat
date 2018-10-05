@@ -9,7 +9,7 @@ namespace newsboat {
 
 class FeedHqApi : public RemoteApi {
 public:
-	explicit FeedHqApi(configcontainer* c);
+	explicit FeedHqApi(ConfigContainer* c);
 	~FeedHqApi() override;
 	bool authenticate() override;
 	std::vector<tagged_feedurl> get_subscribed_urls() override;
@@ -37,7 +37,7 @@ private:
 
 class FeedHqUrlReader : public UrlReader {
 public:
-	FeedHqUrlReader(configcontainer* c,
+	FeedHqUrlReader(ConfigContainer* c,
 		const std::string& url_file,
 		RemoteApi* a);
 	~FeedHqUrlReader() override;
@@ -46,7 +46,7 @@ public:
 	std::string get_source() override;
 
 private:
-	configcontainer* cfg;
+	ConfigContainer* cfg;
 	std::string file;
 	RemoteApi* api;
 };

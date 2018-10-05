@@ -15,35 +15,35 @@
 
 namespace newsboat {
 
-configparser::configparser()
+ConfigParser::ConfigParser()
 {
 	register_handler("include", this);
 }
 
-configparser::~configparser() {}
+ConfigParser::~ConfigParser() {}
 
-void configparser::handle_action(const std::string& action,
+void ConfigParser::handle_action(const std::string& action,
 	const std::vector<std::string>& params)
 {
 	/*
-	 * configparser also acts as ConfigActionHandler to implement
+	 * ConfigParser also acts as ConfigActionHandler to implement
 	 * recursive "include" command.
 	 */
 	if (action == "include") {
 		if (params.size() < 1) {
-			throw confighandlerexception(
+			throw ConfigHandlerException(
 				ActionHandlerStatus::TOO_FEW_PARAMS);
 		}
 
 		if (!this->parse(Utils::resolve_tilde(params[0])))
-			throw confighandlerexception(
+			throw ConfigHandlerException(
 				ActionHandlerStatus::FILENOTFOUND);
 	} else
-		throw confighandlerexception(
+		throw ConfigHandlerException(
 			ActionHandlerStatus::INVALID_COMMAND);
 }
 
-bool configparser::parse(const std::string& filename, bool double_include)
+bool ConfigParser::parse(const std::string& filename, bool double_include)
 {
 	/*
 	 * this function parses a config file.
@@ -62,7 +62,7 @@ bool configparser::parse(const std::string& filename, bool double_include)
 	if (!double_include &&
 		included_files.find(filename) != included_files.end()) {
 		LOG(Level::WARN,
-			"configparser::parse: file %s has already been "
+			"ConfigParser::parse: file %s has already been "
 			"included",
 			filename);
 		return true;
@@ -74,14 +74,14 @@ bool configparser::parse(const std::string& filename, bool double_include)
 	std::string line;
 	if (!f.is_open()) {
 		LOG(Level::WARN,
-			"configparser::parse: file %s couldn't be opened",
+			"ConfigParser::parse: file %s couldn't be opened",
 			filename);
 		return false;
 	}
 	while (f.is_open() && !f.eof()) {
 		getline(f, line);
 		++linecounter;
-		LOG(Level::DEBUG, "configparser::parse: tokenizing %s", line);
+		LOG(Level::DEBUG, "ConfigParser::parse: tokenizing %s", line);
 		std::vector<std::string> tokens = Utils::tokenize_quoted(line);
 		if (!tokens.empty()) {
 			std::string cmd = tokens[0];
@@ -92,8 +92,8 @@ bool configparser::parse(const std::string& filename, bool double_include)
 				try {
 					evaluate_backticks(tokens);
 					handler->handle_action(cmd, tokens);
-				} catch (const confighandlerexception& e) {
-					throw configexception(StrPrintf::fmt(
+				} catch (const ConfigHandlerException& e) {
+					throw ConfigException(StrPrintf::fmt(
 						_("Error while processing "
 						  "command `%s' (%s line %u): "
 						  "%s"),
@@ -103,7 +103,7 @@ bool configparser::parse(const std::string& filename, bool double_include)
 						e.what()));
 				}
 			} else {
-				throw configexception(StrPrintf::fmt(
+				throw ConfigException(StrPrintf::fmt(
 					_("unknown command `%s'"), cmd));
 			}
 		}
@@ -111,18 +111,18 @@ bool configparser::parse(const std::string& filename, bool double_include)
 	return true;
 }
 
-void configparser::register_handler(const std::string& cmd,
+void ConfigParser::register_handler(const std::string& cmd,
 	ConfigActionHandler* handler)
 {
 	action_handlers[cmd] = handler;
 }
 
-void configparser::unregister_handler(const std::string& cmd)
+void ConfigParser::unregister_handler(const std::string& cmd)
 {
 	action_handlers[cmd] = 0;
 }
 
-void configparser::evaluate_backticks(std::vector<std::string>& tokens)
+void ConfigParser::evaluate_backticks(std::vector<std::string>& tokens)
 {
 	for (auto& token : tokens) {
 		token = evaluate_backticks(token);
@@ -154,7 +154,7 @@ std::string::size_type find_non_escaped_backtick(std::string& input,
 	return result;
 }
 
-std::string configparser::evaluate_backticks(std::string token)
+std::string ConfigParser::evaluate_backticks(std::string token)
 {
 	std::string::size_type pos1 = find_non_escaped_backtick(token, 0);
 	std::string::size_type pos2 =

@@ -12,10 +12,10 @@
 
 namespace newsboat {
 
-class regexmanager : public ConfigActionHandler {
+class RegexManager : public ConfigActionHandler {
 public:
-	regexmanager();
-	~regexmanager() override;
+	RegexManager();
+	~RegexManager() override;
 	void handle_action(const std::string& action,
 		const std::vector<std::string>& params) override;
 	void dump_config(std::vector<std::string>& config_output) override;

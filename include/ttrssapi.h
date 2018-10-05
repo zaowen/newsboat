@@ -11,7 +11,7 @@ namespace newsboat {
 
 class TtRssApi : public RemoteApi {
 public:
-	explicit TtRssApi(configcontainer* c);
+	explicit TtRssApi(ConfigContainer* c);
 	~TtRssApi() override;
 	bool authenticate() override;
 	virtual nlohmann::json run_op(const std::string& op,

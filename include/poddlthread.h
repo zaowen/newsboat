@@ -14,7 +14,7 @@ namespace podboat {
 
 class PoddlThread {
 public:
-	PoddlThread(Download* dl_, newsboat::configcontainer*);
+	PoddlThread(Download* dl_, newsboat::ConfigContainer*);
 	virtual ~PoddlThread();
 	size_t write_data(void* buffer, size_t size, size_t nmemb);
 	int progress(double dlnow, double dltotal);
@@ -30,7 +30,7 @@ private:
 	timeval tv1;
 	timeval tv2;
 	size_t bytecount;
-	newsboat::configcontainer* cfg;
+	newsboat::ConfigContainer* cfg;
 };
 
 } // namespace podboat

@@ -96,7 +96,7 @@ TEST_CASE("regex manager is used by format_text_to_list if one is passed",
 
 	fmt.add_line(LineType::wrappable, "Highlight me please!");
 
-	regexmanager rxmgr;
+	RegexManager rxmgr;
 	// the choice of green text on red background does not reflect my
 	// personal taste (or lack thereof) :)
 	rxmgr.handle_action(
@@ -222,7 +222,7 @@ TEST_CASE(
 	TextFormatter fmt;
 	fmt.add_line(LineType::softwrappable, "just a test");
 	const size_t wrap_width = 100;
-	regexmanager* rxman = nullptr;
+	RegexManager* rxman = nullptr;
 	const std::string location = "";
 
 	SECTION("total_width == 4")

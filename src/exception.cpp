@@ -10,19 +10,19 @@
 
 namespace newsboat {
 
-exception::exception(unsigned int error_code)
+Exception::Exception(unsigned int error_code)
 	: ecode(error_code)
 {
 }
 
-exception::~exception() throw() {}
+Exception::~Exception() throw() {}
 
-const char* exception::what() const throw()
+const char* Exception::what() const throw()
 {
 	return ::strerror(ecode);
 }
 
-const char* matcherexception::what() const throw()
+const char* MatcherException::what() const throw()
 {
 	static std::string errmsg;
 	switch (type_) {
@@ -40,12 +40,12 @@ const char* matcherexception::what() const throw()
 	return errmsg.c_str();
 }
 
-confighandlerexception::confighandlerexception(ActionHandlerStatus e)
+ConfigHandlerException::ConfigHandlerException(ActionHandlerStatus e)
 {
 	msg = get_errmsg(e);
 }
 
-const char* confighandlerexception::get_errmsg(ActionHandlerStatus status)
+const char* ConfigHandlerException::get_errmsg(ActionHandlerStatus status)
 {
 	switch (status) {
 	case ActionHandlerStatus::INVALID_PARAMS:

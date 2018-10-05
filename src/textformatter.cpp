@@ -106,7 +106,7 @@ std::vector<std::string> wrap_line(const std::string& line, const size_t width)
 
 std::vector<std::string> format_text_plain_helper(
 	const std::vector<std::pair<LineType, std::string>>& lines,
-	regexmanager* rxman,
+	RegexManager* rxman,
 	const std::string& location,
 	// wrappable lines are wrapped at this width
 	const size_t wrap_width,
@@ -188,7 +188,7 @@ std::vector<std::string> format_text_plain_helper(
 }
 
 std::pair<std::string, std::size_t> TextFormatter::format_text_to_list(
-	regexmanager* rxman,
+	RegexManager* rxman,
 	const std::string& location,
 	const size_t wrap_width,
 	const size_t total_width)

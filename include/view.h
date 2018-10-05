@@ -32,8 +32,8 @@ public:
 
 	void set_feedlist(std::vector<std::shared_ptr<RssFeed>> feeds);
 	void update_visible_feeds(std::vector<std::shared_ptr<RssFeed>> feeds);
-	void set_keymap(keymap* k);
-	void set_config_container(configcontainer* cfgcontainer);
+	void set_keymap(Keymap* k);
+	void set_config_container(ConfigContainer* cfgcontainer);
 	void show_error(const std::string& msg);
 	void set_status(const std::string& msg);
 	void set_status_unlocked(const std::string& msg);
@@ -41,11 +41,11 @@ public:
 	{
 		return ctrl;
 	}
-	configcontainer* get_cfg()
+	ConfigContainer* get_cfg()
 	{
 		return cfg;
 	}
-	keymap* get_keys()
+	Keymap* get_keys()
 	{
 		return keys;
 	}
@@ -111,7 +111,7 @@ public:
 
 	void feedlist_mark_pos_if_visible(unsigned int pos);
 
-	void set_regexmanager(regexmanager* r);
+	void set_regexmanager(RegexManager* r);
 
 	std::vector<std::pair<unsigned int, std::string>>
 	get_formaction_names();
@@ -149,18 +149,18 @@ protected:
 
 	Controller* ctrl;
 
-	configcontainer* cfg;
-	keymap* keys;
+	ConfigContainer* cfg;
+	Keymap* keys;
 	std::mutex mtx;
 
-	friend class colormanager;
+	friend class ColorManager;
 
 	std::vector<std::shared_ptr<Formaction>> formaction_stack;
 	unsigned int current_formaction;
 
 	std::vector<std::string> tags;
 
-	regexmanager* rxman;
+	RegexManager* rxman;
 
 	std::map<std::string, std::string> fg_colors;
 	std::map<std::string, std::string> bg_colors;

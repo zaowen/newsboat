@@ -5,7 +5,7 @@
 
 namespace newsboat {
 
-OldReaderUrlReader::OldReaderUrlReader(configcontainer* c,
+OldReaderUrlReader::OldReaderUrlReader(ConfigContainer* c,
 	const std::string& url_file,
 	RemoteApi* a)
 	: cfg(c)

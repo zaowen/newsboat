@@ -19,14 +19,14 @@ public:
 	explicit PbView(PbController* c = 0);
 	~PbView();
 	void run(bool auto_download);
-	void set_keymap(newsboat::keymap* k)
+	void set_keymap(newsboat::Keymap* k)
 	{
 		keys = k;
 		set_bindings();
 	}
 
 private:
-	friend class newsboat::colormanager;
+	friend class newsboat::ColorManager;
 
 	struct keymap_hint_entry {
 		Operation op ;
@@ -46,7 +46,7 @@ private:
 	PbController* ctrl;
 	newsboat::stfl::form dllist_form;
 	newsboat::stfl::form help_form;
-	newsboat::keymap* keys;
+	newsboat::Keymap* keys;
 };
 
 } // namespace podboat

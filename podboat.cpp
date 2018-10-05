@@ -28,8 +28,8 @@ int main(int argc, char* argv[])
 		c.set_view(&v);
 
 		ret = c.run(argc, argv);
-	} catch (const newsboat::exception& e) {
-		std::cerr << StrPrintf::fmt(_("Caught newsboat::exception with "
+	} catch (const newsboat::Exception& e) {
+		std::cerr << StrPrintf::fmt(_("Caught newsboat::Exception with "
 					      "message: %s"),
 				     e.what())
 			  << std::endl;

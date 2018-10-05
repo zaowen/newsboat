@@ -177,7 +177,7 @@ int Controller::run(const CLIArgsParser& args)
 	cfg.register_commands(cfgparser);
 	colorman.register_commands(cfgparser);
 
-	keymap keys(KM_NEWSBOAT);
+	Keymap keys(KM_NEWSBOAT);
 	cfgparser.register_handler("bind-key", &keys);
 	cfgparser.register_handler("unbind-key", &keys);
 	cfgparser.register_handler("macro", &keys);
@@ -193,7 +193,7 @@ int Controller::run(const CLIArgsParser& args)
 	try {
 		cfgparser.parse("/etc/" PROGRAM_NAME "/config");
 		cfgparser.parse(configpaths.config_file());
-	} catch (const configexception& ex) {
+	} catch (const ConfigException& ex) {
 		LOG(Level::ERROR,
 			"an exception occurred while parsing the configuration "
 			"file: %s",
@@ -230,7 +230,7 @@ int Controller::run(const CLIArgsParser& args)
 	}
 	try {
 		rsscache = new cache(configpaths.cache_file(), &cfg);
-	} catch (const dbexception& e) {
+	} catch (const DbException& e) {
 		std::cerr << StrPrintf::fmt(
 				     _("Error: opening the cache file `%s' "
 				       "failed: %s"),
@@ -384,7 +384,7 @@ int Controller::run(const CLIArgsParser& args)
 			feed->set_tags(urlcfg->get_tags(url));
 			feed->set_order(i);
 			feedcontainer.add_feed(feed);
-		} catch (const dbexception& e) {
+		} catch (const DbException& e) {
 			std::cout << _("Error while loading feeds from "
 				       "database: ")
 				  << e.what() << std::endl;
@@ -490,7 +490,7 @@ int Controller::run(const CLIArgsParser& args)
 		if (!args.silent) {
 			std::cout << _("done.") << std::endl;
 		}
-	} catch (const dbexception& e) {
+	} catch (const DbException& e) {
 		LOG(Level::USERERROR, "Cleaning up cache failed: %s", e.what());
 		if (!args.silent) {
 			std::cout << _("failed: ") << e.what() << std::endl;
@@ -517,7 +517,7 @@ void Controller::mark_all_read(const std::string& feedurl)
 {
 	try {
 		rsscache->mark_all_read(feedurl);
-	} catch (const dbexception& e) {
+	} catch (const DbException& e) {
 		v->show_error(StrPrintf::fmt(
 			_("Error: couldn't mark all feeds read: %s"),
 			e.what()));
@@ -718,7 +718,7 @@ void Controller::reload_urls_file()
 				new_feed->set_tags(urlcfg->get_tags(url));
 				new_feed->set_order(i);
 				new_feeds.push_back(new_feed);
-			} catch (const dbexception& e) {
+			} catch (const DbException& e) {
 				LOG(Level::ERROR,
 					"Controller::reload_urls_file: caught "
 					"exception: %s",
@@ -811,7 +811,7 @@ void Controller::write_item(std::shared_ptr<RssItem> item,
 	std::fstream f;
 	f.open(filename.c_str(), std::fstream::out);
 	if (!f.is_open()) {
-		throw exception(errno);
+		throw Exception(errno);
 	}
 
 	write_item(item, f);
@@ -992,7 +992,7 @@ void Controller::update_config()
 		try {
 			Logger::getInstance().set_errorlogfile(
 				cfg.get_configvalue("error-log"));
-		} catch (const exception& e) {
+		} catch (const Exception& e) {
 			const std::string msg =
 				StrPrintf::fmt("Couldn't open %s: %s",
 					cfg.get_configvalue("error-log"),

@@ -24,7 +24,7 @@ static int progress_callback(void* clientp,
 	double ultotal,
 	double ulnow);
 
-PoddlThread::PoddlThread(Download* dl_, newsboat::configcontainer* c)
+PoddlThread::PoddlThread(Download* dl_, newsboat::ConfigContainer* c)
 	: dl(dl_)
 	, f(new std::ofstream())
 	, bytecount(0)
@@ -75,7 +75,7 @@ void PoddlThread::run()
 
 	struct stat sb;
 	std::string filename =
-		dl->filename() + newsboat::configcontainer::PARTIAL_FILE_SUFFIX;
+		dl->filename() + newsboat::ConfigContainer::PARTIAL_FILE_SUFFIX;
 
 	if (stat(filename.c_str(), &sb) == -1) {
 		LOG(Level::INFO,

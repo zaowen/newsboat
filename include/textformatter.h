@@ -32,7 +32,7 @@ public:
 	void add_lines(
 		const std::vector<std::pair<LineType, std::string>>& lines);
 	std::pair<std::string, std::size_t> format_text_to_list(
-		regexmanager* r = nullptr,
+		RegexManager* r = nullptr,
 		const std::string& location = "",
 		const size_t wrap_width = 80,
 		const size_t total_width = 0);

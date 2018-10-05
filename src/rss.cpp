@@ -135,7 +135,7 @@ void RssItem::set_unread(bool u)
 				ch->update_rssitem_unread_and_enqueued(
 					this, feedurl_);
 			}
-		} catch (const dbexception& e) {
+		} catch (const DbException& e) {
 			// if the update failed, restore the old unread flag and
 			// rethrow the exception
 			unread_ = old_u;
@@ -396,13 +396,13 @@ void RssIgnores::handle_action(const std::string& action,
 {
 	if (action == "ignore-article") {
 		if (params.size() < 2)
-			throw confighandlerexception(
+			throw ConfigHandlerException(
 				ActionHandlerStatus::TOO_FEW_PARAMS);
 		std::string ignore_rssurl = params[0];
 		std::string ignore_expr = params[1];
 		Matcher m;
 		if (!m.parse(ignore_expr))
-			throw confighandlerexception(StrPrintf::fmt(
+			throw ConfigHandlerException(StrPrintf::fmt(
 				_("couldn't parse filter expression `%s': %s"),
 				ignore_expr,
 				m.get_parse_error()));
@@ -417,7 +417,7 @@ void RssIgnores::handle_action(const std::string& action,
 			resetflag.push_back(param);
 		}
 	} else
-		throw confighandlerexception(
+		throw ConfigHandlerException(
 			ActionHandlerStatus::INVALID_COMMAND);
 }
 

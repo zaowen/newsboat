@@ -144,7 +144,7 @@ msgstr ""
 
 #: newsboat.cpp:199 podboat.cpp:32
 #, c-format
-msgid "Caught newsboat::exception with message: %s"
+msgid "Caught newsboat::Exception with message: %s"
 msgstr ""
 
 #: src/cliargsparser.cpp:144 src/pbcontroller.cpp:231

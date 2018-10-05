@@ -24,10 +24,10 @@ struct ConfigActionHandler {
 	virtual ~ConfigActionHandler() {}
 };
 
-class configparser : public ConfigActionHandler {
+class ConfigParser : public ConfigActionHandler {
 public:
-	configparser();
-	~configparser() override;
+	ConfigParser();
+	~ConfigParser() override;
 	void register_handler(const std::string& cmd,
 		ConfigActionHandler* handler);
 	void unregister_handler(const std::string& cmd);
@@ -35,7 +35,7 @@ public:
 		const std::vector<std::string>& params) override;
 	void dump_config(std::vector<std::string>&) override
 	{
-		/* nothing because configparser itself only handles include */
+		/* nothing because ConfigParser itself only handles include */
 	}
 	bool parse(const std::string& filename, bool double_include = true);
 	static std::string evaluate_backticks(std::string token);

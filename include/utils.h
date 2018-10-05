@@ -67,7 +67,7 @@ public:
 		std::string& filter,
 		std::string& url);
 	static std::string retrieve_url(const std::string& url,
-		configcontainer* cfgcont = nullptr,
+		ConfigContainer* cfgcont = nullptr,
 		const std::string& authinfo = "",
 		const std::string* postdata = nullptr,
 		CURL* easyhandle = nullptr);
@@ -90,7 +90,7 @@ public:
 	static std::string absolute_url(const std::string& url,
 		const std::string& link);
 
-	static std::string get_useragent(configcontainer* cfgcont);
+	static std::string get_useragent(ConfigContainer* cfgcont);
 
 	static size_t strwidth(const std::string& s);
 	static size_t strwidth_stfl(const std::string& str);
@@ -136,7 +136,7 @@ public:
 
 	static std::string quote_if_necessary(const std::string& str);
 
-	static void set_common_curl_options(CURL* handle, configcontainer* cfg);
+	static void set_common_curl_options(CURL* handle, ConfigContainer* cfg);
 
 	static curl_proxytype get_proxy_type(const std::string& type);
 	static unsigned long get_auth_method(const std::string& type);

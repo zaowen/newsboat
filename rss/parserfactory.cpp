@@ -22,7 +22,7 @@ std::shared_ptr<RssParser> RssParserFactory::get_object(feed& f,
 		return std::shared_ptr<RssParser>(new atom_parser(doc));
 	case UNKNOWN:
 	default:
-		throw exception(_("unsupported feed format"));
+		throw Exception(_("unsupported feed format"));
 	}
 }
 

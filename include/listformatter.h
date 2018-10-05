@@ -29,7 +29,7 @@ public:
 	{
 		lines.clear();
 	}
-	std::string format_list(regexmanager* r = nullptr,
+	std::string format_list(RegexManager* r = nullptr,
 		const std::string& location = "");
 	unsigned int get_lines_count()
 	{

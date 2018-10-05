@@ -72,7 +72,7 @@ public:
 
 	void recalculate_form() override;
 
-	void set_regexmanager(regexmanager* r);
+	void set_regexmanager(RegexManager* r);
 
 private:
 	void process_operation(Operation op ,
@@ -132,7 +132,7 @@ private:
 	bool show_searchresult;
 	std::string searchphrase;
 
-	history filterhistory;
+	History filterhistory;
 
 	std::shared_ptr<RssFeed> search_dummy_feed;
 
@@ -141,7 +141,7 @@ private:
 	bool set_filterpos;
 	unsigned int filterpos;
 
-	regexmanager* rxman;
+	RegexManager* rxman;
 
 	unsigned int old_width;
 	int old_itempos;

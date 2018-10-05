@@ -6,7 +6,7 @@
 
 namespace newsboat {
 
-OpmlUrlReader::OpmlUrlReader(configcontainer* c)
+OpmlUrlReader::OpmlUrlReader(ConfigContainer* c)
 	: cfg(c)
 {
 }

@@ -5,7 +5,7 @@
 
 namespace newsboat {
 
-FeedHqUrlReader::FeedHqUrlReader(configcontainer* c,
+FeedHqUrlReader::FeedHqUrlReader(ConfigContainer* c,
 	const std::string& url_file,
 	RemoteApi* a)
 	: cfg(c)

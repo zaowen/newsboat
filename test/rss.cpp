@@ -15,8 +15,8 @@ TEST_CASE("Throws exception if file doesn't exist", "[rsspp::parser]")
 	rsspp::parser p;
 
 	REQUIRE_THROWS_MATCHES(p.parse_file("data/non-existent.xml"),
-		rsspp::exception,
-		ExceptionWithMsg<rsspp::exception>("could not parse file"));
+		rsspp::Exception,
+		ExceptionWithMsg<rsspp::Exception>("could not parse file"));
 }
 
 TEST_CASE("Throws exception if file can't be parsed", "[rsspp::parser]")
@@ -26,8 +26,8 @@ TEST_CASE("Throws exception if file can't be parsed", "[rsspp::parser]")
 	rsspp::parser p;
 
 	REQUIRE_THROWS_MATCHES(p.parse_file("data/empty.xml"),
-		rsspp::exception,
-		ExceptionWithMsg<rsspp::exception>("could not parse file"));
+		rsspp::Exception,
+		ExceptionWithMsg<rsspp::Exception>("could not parse file"));
 }
 
 TEST_CASE("Extracts data from RSS 0.91", "[rsspp::parser]")
@@ -266,7 +266,7 @@ namespace newsboat {
 
 TEST_CASE("set_rssurl checks if query feed has a valid query", "[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_feed f(&rsscache);
 
@@ -286,7 +286,7 @@ TEST_CASE("set_rssurl checks if query feed has a valid query", "[rss]")
 
 TEST_CASE("RssItem::sort_flags() cleans up flags", "[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_item item(&rsscache);
 
@@ -308,7 +308,7 @@ TEST_CASE("RssItem::sort_flags() cleans up flags", "[rss]")
 
 TEST_CASE("RssFeed::sort() correctly sorts articles", "[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_feed f(&rsscache);
 	for (int i = 0; i < 5; ++i) {
@@ -494,7 +494,7 @@ TEST_CASE("RssFeed::sort() correctly sorts articles", "[rss]")
 TEST_CASE("RssFeed::unread_item_count() returns number of unread articles",
 	"[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_feed f(&rsscache);
 	for (int i = 0; i < 5; ++i) {
@@ -524,7 +524,7 @@ TEST_CASE("RssFeed::unread_item_count() returns number of unread articles",
 TEST_CASE("RssFeed::matches_tag() returns true if article has a specified tag",
 	"[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_feed f(&rsscache);
 	const std::vector<std::string> tags = {"One", "Two", "Three", "Four"};
@@ -540,7 +540,7 @@ TEST_CASE("RssFeed::matches_tag() returns true if article has a specified tag",
 
 TEST_CASE("RssFeed::get_firsttag() returns first tag", "[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_feed f(&rsscache);
 
@@ -567,7 +567,7 @@ TEST_CASE(
 	"RssFeed::hidden() returns true if feed has a tag starting with \"!\"",
 	"[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_feed f(&rsscache);
 
@@ -590,7 +590,7 @@ TEST_CASE(
 	"RssFeed::mark_all_items_read() marks all items within a feed as read",
 	"[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_feed f(&rsscache);
 	for (int i = 0; i < 5; ++i) {
@@ -608,7 +608,7 @@ TEST_CASE(
 
 TEST_CASE("RssFeed::set_tags() sets tags for a feed", "[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_feed f(&rsscache);
 
@@ -625,7 +625,7 @@ TEST_CASE(
 	"\"deleted\" property set up",
 	"[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_feed f(&rsscache);
 	for (int i = 0; i < 5; ++i) {
@@ -677,7 +677,7 @@ TEST_CASE(
 TEST_CASE("If item's <title> is empty, try to deduce it from the URL",
 	"[rss::RssParser]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	RssParser p("file://data/items_without_titles.xml",
 		&rsscache,
@@ -699,7 +699,7 @@ TEST_CASE(
 	"its \"rssurl\" starts with \"query:\" string",
 	"[rss]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cache rsscache(":memory:", &cfg);
 	rss_feed f(&rsscache);
 

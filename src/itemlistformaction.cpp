@@ -223,7 +223,7 @@ void ItemListFormAction::process_operation(Operation op ,
 						unread);
 					v->set_status("");
 				}
-			} catch (const dbexception& e) {
+			} catch (const DbException& e) {
 				v->set_status(StrPrintf::fmt(
 					_("Error while toggling read flag: %s"),
 					e.what()));
@@ -485,7 +485,7 @@ void ItemListFormAction::process_operation(Operation op ,
 				process_operation(OP_NEXTUNREAD);
 			invalidate(InvalidationMode::COMPLETE);
 			v->set_status("");
-		} catch (const dbexception& e) {
+		} catch (const DbException& e) {
 			v->show_error(StrPrintf::fmt(
 				_("Error: couldn't mark feed read: %s"),
 				e.what()));
@@ -805,7 +805,7 @@ void ItemListFormAction::qna_start_search()
 			items = v->get_ctrl()->search_for_items(
 				utf8searchphrase, feed);
 		}
-	} catch (const dbexception& e) {
+	} catch (const DbException& e) {
 		v->show_error(
 			StrPrintf::fmt(_("Error while searching for `%s': %s"),
 				searchphrase,
@@ -875,7 +875,7 @@ void ItemListFormAction::prepare()
 
 	try {
 		do_update_visible_items();
-	} catch (matcherexception& e) {
+	} catch (MatcherException& e) {
 		v->show_error(StrPrintf::fmt(
 			_("Error: applying the filter failed: %s"), e.what()));
 		return;
@@ -1284,7 +1284,7 @@ void ItemListFormAction::save_filterpos()
 	}
 }
 
-void ItemListFormAction::set_regexmanager(regexmanager* r)
+void ItemListFormAction::set_regexmanager(RegexManager* r)
 {
 	rxman = r;
 	std::vector<std::string>& attrs = r->get_attrs("articlelist");

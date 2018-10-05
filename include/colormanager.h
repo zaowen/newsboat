@@ -14,11 +14,11 @@ class view;
 
 namespace newsboat {
 
-class colormanager : public ConfigActionHandler {
+class ColorManager : public ConfigActionHandler {
 public:
-	colormanager();
-	~colormanager() override;
-	void register_commands(configparser& cfgparser);
+	ColorManager();
+	~ColorManager() override;
+	void register_commands(ConfigParser& cfgparser);
 	void handle_action(const std::string& action,
 		const std::vector<std::string>& params) override;
 	void dump_config(std::vector<std::string>& config_output) override;

@@ -23,7 +23,7 @@
 
 namespace newsboat {
 
-FeedHqApi::FeedHqApi(configcontainer* c)
+FeedHqApi::FeedHqApi(ConfigContainer* c)
 	: RemoteApi(c)
 {
 	// TODO

@@ -25,7 +25,7 @@
 
 namespace newsboat {
 
-OldReaderApi::OldReaderApi(configcontainer* c)
+OldReaderApi::OldReaderApi(ConfigContainer* c)
 	: RemoteApi(c)
 {
 	// TODO

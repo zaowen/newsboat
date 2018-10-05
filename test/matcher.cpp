@@ -81,19 +81,19 @@ TEST_CASE("Matcher throws if expression contains undefined fields", "[Matcher]")
 	Matcher m;
 
 	m.parse("BBBB =~ \"foo\"");
-	REQUIRE_THROWS_AS(m.matches(&mock), matcherexception);
+	REQUIRE_THROWS_AS(m.matches(&mock), MatcherException);
 
 	m.parse("BBBB # \"foo\"");
-	REQUIRE_THROWS_AS(m.matches(&mock), matcherexception);
+	REQUIRE_THROWS_AS(m.matches(&mock), MatcherException);
 
 	m.parse("BBBB < 0");
-	REQUIRE_THROWS_AS(m.matches(&mock), matcherexception);
+	REQUIRE_THROWS_AS(m.matches(&mock), MatcherException);
 
 	m.parse("BBBB > 0");
-	REQUIRE_THROWS_AS(m.matches(&mock), matcherexception);
+	REQUIRE_THROWS_AS(m.matches(&mock), MatcherException);
 
 	m.parse("BBBB between 1:23");
-	REQUIRE_THROWS_AS(m.matches(&mock), matcherexception);
+	REQUIRE_THROWS_AS(m.matches(&mock), MatcherException);
 }
 
 TEST_CASE("Matcher throws if regex passed to `=~` or `!~` is invalid",
@@ -103,10 +103,10 @@ TEST_CASE("Matcher throws if regex passed to `=~` or `!~` is invalid",
 	Matcher m;
 
 	m.parse("AAAA =~ \"[[\"");
-	REQUIRE_THROWS_AS(m.matches(&mock), matcherexception);
+	REQUIRE_THROWS_AS(m.matches(&mock), MatcherException);
 
 	m.parse("AAAA !~ \"[[\"");
-	REQUIRE_THROWS_AS(m.matches(&mock), matcherexception);
+	REQUIRE_THROWS_AS(m.matches(&mock), MatcherException);
 }
 
 TEST_CASE("Operator `!~` checks if field doesn't match given regex",

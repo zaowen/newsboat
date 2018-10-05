@@ -6,7 +6,7 @@
 
 namespace newsboat {
 
-ReloadThread::ReloadThread(Controller* c, configcontainer* cf)
+ReloadThread::ReloadThread(Controller* c, ConfigContainer* cf)
 	: ctrl(c)
 	, oldtime(0)
 	, waittime_sec(0)

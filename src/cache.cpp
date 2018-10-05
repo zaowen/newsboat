@@ -32,7 +32,7 @@ inline void cache::run_sql_impl(const std::string& query,
 		const std::string message = "query \"%s\" failed: (%d) %s";
 		LOG(Level::CRITICAL, message, query, rc, sqlite3_errstr(rc));
 		if (do_throw) {
-			throw dbexception(db);
+			throw DbException(db);
 		}
 	}
 }
@@ -251,7 +251,7 @@ guid_callback(void* myguids, int argc, char** argv, char** /* azColName */)
 	return 0;
 }
 
-cache::cache(const std::string& cachefile, configcontainer* c)
+cache::cache(const std::string& cachefile, ConfigContainer* c)
 	: db(0)
 	, cfg(c)
 {
@@ -261,7 +261,7 @@ cache::cache(const std::string& cachefile, configcontainer* c)
 			"couldn't sqlite3_open(%s): error = %d",
 			cachefile,
 			error);
-		throw dbexception(db);
+		throw DbException(db);
 	}
 
 	populate_tables();
@@ -596,7 +596,7 @@ std::shared_ptr<RssFeed> cache::internalize_rssfeed(std::string rssurl,
 				item->set_feedurl(feed->rssurl());
 				filtered_items.push_back(item);
 			}
-		} catch (const matcherexception& ex) {
+		} catch (const MatcherException& ex) {
 			LOG(Level::DEBUG,
 				"oops, Matcher exception: %s",
 				ex.what());

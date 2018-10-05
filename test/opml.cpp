@@ -48,7 +48,7 @@ TEST_CASE("generate_opml creates an XML document with feed URLs in OPML format",
 	}
 
 	SECTION("A few feeds") {
-		configcontainer cfg;
+		ConfigContainer cfg;
 		cache rsscache(":memory:", &cfg);
 		FeedContainer feeds;
 

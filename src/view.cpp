@@ -78,12 +78,12 @@ view::~view()
 	stfl::reset();
 }
 
-void view::set_config_container(configcontainer* cfgcontainer)
+void view::set_config_container(ConfigContainer* cfgcontainer)
 {
 	cfg = cfgcontainer;
 }
 
-void view::set_keymap(keymap* k)
+void view::set_keymap(Keymap* k)
 {
 	keys = k;
 }
@@ -426,7 +426,7 @@ void view::update_visible_feeds(std::vector<std::shared_ptr<RssFeed>> feeds)
 					Formaction>(formaction_stack[0]);
 			feedlist->update_visible_feeds(feeds);
 		}
-	} catch (const matcherexception& e) {
+	} catch (const MatcherException& e) {
 		set_status(StrPrintf::fmt(
 			_("Error: applying the filter failed: %s"), e.what()));
 		LOG(Level::DEBUG,
@@ -452,7 +452,7 @@ void view::set_feedlist(std::vector<std::shared_ptr<RssFeed>> feeds)
 					Formaction>(formaction_stack[0]);
 			feedlist->set_feedlist(feeds);
 		}
-	} catch (const matcherexception& e) {
+	} catch (const MatcherException& e) {
 		set_status(StrPrintf::fmt(
 			_("Error: applying the filter failed: %s"), e.what()));
 	}
@@ -563,7 +563,7 @@ void view::push_itemview(std::shared_ptr<RssFeed> f,
 				get_ctrl()->mark_article_read(
 					item->guid(), true);
 			}
-		} catch (const dbexception& e) {
+		} catch (const DbException& e) {
 			show_error(StrPrintf::fmt(
 				_("Error while marking article as read: %s"),
 				e.what()));
@@ -1166,7 +1166,7 @@ void view::feedlist_mark_pos_if_visible(unsigned int pos)
 	}
 }
 
-void view::set_regexmanager(regexmanager* r)
+void view::set_regexmanager(RegexManager* r)
 {
 	rxman = r;
 }

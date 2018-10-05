@@ -49,7 +49,7 @@ public:
 
 	void mark_pos_if_visible(unsigned int pos);
 
-	void set_regexmanager(regexmanager* r);
+	void set_regexmanager(RegexManager* r);
 
 private:
 	int get_pos(unsigned int realidx);
@@ -85,14 +85,14 @@ private:
 	Matcher m;
 	bool apply_filter;
 
-	history filterhistory;
+	History filterhistory;
 
 	std::shared_ptr<RssFeed> search_dummy_feed;
 
 	unsigned int filterpos;
 	bool set_filterpos;
 
-	regexmanager* rxman;
+	RegexManager* rxman;
 
 	unsigned int old_width;
 

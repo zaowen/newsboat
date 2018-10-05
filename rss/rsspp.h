@@ -84,10 +84,10 @@ public:
 	std::vector<item> items;
 };
 
-class exception : public std::exception {
+class Exception : public std::exception {
 public:
-	explicit exception(const std::string& errmsg = "");
-	~exception() throw() override;
+	explicit Exception(const std::string& errmsg = "");
+	~Exception() throw() override;
 	const char* what() const throw() override;
 
 private:

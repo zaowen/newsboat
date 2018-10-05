@@ -23,7 +23,7 @@ void Logger::set_logfile(const std::string& logfile)
 		f.close();
 	f.open(logfile, std::fstream::out);
 	if (!f.is_open()) {
-		throw exception(errno); // the question is whether f.open() sets
+		throw Exception(errno); // the question is whether f.open() sets
 					// errno...
 	}
 }
@@ -39,7 +39,7 @@ void Logger::set_errorlogfile(const std::string& logfile)
 		ef.close();
 	ef.open(logfile, std::fstream::out);
 	if (!ef.is_open()) {
-		throw exception(errno);
+		throw Exception(errno);
 	}
 	if (Level::NONE == curlevel) {
 		curlevel = Level::USERERROR;

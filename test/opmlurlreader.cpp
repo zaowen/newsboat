@@ -11,7 +11,7 @@ using namespace newsboat;
 TEST_CASE("OPML URL reader gets the path to input file from \"opml-url\" "
 		"setting", "[OpmlUrlReader]")
 {
-	configcontainer cfg;
+	ConfigContainer cfg;
 	OpmlUrlReader reader(&cfg);
 
 	const std::string setting("opml-url");
@@ -30,7 +30,7 @@ TEST_CASE("OpmlUrlReader::reload() reads URLs and tags from an OPML file",
 {
 	const std::string cwd(::getcwd(nullptr, 0));
 
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cfg.set_configvalue("opml-url", "file://" + cwd + "/data/example.opml");
 
 	OpmlUrlReader reader(&cfg);
@@ -79,7 +79,7 @@ TEST_CASE("OpmlUrlReader::reload() loads URLs from multiple sources",
 {
 	const std::string cwd(::getcwd(nullptr, 0));
 
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cfg.set_configvalue("opml-url",
 			"file://" + cwd + "/data/example.opml"
 			+ " "
@@ -138,7 +138,7 @@ TEST_CASE("OpmlUrlReader::reload() skips things that can't be parsed",
 {
 	const std::string cwd(::getcwd(nullptr, 0));
 
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cfg.set_configvalue("opml-url",
 			"file://" + cwd + "/data/example.opml"
 			+ " "
@@ -218,7 +218,7 @@ TEST_CASE("OpmlUrlReader::write_config() doesn't change the input file",
 	urlsFileStream.close();
 	testData.close();
 
-	configcontainer cfg;
+	ConfigContainer cfg;
 	cfg.set_configvalue("opml-url", "file://" + urlsFile.getPath());
 
 	OpmlUrlReader u(&cfg);

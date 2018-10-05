@@ -15,7 +15,7 @@ typedef std::map<std::string, rsspp::feed> feedmap;
 
 class NewsBlurApi : public RemoteApi {
 public:
-	explicit NewsBlurApi(configcontainer* c);
+	explicit NewsBlurApi(ConfigContainer* c);
 	~NewsBlurApi() override;
 	bool authenticate() override;
 	std::vector<tagged_feedurl> get_subscribed_urls() override;

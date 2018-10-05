@@ -14,7 +14,7 @@
 
 namespace newsboat {
 
-NewsBlurApi::NewsBlurApi(configcontainer* c)
+NewsBlurApi::NewsBlurApi(ConfigContainer* c)
 	: RemoteApi(c)
 {
 	api_location = cfg->get_configvalue("newsblur-url");

@@ -57,7 +57,7 @@ public:
 	}
 	void start_qna(const std::vector<qna_pair>& prompts,
 		Operation finish_op,
-		history* h = nullptr);
+		History* h = nullptr);
 
 	void set_parent_formaction(std::shared_ptr<Formaction> fa)
 	{
@@ -103,8 +103,8 @@ protected:
 
 	std::vector<std::string> qna_responses;
 
-	static history searchhistory;
-	static history cmdlinehistory;
+	static History searchhistory;
+	static History cmdlinehistory;
 
 	std::vector<std::string> valid_cmds;
 
@@ -114,7 +114,7 @@ private:
 
 	std::vector<qna_pair> qna_prompts;
 	Operation finish_operation;
-	history* qna_history;
+	History* qna_history;
 	std::shared_ptr<Formaction> parent_formaction;
 };
 

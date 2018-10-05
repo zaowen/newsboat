@@ -44,7 +44,7 @@ public:
 		std::vector<linkpair>& thelinks,
 		const std::string& url);
 
-	void set_regexmanager(regexmanager* r);
+	void set_regexmanager(RegexManager* r);
 
 	void update_percent();
 
@@ -68,7 +68,7 @@ private:
 	bool show_source;
 	std::vector<linkpair> links;
 	bool quit;
-	regexmanager* rxman;
+	RegexManager* rxman;
 	unsigned int num_lines;
 	std::shared_ptr<ItemListFormAction> itemlist;
 	bool in_search;

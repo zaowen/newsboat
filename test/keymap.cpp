@@ -93,11 +93,11 @@ TEST_CASE("handle_action()", "[keymap]")
 	SECTION("without parameters")
 	{
 		REQUIRE_THROWS_AS(k.handle_action("bind-key", params),
-			confighandlerexception);
+			ConfigHandlerException);
 		REQUIRE_THROWS_AS(k.handle_action("unbind-key", params),
-			confighandlerexception);
+			ConfigHandlerException);
 		REQUIRE_THROWS_AS(k.handle_action("macro", params),
-			confighandlerexception);
+			ConfigHandlerException);
 	}
 
 	SECTION("with one parameter")
@@ -105,7 +105,7 @@ TEST_CASE("handle_action()", "[keymap]")
 		params.push_back("r");
 
 		REQUIRE_THROWS_AS(k.handle_action("bind-key", params),
-			confighandlerexception);
+			ConfigHandlerException);
 		REQUIRE_NOTHROW(k.handle_action("unbind-key", params));
 	}
 
@@ -115,7 +115,7 @@ TEST_CASE("handle_action()", "[keymap]")
 		params.push_back("open");
 		REQUIRE_NOTHROW(k.handle_action("bind-key", params));
 		REQUIRE_THROWS_AS(k.handle_action("an-invalid-action", params),
-			confighandlerexception);
+			ConfigHandlerException);
 	}
 
 	SECTION("invalid-op throws exception")
@@ -124,8 +124,8 @@ TEST_CASE("handle_action()", "[keymap]")
 		params.push_back("invalid-op");
 
 		REQUIRE_THROWS_AS(k.handle_action("bind-key", params),
-			confighandlerexception);
+			ConfigHandlerException);
 		REQUIRE_THROWS_AS(k.handle_action("macro", params),
-			confighandlerexception);
+			ConfigHandlerException);
 	}
 }

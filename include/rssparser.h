@@ -9,14 +9,14 @@
 
 namespace newsboat {
 
-class configcontainer;
+class ConfigContainer;
 class cache;
 
 class RssParser {
 public:
 	RssParser(const std::string& uri,
 		cache* c,
-		configcontainer*,
+		ConfigContainer*,
 		RssIgnores* ii,
 		RemoteApi* a = 0);
 	~RssParser();
@@ -70,7 +70,7 @@ private:
 
 	std::string my_uri;
 	cache* ch;
-	configcontainer* cfgcont;
+	ConfigContainer* cfgcont;
 	bool skip_parsing;
 	bool is_valid;
 	RssIgnores* ign;

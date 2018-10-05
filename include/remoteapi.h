@@ -19,7 +19,7 @@ typedef struct {
 
 class RemoteApi {
 public:
-	explicit RemoteApi(configcontainer* c)
+	explicit RemoteApi(ConfigContainer* c)
 		: cfg(c)
 	{
 	}
@@ -36,7 +36,7 @@ public:
 	static const std::string eval_password(const std::string& cmd);
 	// TODO
 protected:
-	configcontainer* cfg;
+	ConfigContainer* cfg;
 	credentials get_credentials(const std::string& scope,
 		const std::string& name);
 };

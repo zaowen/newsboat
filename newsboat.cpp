@@ -181,22 +181,22 @@ int main(int argc, char* argv[])
 	int ret;
 	try {
 		ret = c.run(args);
-	} catch (const newsboat::dbexception& e) {
+	} catch (const newsboat::DbException& e) {
 		std::cerr << StrPrintf::fmt(
-				     _("Caught newsboat::dbexception with "
+				     _("Caught newsboat::DbException with "
 				       "message: %s"),
 				     e.what())
 			  << std::endl;
 		::exit(EXIT_FAILURE);
-	} catch (const newsboat::matcherexception& e) {
+	} catch (const newsboat::MatcherException& e) {
 		std::cerr << StrPrintf::fmt(
-				     _("Caught newsboat::matcherexception with "
+				     _("Caught newsboat::MatcherException with "
 				       "message: %s"),
 				     e.what())
 			  << std::endl;
 		::exit(EXIT_FAILURE);
-	} catch (const newsboat::exception& e) {
-		std::cerr << StrPrintf::fmt(_("Caught newsboat::exception with "
+	} catch (const newsboat::Exception& e) {
+		std::cerr << StrPrintf::fmt(_("Caught newsboat::Exception with "
 					      "message: %s"),
 				     e.what())
 			  << std::endl;

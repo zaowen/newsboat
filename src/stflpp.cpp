@@ -23,11 +23,11 @@ stfl::form::form(const std::string& text)
 	ipool = stfl_ipool_create(
 		Utils::translit(nl_langinfo(CODESET), "WCHAR_T").c_str());
 	if (!ipool) {
-		throw exception(errno);
+		throw Exception(errno);
 	}
 	f = stfl_create(stfl_ipool_towc(ipool, text.c_str()));
 	if (!f) {
-		throw exception(errno);
+		throw Exception(errno);
 	}
 }
 

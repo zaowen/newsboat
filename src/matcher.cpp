@@ -84,8 +84,8 @@ bool Matcher::matches(Matchable* item)
 bool Matcher::matchop_lt(expression* e, Matchable* item)
 {
 	if (!item->has_attribute(e->name))
-		throw matcherexception(
-			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
+		throw MatcherException(
+			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
 	std::istringstream islit(e->literal);
 	std::istringstream isatt(item->get_attribute(e->name));
 	int ilit, iatt;
@@ -97,8 +97,8 @@ bool Matcher::matchop_lt(expression* e, Matchable* item)
 bool Matcher::matchop_between(expression* e, Matchable* item)
 {
 	if (!item->has_attribute(e->name))
-		throw matcherexception(
-			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
+		throw MatcherException(
+			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
 	std::vector<std::string> lit = Utils::tokenize(e->literal, ":");
 	std::istringstream isatt(item->get_attribute(e->name));
 	int att;
@@ -120,8 +120,8 @@ bool Matcher::matchop_between(expression* e, Matchable* item)
 bool Matcher::matchop_gt(expression* e, Matchable* item)
 {
 	if (!item->has_attribute(e->name))
-		throw matcherexception(
-			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
+		throw MatcherException(
+			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
 	std::istringstream islit(e->literal);
 	std::istringstream isatt(item->get_attribute(e->name));
 	int ilit, iatt;
@@ -133,8 +133,8 @@ bool Matcher::matchop_gt(expression* e, Matchable* item)
 bool Matcher::matchop_rxeq(expression* e, Matchable* item)
 {
 	if (!item->has_attribute(e->name))
-		throw matcherexception(
-			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
+		throw MatcherException(
+			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
 	if (!e->regex) {
 		e->regex = new regex_t;
 		int err;
@@ -143,8 +143,8 @@ bool Matcher::matchop_rxeq(expression* e, Matchable* item)
 			     REG_EXTENDED | REG_ICASE | REG_NOSUB)) != 0) {
 			char buf[1024];
 			regerror(err, e->regex, buf, sizeof(buf));
-			throw matcherexception(
-				matcherexception::Type::INVALID_REGEX,
+			throw MatcherException(
+				MatcherException::Type::INVALID_REGEX,
 				e->literal,
 				buf);
 		}
@@ -161,8 +161,8 @@ bool Matcher::matchop_rxeq(expression* e, Matchable* item)
 bool Matcher::matchop_cont(expression* e, Matchable* item)
 {
 	if (!item->has_attribute(e->name))
-		throw matcherexception(
-			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
+		throw MatcherException(
+			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
 	std::vector<std::string> elements =
 		Utils::tokenize(item->get_attribute(e->name), " ");
 	std::string literal = e->literal;
@@ -180,8 +180,8 @@ bool Matcher::matchop_eq(expression* e, Matchable* item)
 		LOG(Level::WARN,
 			"Matcher::matches_r: attribute %s not available",
 			e->name);
-		throw matcherexception(
-			matcherexception::Type::ATTRIB_UNAVAIL, e->name);
+		throw MatcherException(
+			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
 	}
 	return (item->get_attribute(e->name) == e->literal);
 }

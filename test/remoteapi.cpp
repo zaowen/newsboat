@@ -12,7 +12,7 @@ using namespace newsboat;
  */
 class test_api : public RemoteApi {
 public:
-	test_api(configcontainer* c)
+	test_api(ConfigContainer* c)
 		: RemoteApi(c)
 	{
 	}
@@ -55,8 +55,8 @@ public:
 TEST_CASE("get_credentials() returns the users name and password",
 	"[RemoteApi]")
 {
-	configcontainer cfg;
-	configparser cfgparser;
+	ConfigContainer cfg;
+	ConfigParser cfgparser;
 	cfg.register_commands(cfgparser);
 	cfgparser.parse("data/test-config-credentials.txt");
 	std::unique_ptr<test_api> api(new test_api(&cfg));

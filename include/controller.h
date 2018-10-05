@@ -59,7 +59,7 @@ public:
 	void reload_urls_file();
 	void edit_urls_file();
 
-	filtercontainer& get_filters()
+	FilterContainer& get_filters()
 	{
 		return filters;
 	}
@@ -69,7 +69,7 @@ public:
 		return rsscache;
 	}
 
-	configcontainer* get_cfg()
+	ConfigContainer* get_cfg()
 	{
 		return &cfg;
 	}
@@ -133,14 +133,14 @@ private:
 	UrlReader* urlcfg;
 	cache* rsscache;
 	bool refresh_on_start;
-	configcontainer cfg;
+	ConfigContainer cfg;
 	RssIgnores ign;
 	FeedContainer feedcontainer;
-	filtercontainer filters;
+	FilterContainer filters;
 
-	configparser cfgparser;
-	colormanager colorman;
-	regexmanager rxman;
+	ConfigParser cfgparser;
+	ColorManager colorman;
+	RegexManager rxman;
 	RemoteApi* api;
 	std::mutex feeds_mutex;
 

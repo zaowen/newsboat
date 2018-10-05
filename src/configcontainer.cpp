@@ -16,9 +16,9 @@
 
 namespace newsboat {
 
-const std::string configcontainer::PARTIAL_FILE_SUFFIX = ".part";
+const std::string ConfigContainer::PARTIAL_FILE_SUFFIX = ".part";
 
-configcontainer::configcontainer()
+ConfigContainer::ConfigContainer()
 	// create the config options and set their resp. default value and type
 	: config_data{{"always-display-description",
 			      configdata("false", ConfigData::BOOL)},
@@ -251,20 +251,20 @@ configcontainer::configcontainer()
 {
 }
 
-configcontainer::~configcontainer() {}
+ConfigContainer::~ConfigContainer() {}
 
-void configcontainer::register_commands(configparser& cfgparser)
+void ConfigContainer::register_commands(ConfigParser& cfgparser)
 {
 	// this registers the config options defined above in the configuration
 	// parser
 	// -> if the resp. config option is encountered, it is passed to the
-	// configcontainer
+	// ConfigContainer
 	for (const auto& cfg : config_data) {
 		cfgparser.register_handler(cfg.first, this);
 	}
 }
 
-void configcontainer::handle_action(const std::string& action,
+void ConfigContainer::handle_action(const std::string& action,
 	const std::vector<std::string>& params)
 {
 	configdata& cfgdata = config_data[action];
@@ -273,26 +273,26 @@ void configcontainer::handle_action(const std::string& action,
 	// that the returned object was created ad-hoc.
 	if (cfgdata.type == ConfigData::INVALID) {
 		LOG(Level::WARN,
-			"configcontainer::handle_action: unknown action %s",
+			"ConfigContainer::handle_action: unknown action %s",
 			action);
-		throw confighandlerexception(
+		throw ConfigHandlerException(
 			ActionHandlerStatus::INVALID_COMMAND);
 	}
 
 	LOG(Level::DEBUG,
-		"configcontainer::handle_action: action = %s, type = %u",
+		"ConfigContainer::handle_action: action = %s, type = %u",
 		action,
 		cfgdata.type);
 
 	if (params.size() < 1) {
-		throw confighandlerexception(
+		throw ConfigHandlerException(
 			ActionHandlerStatus::TOO_FEW_PARAMS);
 	}
 
 	switch (cfgdata.type) {
 	case ConfigData::BOOL:
 		if (!is_bool(params[0]))
-			throw confighandlerexception(StrPrintf::fmt(
+			throw ConfigHandlerException(StrPrintf::fmt(
 				_("expected boolean value, found `%s' instead"),
 				params[0]));
 		cfgdata.value = params[0];
@@ -300,7 +300,7 @@ void configcontainer::handle_action(const std::string& action,
 
 	case ConfigData::INT:
 		if (!is_int(params[0]))
-			throw confighandlerexception(StrPrintf::fmt(
+			throw ConfigHandlerException(StrPrintf::fmt(
 				_("expected integer value, found `%s' instead"),
 				params[0]));
 		cfgdata.value = params[0];
@@ -309,7 +309,7 @@ void configcontainer::handle_action(const std::string& action,
 	case ConfigData::ENUM:
 		if (cfgdata.enum_values.find(params[0]) ==
 			cfgdata.enum_values.end())
-			throw confighandlerexception(StrPrintf::fmt(
+			throw ConfigHandlerException(StrPrintf::fmt(
 				_("invalid configuration value `%s'"),
 				params[0]));
 	// fall-through
@@ -327,19 +327,19 @@ void configcontainer::handle_action(const std::string& action,
 	}
 }
 
-bool configcontainer::is_bool(const std::string& s)
+bool ConfigContainer::is_bool(const std::string& s)
 {
 	const auto bool_values = {"yes", "no", "true", "false"};
 	return (std::find(bool_values.begin(), bool_values.end(), s) !=
 		bool_values.end());
 }
 
-bool configcontainer::is_int(const std::string& s)
+bool ConfigContainer::is_int(const std::string& s)
 {
 	return std::all_of(s.begin(), s.end(), ::isdigit);
 }
 
-std::string configcontainer::get_configvalue(const std::string& key)
+std::string ConfigContainer::get_configvalue(const std::string& key)
 {
 	std::string retval = config_data[key].value;
 	if (config_data[key].type == ConfigData::PATH) {
@@ -348,7 +348,7 @@ std::string configcontainer::get_configvalue(const std::string& key)
 	return retval;
 }
 
-int configcontainer::get_configvalue_as_int(const std::string& key)
+int ConfigContainer::get_configvalue_as_int(const std::string& key)
 {
 	std::istringstream is(config_data[key].value);
 	int i;
@@ -356,28 +356,28 @@ int configcontainer::get_configvalue_as_int(const std::string& key)
 	return i;
 }
 
-bool configcontainer::get_configvalue_as_bool(const std::string& key)
+bool ConfigContainer::get_configvalue_as_bool(const std::string& key)
 {
 	std::string value = config_data[key].value;
 	return (value == "true" || value == "yes");
 }
 
-void configcontainer::set_configvalue(const std::string& key,
+void ConfigContainer::set_configvalue(const std::string& key,
 	const std::string& value)
 {
 	LOG(Level::DEBUG,
-		"configcontainer::set_configvalue(%s, %s) called",
+		"ConfigContainer::set_configvalue(%s, %s) called",
 		key,
 		value);
 	config_data[key].value = value;
 }
 
-void configcontainer::reset_to_default(const std::string& key)
+void ConfigContainer::reset_to_default(const std::string& key)
 {
 	config_data[key].value = config_data[key].default_value;
 }
 
-void configcontainer::toggle(const std::string& key)
+void ConfigContainer::toggle(const std::string& key)
 {
 	if (config_data[key].type == ConfigData::BOOL) {
 		set_configvalue(key,
@@ -386,7 +386,7 @@ void configcontainer::toggle(const std::string& key)
 	}
 }
 
-void configcontainer::dump_config(std::vector<std::string>& config_output)
+void ConfigContainer::dump_config(std::vector<std::string>& config_output)
 {
 	for (const auto& cfg : config_data) {
 		std::string configline = cfg.first + " ";
@@ -430,7 +430,7 @@ void configcontainer::dump_config(std::vector<std::string>& config_output)
 	}
 }
 
-std::vector<std::string> configcontainer::get_suggestions(
+std::vector<std::string> ConfigContainer::get_suggestions(
 	const std::string& fragment)
 {
 	std::vector<std::string> result;
@@ -442,7 +442,7 @@ std::vector<std::string> configcontainer::get_suggestions(
 	return result;
 }
 
-FeedSortStrategy configcontainer::get_feed_sort_strategy()
+FeedSortStrategy ConfigContainer::get_feed_sort_strategy()
 {
 	FeedSortStrategy ss;
 	const auto sortmethod_info =
@@ -477,7 +477,7 @@ FeedSortStrategy configcontainer::get_feed_sort_strategy()
 	return ss;
 }
 
-ArticleSortStrategy configcontainer::get_article_sort_strategy()
+ArticleSortStrategy ConfigContainer::get_article_sort_strategy()
 {
 	ArticleSortStrategy ss;
 	const auto methods =
