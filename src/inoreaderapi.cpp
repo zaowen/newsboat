@@ -54,7 +54,7 @@ my_write_data(void* buffer, size_t size, size_t nmemb, void* userp)
 std::string InoReaderApi::retrieve_auth()
 {
 	CURL* handle = curl_easy_init();
-	credentials cred = get_credentials("inoreader", "Inoreader");
+	Credentials cred = get_credentials("inoreader", "Inoreader");
 	if (cred.user.empty() || cred.pass.empty()) {
 		return "";
 	}

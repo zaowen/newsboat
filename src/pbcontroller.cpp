@@ -326,14 +326,14 @@ void PbController::print_usage(const char* argv0)
 		argv0);
 	std::cout << msg;
 
-	struct arg {
+	struct Arg {
 		const char name;
 		const std::string longname;
 		const std::string params;
 		const std::string desc;
 	};
 
-	static const std::vector<arg> args = {
+	static const std::vector<Arg> args = {
 		{'C',
 			"config-file",
 			_s("<configfile>"),

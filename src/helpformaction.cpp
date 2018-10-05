@@ -14,7 +14,7 @@
 namespace newsboat {
 
 HelpFormAction::HelpFormAction(View* vv, std::string formstr)
-	: Formaction(vv, formstr)
+	: FormAction(vv, formstr)
 	, quit(false)
 	, apply_search(false)
 {
@@ -69,7 +69,7 @@ void HelpFormAction::prepare()
 					      "help-title-format"),
 				width));
 
-		std::vector<keymap_desc> descs;
+		std::vector<KeymapDesc> descs;
 		v->get_keys()->get_keymap_descriptions(
 			descs, v->get_keys()->get_flag_from_context(context));
 
@@ -212,9 +212,9 @@ void HelpFormAction::init()
 	set_keymap_hints();
 }
 
-keymap_hint_entry* HelpFormAction::get_keymap_hint()
+KeymapHintEntry* HelpFormAction::get_keymap_hint()
 {
-	static keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
+	static KeymapHintEntry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_SEARCH, _("Search")},
 		{OP_CLEARFILTER, _("Clear")},
 		{OP_NIL, nullptr}};

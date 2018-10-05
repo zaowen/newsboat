@@ -20,7 +20,7 @@ namespace newsboat {
  */
 
 SelectFormAction::SelectFormAction(View* vv, std::string formstr)
-	: Formaction(vv, formstr)
+	: FormAction(vv, formstr)
 	, quit(false)
 	, type(SelectionType::TAG)
 {
@@ -39,7 +39,7 @@ void SelectFormAction::handle_cmdline(const std::string& cmd)
 			f->set("tagpos", std::to_string(idx - 1));
 		}
 	} else {
-		Formaction::handle_cmdline(cmd);
+		FormAction::handle_cmdline(cmd);
 	}
 }
 
@@ -161,12 +161,12 @@ void SelectFormAction::init()
 	f->set("head", title);
 }
 
-keymap_hint_entry* SelectFormAction::get_keymap_hint()
+KeymapHintEntry* SelectFormAction::get_keymap_hint()
 {
-	static keymap_hint_entry hints_tag[] = {{OP_QUIT, _("Cancel")},
+	static KeymapHintEntry hints_tag[] = {{OP_QUIT, _("Cancel")},
 		{OP_OPEN, _("Select Tag")},
 		{OP_NIL, nullptr}};
-	static keymap_hint_entry hints_filter[] = {{OP_QUIT, _("Cancel")},
+	static KeymapHintEntry hints_filter[] = {{OP_QUIT, _("Cancel")},
 		{OP_OPEN, _("Select Filter")},
 		{OP_NIL, nullptr}};
 	switch (type) {

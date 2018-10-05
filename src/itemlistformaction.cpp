@@ -709,7 +709,7 @@ void ItemListFormAction::process_operation(Operation op ,
 
 void ItemListFormAction::finished_qna(Operation op )
 {
-	Formaction::finished_qna(op); // important!
+	FormAction::finished_qna(op); // important!
 
 	switch (op) {
 	case OP_INT_END_SETFILTER:
@@ -1169,9 +1169,9 @@ std::string ItemListFormAction::get_guid()
 	return visible_items[itempos].first->guid();
 }
 
-keymap_hint_entry* ItemListFormAction::get_keymap_hint()
+KeymapHintEntry* ItemListFormAction::get_keymap_hint()
 {
-	static keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
+	static KeymapHintEntry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_OPEN, _("Open")},
 		{OP_SAVE, _("Save")},
 		{OP_RELOAD, _("Reload")},
@@ -1224,7 +1224,7 @@ void ItemListFormAction::handle_cmdline(const std::string& cmd)
 				v->show_error(_("Error: no item selected!"));
 			}
 		} else {
-			Formaction::handle_cmdline(cmd);
+			FormAction::handle_cmdline(cmd);
 		}
 	}
 }
@@ -1240,7 +1240,7 @@ int ItemListFormAction::get_pos(unsigned int realidx)
 
 void ItemListFormAction::recalculate_form()
 {
-	Formaction::recalculate_form();
+	FormAction::recalculate_form();
 	invalidate(InvalidationMode::COMPLETE);
 
 	std::string itemposname = f->get("itempos");

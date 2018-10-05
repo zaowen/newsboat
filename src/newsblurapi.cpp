@@ -57,7 +57,7 @@ bool NewsBlurApi::authenticate()
 
 std::string NewsBlurApi::retrieve_auth()
 {
-	credentials cred = get_credentials("newsblur", "Newsblur");
+	Credentials cred = get_credentials("newsblur", "Newsblur");
 	if (cred.user.empty() || cred.pass.empty()) {
 		LOG(Level::CRITICAL,
 			"NewsBlurApi::retrieve_auth: No user and/or password "

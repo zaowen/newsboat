@@ -5,7 +5,7 @@
 
 namespace newsboat {
 
-class ListFormAction : public Formaction {
+class ListFormAction : public FormAction {
 public:
 	ListFormAction(View*, std::string formstr);
 

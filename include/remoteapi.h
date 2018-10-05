@@ -15,7 +15,7 @@ typedef std::pair<std::string, std::vector<std::string>> tagged_feedurl;
 typedef struct {
 	std::string user;
 	std::string pass;
-} credentials;
+} Credentials;
 
 class RemoteApi {
 public:
@@ -37,7 +37,7 @@ public:
 	// TODO
 protected:
 	ConfigContainer* cfg;
-	credentials get_credentials(const std::string& scope,
+	Credentials get_credentials(const std::string& scope,
 		const std::string& name);
 };
 

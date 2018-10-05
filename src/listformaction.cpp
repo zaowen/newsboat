@@ -5,7 +5,7 @@
 namespace newsboat {
 
 ListFormAction::ListFormAction(View* v, std::string formstr)
-	: Formaction(v, formstr)
+	: FormAction(v, formstr)
 {
 }
 
@@ -15,31 +15,31 @@ void ListFormAction::process_operation(Operation op ,
 {
 	switch (op) {
 	case OP_1:
-		Formaction::start_cmdline("1");
+		FormAction::start_cmdline("1");
 		break;
 	case OP_2:
-		Formaction::start_cmdline("2");
+		FormAction::start_cmdline("2");
 		break;
 	case OP_3:
-		Formaction::start_cmdline("3");
+		FormAction::start_cmdline("3");
 		break;
 	case OP_4:
-		Formaction::start_cmdline("4");
+		FormAction::start_cmdline("4");
 		break;
 	case OP_5:
-		Formaction::start_cmdline("5");
+		FormAction::start_cmdline("5");
 		break;
 	case OP_6:
-		Formaction::start_cmdline("6");
+		FormAction::start_cmdline("6");
 		break;
 	case OP_7:
-		Formaction::start_cmdline("7");
+		FormAction::start_cmdline("7");
 		break;
 	case OP_8:
-		Formaction::start_cmdline("8");
+		FormAction::start_cmdline("8");
 		break;
 	case OP_9:
-		Formaction::start_cmdline("9");
+		FormAction::start_cmdline("9");
 		break;
 	default:
 		break;

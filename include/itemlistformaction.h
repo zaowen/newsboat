@@ -24,7 +24,7 @@ public:
 
 	void set_redraw(bool b) override
 	{
-		Formaction::set_redraw(b);
+		FormAction::set_redraw(b);
 		apply_filter = !(v->get_cfg()->get_configvalue_as_bool(
 			"show-read-articles"));
 		invalidate(InvalidationMode::COMPLETE);
@@ -47,7 +47,7 @@ public:
 		pos = p;
 	}
 	std::string get_guid();
-	keymap_hint_entry* get_keymap_hint() override;
+	KeymapHintEntry* get_keymap_hint() override;
 
 	bool jump_to_next_unread_item(bool start_with_first);
 	bool jump_to_previous_unread_item(bool start_with_last);

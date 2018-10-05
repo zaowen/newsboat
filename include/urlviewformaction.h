@@ -6,7 +6,7 @@
 
 namespace newsboat {
 
-class UrlViewFormAction : public Formaction {
+class UrlViewFormAction : public FormAction {
 public:
 	UrlViewFormAction(View*,
 		std::shared_ptr<RssFeed>& feed,
@@ -14,7 +14,7 @@ public:
 	~UrlViewFormAction() override;
 	void prepare() override;
 	void init() override;
-	keymap_hint_entry* get_keymap_hint() override;
+	KeymapHintEntry* get_keymap_hint() override;
 	void set_links(const std::vector<linkpair>& l)
 	{
 		links = l;

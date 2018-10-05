@@ -8,7 +8,7 @@
 
 namespace rsspp {
 
-void rss_10_parser::parse_feed(Feed& f, xmlNode* rootNode)
+void Rss10Parser::parse_feed(Feed& f, xmlNode* rootNode)
 {
 	if (!rootNode)
 		throw Exception(_("XML root node is NULL"));

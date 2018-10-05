@@ -142,7 +142,7 @@ enum Operation {
 	OP_0
 };
 
-struct keymap_desc {
+struct KeymapDesc {
 	std::string key;
 	std::string cmd;
 	std::string desc;
@@ -150,7 +150,7 @@ struct keymap_desc {
 	unsigned short flags;
 };
 
-struct macrocmd {
+struct MacroCmd {
 	Operation op ;
 	std::vector<std::string> args;
 };
@@ -166,13 +166,13 @@ public:
 	Operation get_opcode(const std::string& opstr);
 	Operation get_operation(const std::string& keycode,
 		const std::string& context);
-	std::vector<macrocmd> get_macro(const std::string& key);
+	std::vector<MacroCmd> get_macro(const std::string& key);
 	char get_key(const std::string& keycode);
 	std::string getkey(Operation op , const std::string& context);
 	void handle_action(const std::string& action,
 		const std::vector<std::string>& params) override;
 	void dump_config(std::vector<std::string>& config_output) override;
-	void get_keymap_descriptions(std::vector<keymap_desc>& descs,
+	void get_keymap_descriptions(std::vector<KeymapDesc>& descs,
 		unsigned short flags);
 	unsigned short get_flag_from_context(const std::string& context);
 
@@ -180,7 +180,7 @@ private:
 	bool is_valid_context(const std::string& context);
 	std::string getopname(Operation op );
 	std::map<std::string, std::map<std::string, Operation>> keymap_;
-	std::map<std::string, std::vector<macrocmd>> macros_;
+	std::map<std::string, std::vector<MacroCmd>> macros_;
 };
 
 } // namespace newsboat

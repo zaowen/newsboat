@@ -12,7 +12,7 @@ namespace podboat {
 class PbController;
 class Download;
 
-struct keymap_hint_entry;
+struct KeymapHintEntry;
 
 class PbView {
 public:
@@ -28,7 +28,7 @@ public:
 private:
 	friend class newsboat::ColorManager;
 
-	struct keymap_hint_entry {
+	struct KeymapHintEntry {
 		Operation op ;
 		char* text;
 	};
@@ -38,7 +38,7 @@ private:
 	void set_help_keymap_hint();
 	void set_bindings();
 
-	std::string prepare_keymaphint(keymap_hint_entry* hints);
+	std::string prepare_keymaphint(KeymapHintEntry* hints);
 	std::string format_line(const std::string& podlist_format,
 			const Download& dl,
 			unsigned int pos,

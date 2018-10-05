@@ -11,7 +11,7 @@
 
 namespace newsboat {
 
-struct op_desc {
+struct OpDesc {
 	Operation op ;
 	const char* opstr;
 	const char* default_key;
@@ -23,7 +23,7 @@ struct op_desc {
  * This is the list of operations, defining operation, operation name (for
  * keybindings), default key, description, and where it's valid
  */
-static op_desc opdescs[] = {
+static OpDesc opdescs[] = {
 	{OP_OPEN,
 		"open",
 		"ENTER",
@@ -378,7 +378,7 @@ Keymap::Keymap(unsigned flags)
 	}
 }
 
-void Keymap::get_keymap_descriptions(std::vector<keymap_desc>& descs,
+void Keymap::get_keymap_descriptions(std::vector<KeymapDesc>& descs,
 	unsigned short flags)
 {
 	/*
@@ -401,7 +401,7 @@ void Keymap::get_keymap_descriptions(std::vector<keymap_desc>& descs,
 				if (op != OP_NIL) {
 					if (opdescs[j].op == op &&
 						opdescs[j].flags & flags) {
-						keymap_desc desc;
+						KeymapDesc desc;
 						desc.key = keymap.first;
 						desc.ctx = ctx;
 						if (!already_added) {
@@ -429,7 +429,7 @@ void Keymap::get_keymap_descriptions(std::vector<keymap_desc>& descs,
 						"%s",
 						opdescs[j].opstr,
 						ctx);
-					keymap_desc desc;
+					KeymapDesc desc;
 					desc.ctx = ctx;
 					desc.cmd = opdescs[j].opstr;
 					if (opdescs[j].help_text)
@@ -598,8 +598,8 @@ void Keymap::handle_action(const std::string& action,
 				ActionHandlerStatus::TOO_FEW_PARAMS);
 		auto it = params.begin();
 		std::string macrokey = *it;
-		std::vector<macrocmd> cmds;
-		macrocmd tmpcmd;
+		std::vector<MacroCmd> cmds;
+		MacroCmd tmpcmd;
 		tmpcmd.op = OP_NIL;
 		bool first = true;
 		++it;
@@ -665,14 +665,14 @@ std::string Keymap::getkey(Operation op , const std::string& context)
 	return "<none>";
 }
 
-std::vector<macrocmd> Keymap::get_macro(const std::string& key)
+std::vector<MacroCmd> Keymap::get_macro(const std::string& key)
 {
 	for (const auto& macro : macros_) {
 		if (macro.first == key) {
 			return macro.second;
 		}
 	}
-	std::vector<macrocmd> dummyvector;
+	std::vector<MacroCmd> dummyvector;
 	return dummyvector;
 }
 

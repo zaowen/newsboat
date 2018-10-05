@@ -47,7 +47,7 @@ std::string TtRssApi::retrieve_sid()
 {
 	std::map<std::string, std::string> args;
 
-	credentials cred = get_credentials("ttrss", "Tiny Tiny RSS");
+	Credentials cred = get_credentials("ttrss", "Tiny Tiny RSS");
 	if (cred.user.empty() || cred.pass.empty()) {
 		return "";
 	}

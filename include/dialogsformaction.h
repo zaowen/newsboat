@@ -5,13 +5,13 @@
 
 namespace newsboat {
 
-class DialogsFormAction : public Formaction {
+class DialogsFormAction : public FormAction {
 public:
 	DialogsFormAction(View*, std::string formstr);
 	~DialogsFormAction() override;
 	void prepare() override;
 	void init() override;
-	keymap_hint_entry* get_keymap_hint() override;
+	KeymapHintEntry* get_keymap_hint() override;
 	std::string id() const override
 	{
 		return "dialogs";

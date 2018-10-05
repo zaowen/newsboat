@@ -569,9 +569,9 @@ void FeedListFormAction::set_tags(const std::vector<std::string>& t)
 	tags = t;
 }
 
-keymap_hint_entry* FeedListFormAction::get_keymap_hint()
+KeymapHintEntry* FeedListFormAction::get_keymap_hint()
 {
-	static keymap_hint_entry hints[] = {{OP_QUIT, _("Quit")},
+	static KeymapHintEntry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_OPEN, _("Open")},
 		{OP_NEXTUNREAD, _("Next Unread")},
 		{OP_RELOAD, _("Reload")},
@@ -793,7 +793,7 @@ void FeedListFormAction::handle_cmdline(const std::string& cmd)
 					goto_feed(tokens[1]);
 				}
 			} else {
-				Formaction::handle_cmdline(cmd);
+				FormAction::handle_cmdline(cmd);
 			}
 		}
 	}
@@ -801,7 +801,7 @@ void FeedListFormAction::handle_cmdline(const std::string& cmd)
 
 void FeedListFormAction::finished_qna(Operation op )
 {
-	Formaction::finished_qna(op); // important!
+	FormAction::finished_qna(op); // important!
 
 	switch (op) {
 	case OP_INT_END_SETFILTER:
