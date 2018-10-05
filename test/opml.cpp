@@ -49,7 +49,7 @@ TEST_CASE("generate_opml creates an XML document with feed URLs in OPML format",
 
 	SECTION("A few feeds") {
 		ConfigContainer cfg;
-		cache rsscache(":memory:", &cfg);
+		Cache rsscache(":memory:", &cfg);
 		FeedContainer feeds;
 
 		std::shared_ptr<RssFeed> feed =

@@ -28,7 +28,7 @@ TEST_CASE("get_feed() returns feed by its position number", "[feedcontainer]")
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	int i = 0;
 	for (const auto& feed : feeds) {
@@ -50,7 +50,7 @@ TEST_CASE("get_all_feeds() returns copy of FeedContainer's feed vector",
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	feedcontainer.set_feeds(feeds);
 
@@ -62,7 +62,7 @@ TEST_CASE("add_feed() adds specific feed to its \"feeds\" vector",
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	feedcontainer.set_feeds({});
 	const auto feed = std::make_shared<RssFeed>(&rsscache);
 	feed->set_title("Example feed");
@@ -76,7 +76,7 @@ TEST_CASE("populate_query_feeds() populates query feeds", "[feedcontainer]")
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	auto feeds = get_five_empty_feeds(&rsscache);
 	for (int j = 0; j < 5; ++j) {
 		const auto item = std::make_shared<RssItem>(&rsscache);
@@ -99,7 +99,7 @@ TEST_CASE("set_feeds() sets FeedContainer's feed vector to the given one",
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 
 	feedcontainer.set_feeds(feeds);
@@ -111,7 +111,7 @@ TEST_CASE("get_feed_by_url() returns feed by its URL", "[feedcontainer]")
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	int i = 0;
 	for (const auto& feed : feeds) {
@@ -135,7 +135,7 @@ TEST_CASE(
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	int i = 0;
 	for (const auto& feed : feeds) {
@@ -152,7 +152,7 @@ TEST_CASE("Throws on get_feed() with pos out of range", "[feedcontainer]")
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	feedcontainer.set_feeds(get_five_empty_feeds(&rsscache));
 
 	REQUIRE_NOTHROW(feedcontainer.get_feed(4));
@@ -165,7 +165,7 @@ TEST_CASE("Returns correct number using get_feed_count_by_tag()",
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	feedcontainer.set_feeds(get_five_empty_feeds(&rsscache));
 	feedcontainer.get_feed(0)->set_tags({"Chicken", "Horse"});
 	feedcontainer.get_feed(1)->set_tags({"Horse", "Duck"});
@@ -182,7 +182,7 @@ TEST_CASE("Correctly returns pos of next unread item", "[feedcontainer]")
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	int i = 0;
 	for (const auto& feed : feeds) {
@@ -205,7 +205,7 @@ TEST_CASE("feeds_size() returns FeedContainer's current feed vector size",
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	feedcontainer.set_feeds(feeds);
 
@@ -216,7 +216,7 @@ TEST_CASE("Correctly sorts feeds", "[feedcontainer]")
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	feedcontainer.set_feeds(feeds);
 
@@ -423,7 +423,7 @@ TEST_CASE("mark_all_feed_items_read() marks all of feed's items as read",
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	const auto feed = feeds.at(0);
 	for (int j = 0; j < 5; ++j) {
@@ -445,7 +445,7 @@ TEST_CASE("mark_all_feeds_read() marks all items in all feeds as read",
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 
 	for (const auto& feed : feeds) {
@@ -473,7 +473,7 @@ TEST_CASE(
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	feeds[0]->set_status(DlStatus::SUCCESS);
 	feeds[1]->set_status(DlStatus::TO_BE_DOWNLOADED);
@@ -492,7 +492,7 @@ TEST_CASE("clear_feeds_items() clears all of feed's items", "[feedcontainer]")
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	feedcontainer.set_feeds({});
 	const auto feed = std::make_shared<RssFeed>(&rsscache);
 	for (int j = 0; j < 5; ++j) {
@@ -512,7 +512,7 @@ TEST_CASE(
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	for (int j = 0; j < 5; ++j) {
 		// Make sure that number of unread items in feed doesn't matter
@@ -535,7 +535,7 @@ TEST_CASE("unread_item_count() returns number of unread items in all feeds",
 {
 	FeedContainer feedcontainer;
 	ConfigContainer cfg;
-	cache rsscache(":memory:", &cfg);
+	Cache rsscache(":memory:", &cfg);
 	const auto feeds = get_five_empty_feeds(&rsscache);
 	for (int j = 0; j < 5; ++j) {
 		const auto item = std::make_shared<RssItem>(&rsscache);
