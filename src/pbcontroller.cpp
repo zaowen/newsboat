@@ -444,9 +444,19 @@ void PbController::play_file(const std::string& file)
 	if (player == "")
 		return;
 	cmdline.append(player);
-	cmdline.append(" '");
-	cmdline.append(utils::replace_all(file, "'", "%27"));
-	cmdline.append("'");
+
+	std::string unescaped_file = utils::unescape_url(file);
+	if (unescaped_file.find('"') != std::string::npos) {
+		cmdline.append(" \'");
+		cmdline.append(utils::replace_all(unescaped_file,"'","'\\''"));
+		cmdline.append("\'");
+
+	} else {
+		cmdline.append(" \"");
+		cmdline.append(unescaped_file);
+		cmdline.append("\"");
+	}
+
 	Stfl::reset();
 	utils::run_interactively(cmdline, "PbController::play_file");
 }
