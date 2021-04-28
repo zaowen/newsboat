@@ -1,10 +1,18 @@
 #include "keymap.h"
 
+#include <algorithm>
+#include <set>
+
 #include "3rd-party/catch.hpp"
 
-#include "exceptions.h"
+#include "confighandlerexception.h"
 
 using namespace newsboat;
+
+static const auto contexts = { "feedlist", "filebrowser", "help", "articlelist",
+	"article", "tagselection", "filterselection", "urlview", "podboat",
+	"dialogs", "dirbrowser"
+};
 
 TEST_CASE("get_operation()", "[KeyMap]")
 {
@@ -15,10 +23,9 @@ TEST_CASE("get_operation()", "[KeyMap]")
 	REQUIRE(k.get_operation("", "feedlist") == OP_NIL);
 	REQUIRE(k.get_operation("ENTER", "feedlist") == OP_OPEN);
 
-	SECTION("Returns OP_NIL after unset_key()")
-	{
+	SECTION("Returns OP_NIL after unset_key()") {
 		k.unset_key("ENTER", "all");
-		REQUIRE(k.get_operation("ENTER", "all") == OP_NIL);
+		REQUIRE(k.get_operation("ENTER", "feedlist") == OP_NIL);
 	}
 }
 
@@ -27,18 +34,16 @@ TEST_CASE("unset_key() and set_key()", "[KeyMap]")
 	KeyMap k(KM_NEWSBOAT);
 
 	REQUIRE(k.get_operation("ENTER", "feedlist") == OP_OPEN);
-	REQUIRE(k.getkey(OP_OPEN, "all") == "ENTER");
+	REQUIRE(k.get_keys(OP_OPEN, "feedlist") == std::vector<std::string>({"ENTER"}));
 
-	SECTION("unset_key() removes the mapping")
-	{
+	SECTION("unset_key() removes the mapping") {
 		k.unset_key("ENTER", "all");
-		REQUIRE(k.get_operation("ENTER", "all") == OP_NIL);
+		REQUIRE(k.get_operation("ENTER", "feedlist") == OP_NIL);
 
-		SECTION("set_key() sets the mapping")
-		{
+		SECTION("set_key() sets the mapping") {
 			k.set_key(OP_OPEN, "ENTER", "all");
-			REQUIRE(k.get_operation("ENTER", "all") == OP_OPEN);
-			REQUIRE(k.getkey(OP_OPEN, "all") == "ENTER");
+			REQUIRE(k.get_operation("ENTER", "feedlist") == OP_OPEN);
+			REQUIRE(k.get_keys(OP_OPEN, "feedlist") == std::vector<std::string>({"ENTER"}));
 		}
 	}
 }
@@ -52,20 +57,59 @@ TEST_CASE(
 
 		for (int i = OP_QUIT; i < OP_NB_MAX; ++i) {
 			if (i == OP_OPENALLUNREADINBROWSER ||
-					i == OP_MARKALLABOVEASREAD ||
-					i == OP_OPENALLUNREADINBROWSER_AND_MARK) {
+				i == OP_MARKALLABOVEASREAD ||
+				i == OP_OPENALLUNREADINBROWSER_AND_MARK ||
+				i == OP_SAVEALL ||
+				i == OP_GOTO_TITLE ||
+				i == OP_OPENINBROWSER_NONINTERACTIVE) {
 				continue;
 			}
-			REQUIRE(k.getkey(static_cast<Operation>(i), "all") != "<none>");
+			bool used_in_some_context = false;
+			for (const auto& context : contexts) {
+				if (!k.get_keys(static_cast<Operation>(i), context).empty()) {
+					used_in_some_context = true;
+				}
+			}
+			REQUIRE(used_in_some_context);
 		}
 	}
 
-	SECTION("\"all\" context clears the keymap from all key bindings") {
+	SECTION("\"all\" context clears the keymap from all defined keybindings") {
 		KeyMap k(KM_NEWSBOAT);
 		k.unset_all_keys("all");
 
-		for (int i = OP_NB_MIN; i < OP_NB_MAX; ++i) {
-			REQUIRE(k.getkey(static_cast<Operation>(i), "all") == "<none>");
+		for (int i = OP_NB_MIN; i < OP_SK_MAX; ++i) {
+			for (const auto& context : contexts) {
+				INFO("Operation: " << i);
+				INFO("used in context: " << context);
+				REQUIRE(k.get_keys(static_cast<Operation>(i),
+						context) == std::vector<std::string>());
+			}
+		}
+	}
+
+	SECTION("\"all\" context doesn't clear the keymap from internal keybindings") {
+		KeyMap default_keymap(KM_NEWSBOAT);
+		KeyMap unset_keymap(KM_NEWSBOAT);
+		unset_keymap.unset_all_keys("all");
+
+		for (int i = OP_INT_MIN; i < OP_INT_MAX; ++i) {
+			REQUIRE(default_keymap.get_keys(static_cast<Operation>(i), "feedlist")
+				== unset_keymap.get_keys(static_cast<Operation>(i), "feedlist"));
+		}
+	}
+
+	SECTION("Contexts don't have their internal keybindings cleared") {
+		KeyMap default_keymap(KM_NEWSBOAT);
+
+		for (const auto& context : contexts) {
+			KeyMap unset_keymap(KM_NEWSBOAT);
+			unset_keymap.unset_all_keys(context);
+
+			for (int i = OP_INT_MIN; i < OP_INT_MAX; ++i) {
+				REQUIRE(default_keymap.get_keys(static_cast<Operation>(i), context)
+					== unset_keymap.get_keys(static_cast<Operation>(i), context));
+			}
 		}
 	}
 
@@ -74,16 +118,14 @@ TEST_CASE(
 		k.unset_all_keys("articlelist");
 
 		for (int i = OP_NB_MIN; i < OP_NB_MAX; ++i) {
-			REQUIRE(k.getkey(static_cast<Operation>(i), "articlelist") == "<none>");
+			REQUIRE(k.get_keys(static_cast<Operation>(i),
+					"articlelist") == std::vector<std::string>());
 		}
 
+		KeyMap default_keys(KM_NEWSBOAT);
 		for (int i = OP_QUIT; i < OP_NB_MAX; ++i) {
-			if (i == OP_OPENALLUNREADINBROWSER ||
-					i == OP_MARKALLABOVEASREAD ||
-					i == OP_OPENALLUNREADINBROWSER_AND_MARK) {
-				continue;
-			}
-			REQUIRE(k.getkey(static_cast<Operation>(i), "feedlist") != "<none>");
+			const auto op = static_cast<Operation>(i);
+			REQUIRE(k.get_keys(op, "feedlist") == default_keys.get_keys(op, "feedlist"));
 		}
 	}
 }
@@ -96,32 +138,27 @@ TEST_CASE("get_opcode()", "[KeyMap]")
 	REQUIRE(k.get_opcode("some-noexistent-operation") == OP_NIL);
 }
 
-TEST_CASE("getkey()", "[KeyMap]")
+TEST_CASE("get_keys()", "[KeyMap]")
 {
 	KeyMap k(KM_NEWSBOAT);
 
-	SECTION("Retrieves general bindings")
-	{
-		REQUIRE(k.getkey(OP_OPEN, "all") == "ENTER");
-		REQUIRE(k.getkey(OP_TOGGLEITEMREAD, "all") == "N");
-		REQUIRE(k.getkey(static_cast<Operation>(30000), "all") ==
-			"<none>");
+	SECTION("Retrieves general bindings") {
+		REQUIRE(k.get_keys(OP_OPEN, "feedlist") == std::vector<std::string>({"ENTER"}));
+		REQUIRE(k.get_keys(OP_TOGGLEITEMREAD,
+				"articlelist") == std::vector<std::string>({"N"}));
 	}
 
-	SECTION("Returns context-specific bindings only in that context")
-	{
+	SECTION("Returns context-specific bindings only in that context") {
 		k.unset_key("q", "article");
 		k.set_key(OP_QUIT, "O", "article");
-		REQUIRE(k.getkey(OP_QUIT, "article") == "O");
-		REQUIRE(k.getkey(OP_QUIT, "all") == "q");
+		REQUIRE(k.get_keys(OP_QUIT, "article") == std::vector<std::string>({"O"}));
+		REQUIRE(k.get_keys(OP_QUIT, "feedlist") == std::vector<std::string>({"q"}));
 	}
 
-	SECTION("Returns context-specific binding if asked to search in all contexts")
-	{
-		k.unset_all_keys("all");
-		REQUIRE(k.getkey(OP_QUIT, "all") == "<none>");
-		k.set_key(OP_QUIT, "O", "article");
-		REQUIRE(k.getkey(OP_QUIT, "all") == "O");
+	SECTION("Returns all keys bound to an operation (both default and added)") {
+		k.set_key(OP_QUIT, "a", "article");
+		k.set_key(OP_QUIT, "d", "article");
+		REQUIRE(k.get_keys(OP_QUIT, "article") == std::vector<std::string>({"a", "d", "q"}));
 	}
 }
 
@@ -141,44 +178,463 @@ TEST_CASE("get_key()", "[KeyMap]")
 TEST_CASE("handle_action()", "[KeyMap]")
 {
 	KeyMap k(KM_NEWSBOAT);
-	std::vector<std::string> params;
 
-	SECTION("without parameters")
-	{
-		REQUIRE_THROWS_AS(k.handle_action("bind-key", params),
+	SECTION("without parameters") {
+		REQUIRE_THROWS_AS(k.handle_action("bind-key", ""),
 			ConfigHandlerException);
-		REQUIRE_THROWS_AS(k.handle_action("unbind-key", params),
+		REQUIRE_THROWS_AS(k.handle_action("unbind-key", ""),
 			ConfigHandlerException);
-		REQUIRE_THROWS_AS(k.handle_action("macro", params),
+		REQUIRE_THROWS_AS(k.handle_action("macro", ""),
 			ConfigHandlerException);
 	}
 
-	SECTION("with one parameter")
-	{
-		params.push_back("r");
-
-		REQUIRE_THROWS_AS(k.handle_action("bind-key", params),
+	SECTION("with one parameter") {
+		REQUIRE_THROWS_AS(k.handle_action("bind-key", "r"),
 			ConfigHandlerException);
-		REQUIRE_NOTHROW(k.handle_action("unbind-key", params));
-	}
-
-	SECTION("with two parameters")
-	{
-		params.push_back("r");
-		params.push_back("open");
-		REQUIRE_NOTHROW(k.handle_action("bind-key", params));
-		REQUIRE_THROWS_AS(k.handle_action("an-invalid-action", params),
+		REQUIRE_NOTHROW(k.handle_action("unbind-key", "r"));
+		REQUIRE_THROWS_AS(k.handle_action("macro", "r"),
 			ConfigHandlerException);
 	}
 
-	SECTION("invalid-op throws exception")
-	{
-		params.push_back("I");
-		params.push_back("invalid-op");
-
-		REQUIRE_THROWS_AS(k.handle_action("bind-key", params),
-			ConfigHandlerException);
-		REQUIRE_THROWS_AS(k.handle_action("macro", params),
+	SECTION("with two parameters") {
+		REQUIRE_NOTHROW(k.handle_action("bind-key", "r open"));
+		REQUIRE_THROWS_AS(k.handle_action("an-invalid-action", "r open"),
 			ConfigHandlerException);
 	}
+
+	SECTION("invalid-op throws exception") {
+		REQUIRE_THROWS_AS(k.handle_action("bind-key", "I invalid-op"),
+			ConfigHandlerException);
+		REQUIRE_THROWS_AS(k.handle_action("macro", "I invalid-op"),
+			ConfigHandlerException);
+	}
+
+	SECTION("allows binding multiple keys to OP_SK_xxx operations") {
+		REQUIRE_NOTHROW(k.handle_action("bind-key", "u pageup"));
+		REQUIRE_NOTHROW(k.handle_action("bind-key", "p pageup"));
+
+		REQUIRE(k.get_keys(OP_SK_PGUP, "feedlist")
+			== std::vector<std::string>({"PPAGE", "p", "u"}));
+	}
+
+	SECTION("macro without commands results in exception") {
+		REQUIRE_THROWS_AS(k.handle_action("macro", "r ; ; ; ;"),
+			ConfigHandlerException);
+	}
+}
+
+TEST_CASE("verify get_keymap_descriptions() behavior",
+	"[KeyMap]")
+{
+	WHEN("calling get_keymap_descriptions(\"feedlist\")") {
+		KeyMap k(KM_NEWSBOAT);
+		const auto descriptions = k.get_keymap_descriptions("feedlist");
+
+		THEN("the descriptions do not include any entries with context \"podboat\"") {
+			REQUIRE(descriptions.size() > 0);
+			for (const auto& description : descriptions) {
+				REQUIRE(description.ctx != "podboat");
+			}
+		}
+
+		THEN("the descriptions include only entries with the specified context") {
+			REQUIRE(std::all_of(descriptions.begin(), descriptions.end(),
+			[](const KeyMapDesc& x) {
+				return x.ctx == "feedlist";
+			}));
+		}
+	}
+
+	WHEN("calling get_keymap_descriptions(KM_PODBOAT)") {
+		KeyMap k(KM_PODBOAT);
+		const auto descriptions = k.get_keymap_descriptions("podboat");
+
+		THEN("the descriptions only include entries with context \"podboat\"") {
+			REQUIRE(descriptions.size() > 0);
+			for (const auto& description : descriptions) {
+				REQUIRE(description.ctx == "podboat");
+			}
+		}
+	}
+
+	WHEN("calling get_keymap_descriptions(\"feedlist\")") {
+		KeyMap k(KM_NEWSBOAT);
+		const auto descriptions = k.get_keymap_descriptions("feedlist");
+
+		THEN("by default it does always set .cmd (command) and .desc (command description)") {
+			for (const auto& description : descriptions) {
+				REQUIRE(description.cmd != "");
+				REQUIRE(description.desc != "");
+			}
+		}
+	}
+
+	GIVEN("that multiple keys are bound to the same operation (\"quit\")") {
+		KeyMap k(KM_NEWSBOAT);
+		k.set_key(OP_QUIT, "a", "feedlist");
+		k.set_key(OP_QUIT, "b", "feedlist");
+
+		WHEN("calling get_keymap_descriptions(\"feedlist\")") {
+			const auto descriptions = k.get_keymap_descriptions("feedlist");
+
+			THEN("all entries have both description and command configured") {
+				REQUIRE(std::all_of(descriptions.begin(), descriptions.end(),
+				[](const KeyMapDesc& x) {
+					return x.cmd != "" && x.desc != "";
+				}));
+			}
+		}
+	}
+
+	GIVEN("that a key is bound to an operation which by default has no key configured") {
+		KeyMap k(KM_NEWSBOAT);
+		const std::string key = "O";
+		k.set_key(OP_OPENALLUNREADINBROWSER_AND_MARK, key, "feedlist");
+
+		WHEN("calling get_keymap_descriptions(\"feedlist\")") {
+			const auto descriptions = k.get_keymap_descriptions("feedlist");
+
+			THEN("there is an entry with the configured key") {
+				REQUIRE(std::any_of(descriptions.begin(), descriptions.end(),
+				[&key](const KeyMapDesc& x) {
+					return x.key == key;
+				}));
+			}
+
+			THEN("the entry for the configured key has non-empty command and description fields") {
+				for (const auto& description : descriptions) {
+					if (description.key == key) {
+						REQUIRE(description.cmd != "");
+						REQUIRE(description.desc != "");
+					}
+				}
+			}
+
+			THEN("all entries for the operation have non-empty key") {
+				for (const auto& description : descriptions) {
+					if (description.cmd == "open-all-unread-in-browser-and-mark-read") {
+						REQUIRE(description.key != "");
+					}
+				}
+			}
+		}
+	}
+}
+
+TEST_CASE("get_keymap_descriptions() returns at most one entry per key",
+	"[KeyMap]")
+{
+	KeyMap k(KM_NEWSBOAT);
+
+	const auto descriptions = k.get_keymap_descriptions("feedlist");
+
+	std::set<std::string> keys;
+	for (const auto& description : descriptions) {
+		if (description.cmd == "set-tag" || description.cmd == "select-tag") {
+			// Ignore set-tag/select-tag as these have the same operation-enum value
+			continue;
+		}
+
+		const std::string& key = description.key;
+		INFO("key: \"" << key << "\"");
+
+		if (!key.empty()) {
+			REQUIRE(keys.count(key) == 0);
+			keys.insert(key);
+		}
+	}
+}
+
+TEST_CASE("get_keymap_descriptions() does not return empty commands or descriptions",
+	"[KeyMap]")
+{
+	KeyMap k(KM_NEWSBOAT);
+
+	const std::string operation = "open-all-unread-in-browser-and-mark-read";
+
+	REQUIRE_NOTHROW(k.handle_action("bind-key", "a " +  operation));
+	REQUIRE_NOTHROW(k.handle_action("bind-key", "b " +  operation));
+	REQUIRE_NOTHROW(k.handle_action("bind-key", "c " +  operation));
+
+	const auto descriptions = k.get_keymap_descriptions("feedlist");
+	for (const auto& description : descriptions) {
+		REQUIRE(description.cmd != "");
+		REQUIRE(description.desc != "");
+	}
+}
+
+TEST_CASE("get_keymap_descriptions() includes entries which include different "
+	"keys bound to same operation",
+	"[KeyMap]")
+{
+	KeyMap k(KM_NEWSBOAT);
+
+	const std::string operation = "open-all-unread-in-browser-and-mark-read";
+
+	REQUIRE_NOTHROW(k.handle_action("bind-key", "a " +  operation));
+	REQUIRE_NOTHROW(k.handle_action("bind-key", "b " +  operation));
+	REQUIRE_NOTHROW(k.handle_action("bind-key", "c " +  operation));
+
+	const auto descriptions = k.get_keymap_descriptions("feedlist");
+
+	std::set<std::string> keys;
+	for (const auto& description : descriptions) {
+		if (description.cmd == operation) {
+			CHECK(description.key != "");
+			keys.insert(description.key);
+		}
+	}
+
+	REQUIRE(keys == std::set<std::string>({"a", "b", "c"}));
+}
+
+TEST_CASE("dump_config() returns a line for each keybind and macro", "[KeyMap]")
+{
+	KeyMap k(KM_NEWSBOAT);
+
+	std::vector<std::string> dumpOutput;
+
+	GIVEN("that all keybindings are removed") {
+		k.unset_all_keys("all");
+
+		WHEN("calling dump_config()") {
+			k.dump_config(dumpOutput);
+
+			THEN("the output is empty") {
+				REQUIRE(dumpOutput.size() == 0);
+			}
+		}
+	}
+
+	GIVEN("the default keybindings") {
+
+		WHEN("calling dump_config()") {
+			k.dump_config(dumpOutput);
+
+			THEN("all lines start with 'bind-key'") {
+				for (const auto& line : dumpOutput) {
+					INFO("processing: " << line);
+					REQUIRE(line.find("bind-key ") == 0);
+				}
+			}
+		}
+	}
+
+	GIVEN("a few keybindings") {
+		k.unset_all_keys("all");
+		k.set_key(OP_OPEN, "ENTER", "feedlist");
+		k.set_key(OP_NEXT, "j", "articlelist");
+		k.set_key(OP_PREV, "k", "articlelist");
+
+		WHEN("calling dump_config()") {
+			k.dump_config(dumpOutput);
+
+			THEN("there is one line per configured binding") {
+				REQUIRE(dumpOutput.size() == 3);
+
+				REQUIRE(dumpOutput[0] == R"(bind-key "j" next articlelist)");
+				REQUIRE(dumpOutput[1] == R"(bind-key "k" prev articlelist)");
+				REQUIRE(dumpOutput[2] == R"(bind-key "ENTER" open feedlist)");
+			}
+		}
+	}
+
+	GIVEN("a few registered macros and one regular keybinding") {
+		k.unset_all_keys("all");
+
+		k.set_key(OP_OPEN, "ENTER", "feedlist");
+		k.handle_action("macro", "1 open");
+		k.handle_action("macro", "2 open ; next");
+		k.handle_action("macro", "3 open ; next ; prev");
+		k.handle_action("macro", "4 open ; next ; prev ; quit");
+
+		WHEN("calling dump_config()") {
+			k.dump_config(dumpOutput);
+
+			THEN("there is one line per configured macro") {
+				REQUIRE(dumpOutput.size() == 5);
+
+				REQUIRE(dumpOutput[0] == R"(bind-key "ENTER" open feedlist)");
+				REQUIRE(dumpOutput[1] == R"(macro 1 open)");
+				REQUIRE(dumpOutput[2] == R"(macro 2 open ; next)");
+				REQUIRE(dumpOutput[3] == R"(macro 3 open ; next ; prev)");
+				REQUIRE(dumpOutput[4] == R"(macro 4 open ; next ; prev ; quit)");
+			}
+		}
+	}
+
+	GIVEN("a few registered macros with arguments") {
+		k.unset_all_keys("all");
+
+		k.handle_action("macro", "1 set \"arg 1\"");
+		k.handle_action("macro", "2 set \"arg 1\" ; set \"arg 2\" \"arg 3\"");
+		k.handle_action("macro", "x set a \"arg 1\"");
+		k.handle_action("macro", "y set m n");
+		k.handle_action("macro", "z set var I");
+
+		WHEN("calling dump_config()") {
+			k.dump_config(dumpOutput);
+
+			THEN("there is one line per configured macro ; all arguments are included") {
+				REQUIRE(dumpOutput.size() == 5);
+
+				REQUIRE(dumpOutput[0] == R"(macro 1 set "arg 1")");
+				REQUIRE(dumpOutput[1] == R"(macro 2 set "arg 1" ; set "arg 2" "arg 3")");
+				REQUIRE(dumpOutput[2] == R"(macro x set "a" "arg 1")");
+				REQUIRE(dumpOutput[3] == R"(macro y set "m" "n")");
+				REQUIRE(dumpOutput[4] == R"(macro z set "var" "I")");
+			}
+		}
+	}
+}
+
+TEST_CASE("dump_config() stores a description if it is present", "[KeyMap]")
+{
+	KeyMap k(KM_NEWSBOAT);
+
+	std::vector<std::string> dumpOutput;
+
+	GIVEN("a few macros, some with a description") {
+		k.unset_all_keys("all");
+
+		k.handle_action("macro", R"(x open -- "first description")");
+		k.handle_action("macro", R"(y set m n -- "configure \"m\" \\ ")");
+		k.handle_action("macro", R"(z set var I)");
+
+		WHEN("calling dump_config()") {
+			k.dump_config(dumpOutput);
+
+			THEN("there is one line per configured macro ; all given descriptions are included") {
+				REQUIRE(dumpOutput.size() == 3);
+
+				REQUIRE(dumpOutput[0] == R"(macro x open -- "first description")");
+				REQUIRE(dumpOutput[1] == R"(macro y set "m" "n" -- "configure \"m\" \\ ")");
+				REQUIRE(dumpOutput[2] == R"(macro z set "var" "I")");
+			}
+		}
+	}
+}
+
+TEST_CASE("Regression test for https://github.com/newsboat/newsboat/issues/702",
+	"[KeyMap]")
+{
+	KeyMap k(KM_NEWSBOAT);
+
+	SECTION("semicolon following quoted argument") {
+		k.handle_action("macro", R"(a set browser "firefox"; open-in-browser)");
+
+		const auto macros = k.get_macro("a");
+		REQUIRE(macros.size() == 2);
+		REQUIRE(macros[0].op == OP_INT_SET);
+		REQUIRE(macros[0].args == std::vector<std::string>({"browser", "firefox"}));
+		REQUIRE(macros[1].op == OP_OPENINBROWSER);
+		REQUIRE(macros[1].args == std::vector<std::string>({}));
+	}
+
+	SECTION("semicolon following unquoted argument") {
+		k.handle_action("macro", R"(b set browser firefox; open-in-browser)");
+
+		const auto macros = k.get_macro("b");
+		REQUIRE(macros.size() == 2);
+		REQUIRE(macros[0].op == OP_INT_SET);
+		REQUIRE(macros[0].args == std::vector<std::string>({"browser", "firefox"}));
+		REQUIRE(macros[1].op == OP_OPENINBROWSER);
+		REQUIRE(macros[1].args == std::vector<std::string>({}));
+	}
+
+	SECTION("semicolon following unquoted operation") {
+		k.handle_action("macro", R"(c open-in-browser; quit)");
+
+		const auto macros = k.get_macro("c");
+		REQUIRE(macros.size() == 2);
+		REQUIRE(macros[0].op == OP_OPENINBROWSER);
+		REQUIRE(macros[0].args == std::vector<std::string>({}));
+		REQUIRE(macros[1].op == OP_QUIT);
+		REQUIRE(macros[1].args == std::vector<std::string>({}));
+	}
+}
+
+TEST_CASE("Whitespace around semicolons in macros is optional", "[KeyMap]")
+{
+	KeyMap k(KM_NEWSBOAT);
+
+	const auto check = [&k]() {
+		const auto macro = k.get_macro("x");
+
+		REQUIRE(macro.size() == 3);
+
+		REQUIRE(macro[0].op == OP_OPEN);
+		REQUIRE(macro[0].args == std::vector<std::string>({}));
+
+		REQUIRE(macro[1].op == OP_INT_SET);
+		REQUIRE(macro[1].args == std::vector<std::string>({"browser", "firefox --private-window"}));
+
+		REQUIRE(macro[2].op == OP_QUIT);
+		REQUIRE(macro[2].args == std::vector<std::string>({}));
+	};
+
+	SECTION("Whitespace not required before the semicolon") {
+		k.handle_action("macro",
+			R"(x open; set browser "firefox --private-window"; quit)");
+		check();
+	}
+
+	SECTION("Whitespace not required after the semicolon") {
+		k.handle_action("macro",
+			R"(x open ;set browser "firefox --private-window" ;quit)");
+		check();
+	}
+
+	SECTION("Whitespace not required on either side of the semicolon") {
+		k.handle_action("macro",
+			R"(x open;set browser "firefox --private-window";quit)");
+		check();
+	}
+}
+
+TEST_CASE("It's not an error to have no operations before a semicolon in "
+	"a macro",
+	"[KeyMap]")
+{
+	KeyMap k(KM_NEWSBOAT);
+
+	const std::vector<std::string> op_lists = {
+		"; ;; ; open",
+		";;; ;; ; open",
+		";;; ;; ; open ;",
+		";;; ;; ; open ;; ;",
+		";;; ;; ; open ; ;;;;",
+		";;; open ; ;;;;",
+		"; open ;; ;; ;",
+		"open ; ;;; ;;",
+	};
+
+	for (const auto& op_list : op_lists) {
+		DYNAMIC_SECTION(op_list) {
+			k.handle_action("macro", "r " + op_list);
+
+			const auto macro = k.get_macro("r");
+			REQUIRE(macro.size() == 1);
+			REQUIRE(macro[0].op == OP_OPEN);
+			REQUIRE(macro[0].args == std::vector<std::string>({}));
+		}
+	}
+}
+
+TEST_CASE("Semicolons in operation's arguments don't break parsing of a macro",
+	"[KeyMap]")
+{
+	// This is a regression test for https://github.com/newsboat/newsboat/issues/1200
+
+	KeyMap k(KM_NEWSBOAT);
+
+	k.handle_action("macro",
+		R"(x set browser "sleep 3; do-something ; echo hi"; open-in-browser)");
+
+	const auto macro = k.get_macro("x");
+	REQUIRE(macro.size() == 2);
+	REQUIRE(macro[0].op == OP_INT_SET);
+	REQUIRE(macro[0].args == std::vector<std::string>({"browser", "sleep 3; do-something ; echo hi"}));
+	REQUIRE(macro[1].op == OP_OPENINBROWSER);
+	REQUIRE(macro[1].args == std::vector<std::string>({}));
 }

@@ -2,9 +2,10 @@
 
 #include <cassert>
 #include <sstream>
+#include <string>
 
 #include "config.h"
-#include "formatstring.h"
+#include "fmtstrformatter.h"
 #include "listformatter.h"
 #include "strprintf.h"
 #include "utils.h"
@@ -25,7 +26,7 @@ SelectFormAction::SelectFormAction(View* vv,
 	: FormAction(vv, formstr, cfg)
 	, quit(false)
 	, type(SelectionType::TAG)
-	, cfg(cfg)
+	, tags_list("taglist", FormAction::f, cfg->get_configvalue_as_int("scrolloff"))
 {
 }
 
@@ -37,21 +38,68 @@ void SelectFormAction::handle_cmdline(const std::string& cmd)
 	if (1 == sscanf(cmd.c_str(), "%u", &idx)) {
 		if (idx > 0 &&
 			idx <= ((type == SelectionType::TAG)
-					       ? tags.size()
-					       : filters.size())) {
-			f->set("tagpos", std::to_string(idx - 1));
+				? tags.size()
+				: filters.size())) {
+			tags_list.set_position(idx - 1);
 		}
 	} else {
 		FormAction::handle_cmdline(cmd);
 	}
 }
 
-void SelectFormAction::process_operation(Operation op,
+bool SelectFormAction::process_operation(Operation op,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
 	bool hardquit = false;
 	switch (op) {
+	case OP_PREV:
+	case OP_SK_UP:
+		tags_list.move_up(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
+	case OP_NEXT:
+	case OP_SK_DOWN:
+		tags_list.move_down(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
+	case OP_SK_HOME:
+		tags_list.move_to_first();
+		break;
+	case OP_SK_END:
+		tags_list.move_to_last();
+		break;
+	case OP_SK_PGUP:
+		tags_list.move_page_up(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
+	case OP_SK_PGDOWN:
+		tags_list.move_page_down(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
+	case OP_CMD_START_1:
+		FormAction::start_cmdline("1");
+		break;
+	case OP_CMD_START_2:
+		FormAction::start_cmdline("2");
+		break;
+	case OP_CMD_START_3:
+		FormAction::start_cmdline("3");
+		break;
+	case OP_CMD_START_4:
+		FormAction::start_cmdline("4");
+		break;
+	case OP_CMD_START_5:
+		FormAction::start_cmdline("5");
+		break;
+	case OP_CMD_START_6:
+		FormAction::start_cmdline("6");
+		break;
+	case OP_CMD_START_7:
+		FormAction::start_cmdline("7");
+		break;
+	case OP_CMD_START_8:
+		FormAction::start_cmdline("8");
+		break;
+	case OP_CMD_START_9:
+		FormAction::start_cmdline("9");
+		break;
 	case OP_QUIT:
 		value = "";
 		quit = true;
@@ -61,27 +109,28 @@ void SelectFormAction::process_operation(Operation op,
 		hardquit = true;
 		break;
 	case OP_OPEN: {
-		std::string tagposname = f->get("tagposname");
-		unsigned int pos = utils::to_u(tagposname);
-		if (tagposname.length() > 0) {
-			switch (type) {
-			case SelectionType::TAG: {
-				if (pos < tags.size()) {
-					value = tags[pos];
-					quit = true;
-				}
-			} break;
-			case SelectionType::FILTER: {
-				if (pos < filters.size()) {
-					value = filters[pos].second;
-					quit = true;
-				}
-			} break;
-			default:
-				assert(0); // should never happen
+		switch (type) {
+		case SelectionType::TAG: {
+			if (tags.size() >= 1) {
+				const auto pos = tags_list.get_position();
+				value = tags[pos];
+				quit = true;
 			}
 		}
-	} break;
+		break;
+		case SelectionType::FILTER: {
+			if (filters.size() >= 1) {
+				const auto pos = tags_list.get_position();
+				value = filters[pos].expr;
+				quit = true;
+			}
+		}
+		break;
+		default:
+			assert(0); // should never happen
+		}
+	}
+	break;
 	default:
 		break;
 	}
@@ -93,39 +142,43 @@ void SelectFormAction::process_operation(Operation op,
 	} else if (quit) {
 		v->pop_current_formaction();
 	}
+	return true;
 }
 
 void SelectFormAction::prepare()
 {
 	if (do_redraw) {
+		update_heading();
+
 		ListFormatter listfmt;
 		unsigned int i = 0;
+		const auto selecttag_format = cfg->get_configvalue("selecttag-format");
+		const auto width = tags_list.get_width();
+
 		switch (type) {
 		case SelectionType::TAG:
 			for (const auto& tag : tags) {
-				std::string tagstr = strprintf::fmt(
-					"%4u  %s (%u)",
-					i + 1,
-					tag,
-					v->get_ctrl()
-						->get_feedcontainer()
-						->get_feed_count_per_tag(tag));
-				listfmt.add_line(tagstr, i);
+				listfmt.add_line(
+					utils::quote_for_stfl(
+						format_line(selecttag_format,
+							tag,
+							i + 1,
+							width)));
 				i++;
 			}
 			break;
 		case SelectionType::FILTER:
 			for (const auto& filter : filters) {
 				std::string tagstr = strprintf::fmt(
-					"%4u  %s", i + 1, filter.first);
-				listfmt.add_line(tagstr, i);
+						"%4u  %s", i + 1, filter.name);
+				listfmt.add_line(utils::quote_for_stfl(tagstr));
 				i++;
 			}
 			break;
 		default:
 			assert(0);
 		}
-		f->modify("taglist", "replace_inner", listfmt.format_list());
+		tags_list.stfl_replace_lines(listfmt);
 
 		do_redraw = false;
 	}
@@ -133,44 +186,76 @@ void SelectFormAction::prepare()
 
 void SelectFormAction::init()
 {
-	std::string title;
 	do_redraw = true;
 	quit = false;
 	value = "";
 
-	std::string viewwidth = f->get("taglist:w");
-	unsigned int width = utils::to_u(viewwidth, 80);
+	recalculate_widget_dimensions();
 
 	set_keymap_hints();
+}
+
+std::string SelectFormAction::format_line(const std::string& selecttag_format,
+	const std::string& tag,
+	unsigned int pos,
+	unsigned int width)
+{
+	FmtStrFormatter fmt;
+
+	const auto feedcontainer = v->get_ctrl()->get_feedcontainer();
+
+	const auto total_feeds = feedcontainer->get_feed_count_per_tag(tag);
+	const auto unread_feeds =
+		feedcontainer->get_unread_feed_count_per_tag(tag);
+	const auto unread_articles =
+		feedcontainer->get_unread_item_count_per_tag(tag);
+
+	fmt.register_fmt('i', strprintf::fmt("%u", pos));
+	fmt.register_fmt('T', tag);
+	fmt.register_fmt('f', std::to_string(unread_feeds));
+	fmt.register_fmt('n', std::to_string(unread_articles));
+	fmt.register_fmt('u', std::to_string(total_feeds));
+
+	auto formattedLine = fmt.do_format(selecttag_format, width);
+
+	return formattedLine;
+}
+
+void SelectFormAction::update_heading()
+{
+	std::string title;
+	const unsigned int width = tags_list.get_width();
 
 	FmtStrFormatter fmt;
 	fmt.register_fmt('N', PROGRAM_NAME);
-	fmt.register_fmt('V', PROGRAM_VERSION);
+	fmt.register_fmt('V', utils::program_version());
 
 	switch (type) {
 	case SelectionType::TAG:
 		title = fmt.do_format(
-			cfg->get_configvalue("selecttag-title-format"), width);
+				cfg->get_configvalue("selecttag-title-format"), width);
 		break;
 	case SelectionType::FILTER:
 		title = fmt.do_format(
-			cfg->get_configvalue("selectfilter-title-format"),
-			width);
+				cfg->get_configvalue("selectfilter-title-format"),
+				width);
 		break;
 	default:
 		assert(0); // should never happen
 	}
-	f->set("head", title);
+	set_value("head", title);
 }
 
 KeyMapHintEntry* SelectFormAction::get_keymap_hint()
 {
 	static KeyMapHintEntry hints_tag[] = {{OP_QUIT, _("Cancel")},
 		{OP_OPEN, _("Select Tag")},
-		{OP_NIL, nullptr}};
+		{OP_NIL, nullptr}
+	};
 	static KeyMapHintEntry hints_filter[] = {{OP_QUIT, _("Cancel")},
 		{OP_OPEN, _("Select Filter")},
-		{OP_NIL, nullptr}};
+		{OP_NIL, nullptr}
+	};
 	switch (type) {
 	case SelectionType::TAG:
 		return hints_tag;

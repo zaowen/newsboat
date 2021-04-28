@@ -1,0 +1,10 @@
+# Do not include some of the developer-oriented files in release tarballs
+/.github/ export-ignore
+/git-hooks/ export-ignore
+/snap/ export-ignore
+/.editorconfig export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore
+/.cirrus.yml export-ignore
+/.astylerc export-ignore
+/.rustfmt.toml export-ignore

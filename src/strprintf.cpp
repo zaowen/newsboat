@@ -21,9 +21,9 @@ std::string strprintf::fmt(const std::string& format)
 	if (len <= sizeof(buffer)) {
 		result = buffer;
 	} else {
-		std::unique_ptr<char> buf(new char[len]);
-		snprintf(buf.get(), len, format.c_str(), "");
-		result = buf.get();
+		std::vector<char> buf(len);
+		snprintf(buf.data(), len, format.c_str(), "");
+		result = buf.data();
 	}
 	return result;
 }
@@ -37,7 +37,7 @@ std::string strprintf::fmt(const std::string& format)
  * "a 100%% rel%iable e%xamp%le"  =>  { "a 100%% rel%iable e", "%xamp%le" }
  */
 std::pair<std::string, std::string> strprintf::split_format(
-		const std::string& printf_format)
+	const std::string& printf_format)
 {
 	std::string first_format, rest;
 

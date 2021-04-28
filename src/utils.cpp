@@ -1,6 +1,7 @@
 #include "utils.h"
 
 #include <algorithm>
+#include <cinttypes>
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
@@ -12,23 +13,23 @@
 #include <fcntl.h>
 #include <iconv.h>
 #include <langinfo.h>
-#include <libgen.h>
 #include <libxml/uri.h>
 #include <locale>
+#include <mutex>
 #include <pwd.h>
 #include <regex>
 #include <sstream>
 #include <stfl.h>
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
 #include <unordered_set>
 
-#include "3rd-party/alphanum.hpp"
 #include "config.h"
+#include "htmlrenderer.h"
 #include "logger.h"
+#include "ruststring.h"
 #include "strprintf.h"
 
 #if HAVE_GCRYPT
@@ -43,7 +44,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include <openssl/crypto.h>
 #endif
 
-#include "rs_utils.h"
+using HTTPMethod = newsboat::utils::HTTPMethod;
 
 namespace newsboat {
 
@@ -69,12 +70,18 @@ void append_escapes(std::string& str, char c)
 		str.append("\\`");
 		break;
 	case '\\':
+		str.append("\\");
 		break;
 	default:
-		str.append(1, c);
+		str.push_back(c);
 		break;
 	}
 }
+}
+
+std::string utils::strip_comments(const std::string& line)
+{
+	return std::string(utils::bridged::strip_comments(line));
 }
 
 std::vector<std::string> utils::tokenize_quoted(const std::string& str,
@@ -98,91 +105,68 @@ std::vector<std::string> utils::tokenize_quoted(const std::string& str,
 	 * 	[2]: x
 	 * 	y
 	 *
-	 * 	\", \r, \n, \t and \v are replaced with the literals that you
+	 * 	\", \r, \n, and \t are replaced with the literals that you
 	 * know from C/C++ strings.
 	 *
 	 */
-	bool attach_backslash = true;
 	std::vector<std::string> tokens;
-	std::string::size_type last_pos = str.find_first_not_of(delimiters, 0);
-	std::string::size_type pos = last_pos;
-
-	while (pos != std::string::npos && last_pos != std::string::npos) {
-		if (str[last_pos] == '#') // stop as soon as we found a comment
-			break;
-
-		if (str[last_pos] == '"') {
-			++last_pos;
-			pos = last_pos;
-			int backslash_count = 0;
-			while (pos < str.length() &&
-				(str[pos] != '"' || (backslash_count % 2))) {
-				if (str[pos] == '\\') {
-					++backslash_count;
-				} else {
-					backslash_count = 0;
-				}
-				++pos;
-			}
-			if (pos >= str.length()) {
-				pos = std::string::npos;
-				std::string token;
-				while (last_pos < str.length()) {
-					if (str[last_pos] == '\\') {
-						if (str[last_pos - 1] == '\\') {
-							if (attach_backslash) {
-								token.append(
-									"\\");
-							}
-							attach_backslash =
-								!attach_backslash;
-						}
-					} else {
-						if (str[last_pos - 1] == '\\') {
-							append_escapes(token,
-								str[last_pos]);
-						} else {
-							token.append(1,
-								str[last_pos]);
-						}
-					}
-					++last_pos;
-				}
-				tokens.push_back(token);
-			} else {
-				std::string token;
-				while (last_pos < pos) {
-					if (str[last_pos] == '\\') {
-						if (str[last_pos - 1] == '\\') {
-							if (attach_backslash) {
-								token.append(
-									"\\");
-							}
-							attach_backslash =
-								!attach_backslash;
-						}
-					} else {
-						if (str[last_pos - 1] == '\\') {
-							append_escapes(token,
-								str[last_pos]);
-						} else {
-							token.append(1,
-								str[last_pos]);
-						}
-					}
-					++last_pos;
-				}
-				tokens.push_back(token);
-				++pos;
-			}
-		} else {
-			pos = str.find_first_of(delimiters, last_pos);
-			tokens.push_back(str.substr(last_pos, pos - last_pos));
+	std::string remaining = str;
+	while (!remaining.empty()) {
+		auto token = extract_token_quoted(remaining, delimiters);
+		if (token.has_value()) {
+			tokens.push_back(token.value());
 		}
-		last_pos = str.find_first_not_of(delimiters, pos);
 	}
 
 	return tokens;
+}
+
+nonstd::optional<std::string> utils::extract_token_quoted(std::string& str,
+	std::string delimiters)
+{
+	auto first_non_delimiter = str.find_first_not_of(delimiters, 0);
+	if (first_non_delimiter == std::string::npos) {
+		str = "";
+		return {};
+	}
+	str = str.substr(first_non_delimiter);
+
+	if (str[0] == '#') { // stop as soon as we find a comment
+		str = "";
+		return {};
+	}
+
+	std::string token;
+	if (str[0] == '"') {
+		std::string::size_type pos = 1;
+		while (pos < str.length()) {
+			if (str[pos] == '"') {
+				// We've reached the end of this quoted token.
+				++pos;
+				break;
+			} else if (str[pos] == '\\') {
+				pos += 1;
+				if (pos < str.length()) {
+					append_escapes(token, str[pos]);
+					pos += 1;
+				}
+			} else {
+				token.push_back(str[pos]);
+				++pos;
+			}
+		}
+		str = str.substr(pos);
+	} else {
+		auto end_of_token = str.find_first_of(delimiters);
+		token = str.substr(0, end_of_token);
+		if (end_of_token == std::string::npos) {
+			str = "";
+		} else {
+			str = str.substr(end_of_token);
+		}
+	}
+
+	return token;
 }
 
 std::vector<std::string> utils::tokenize(const std::string& str,
@@ -194,24 +178,6 @@ std::vector<std::string> utils::tokenize(const std::string& str,
 	std::vector<std::string> tokens;
 	std::string::size_type last_pos = str.find_first_not_of(delimiters, 0);
 	std::string::size_type pos = str.find_first_of(delimiters, last_pos);
-
-	while (std::string::npos != pos || std::string::npos != last_pos) {
-		tokens.push_back(str.substr(last_pos, pos - last_pos));
-		last_pos = str.find_first_not_of(delimiters, pos);
-		pos = str.find_first_of(delimiters, last_pos);
-	}
-	return tokens;
-}
-
-std::vector<std::wstring> utils::wtokenize(const std::wstring& str,
-	std::wstring delimiters)
-{
-	/*
-	 * This function tokenizes a string by the delimiters. Plain and simple.
-	 */
-	std::vector<std::wstring> tokens;
-	std::wstring::size_type last_pos = str.find_first_not_of(delimiters, 0);
-	std::wstring::size_type pos = str.find_first_of(delimiters, last_pos);
 
 	while (std::string::npos != pos || std::string::npos != last_pos) {
 		tokens.push_back(str.substr(last_pos, pos - last_pos));
@@ -235,17 +201,18 @@ std::vector<std::string> utils::tokenize_spaced(const std::string& str,
 	while (std::string::npos != pos || std::string::npos != last_pos) {
 		tokens.push_back(str.substr(last_pos, pos - last_pos));
 		last_pos = str.find_first_not_of(delimiters, pos);
-		if (last_pos > pos)
+		if (last_pos > pos) {
 			tokens.push_back(str.substr(pos, last_pos - pos));
+		}
 		pos = str.find_first_of(delimiters, last_pos);
 	}
 
 	return tokens;
 }
 
-std::string utils::consolidate_whitespace(const std::string& str) {
-
-	return RustString(rs_consolidate_whitespace(str.c_str()));
+std::string utils::consolidate_whitespace(const std::string& str)
+{
+	return std::string(utils::bridged::consolidate_whitespace(str));
 }
 
 std::vector<std::string> utils::tokenize_nl(const std::string& str,
@@ -256,9 +223,15 @@ std::vector<std::string> utils::tokenize_nl(const std::string& str,
 	std::string::size_type pos = str.find_first_of(delimiters, last_pos);
 	unsigned int i;
 
-	LOG(Level::DEBUG, "utils::tokenize_nl: last_pos = %u", last_pos);
+	LOG(Level::DEBUG,
+		"utils::tokenize_nl: last_pos = %" PRIu64,
+		static_cast<uint64_t>(last_pos));
 	if (last_pos != std::string::npos) {
 		for (i = 0; i < last_pos; ++i) {
+			tokens.push_back(std::string("\n"));
+		}
+	} else {
+		for (i = 0; i < str.length(); ++i) {
 			tokens.push_back(std::string("\n"));
 		}
 	}
@@ -270,8 +243,8 @@ std::vector<std::string> utils::tokenize_nl(const std::string& str,
 			str.substr(last_pos, pos - last_pos));
 		last_pos = str.find_first_not_of(delimiters, pos);
 		LOG(Level::DEBUG,
-			"utils::tokenize_nl: pos - last_pos = %u",
-			last_pos - pos);
+			"utils::tokenize_nl: pos - last_pos = %" PRIu64,
+			static_cast<uint64_t>(last_pos - pos));
 		for (i = 0; last_pos != std::string::npos &&
 			pos != std::string::npos && i < (last_pos - pos);
 			++i) {
@@ -283,173 +256,66 @@ std::vector<std::string> utils::tokenize_nl(const std::string& str,
 	return tokens;
 }
 
-std::string utils::translit(const std::string& tocode,
-	const std::string& fromcode)
+std::string utils::translit(const std::string& tocode, const std::string& fromcode)
 {
-	std::string tlit = "//TRANSLIT";
-
-	enum class TranslitState { UNKNOWN, SUPPORTED, UNSUPPORTED };
-
-	static TranslitState state = TranslitState::UNKNOWN;
-
-	// TRANSLIT is not needed when converting to unicode encodings
-	if (tocode == "utf-8" || tocode == "WCHAR_T")
-		return tocode;
-
-	if (state == TranslitState::UNKNOWN) {
-		iconv_t cd = ::iconv_open(
-			(tocode + "//TRANSLIT").c_str(), fromcode.c_str());
-
-		if (cd == reinterpret_cast<iconv_t>(-1)) {
-			if (errno == EINVAL) {
-				iconv_t cd = ::iconv_open(
-					tocode.c_str(), fromcode.c_str());
-				if (cd != reinterpret_cast<iconv_t>(-1)) {
-					state = TranslitState::UNSUPPORTED;
-				} else {
-					fprintf(stderr,
-						"iconv_open('%s', '%s') "
-						"failed: %s",
-						tocode.c_str(),
-						fromcode.c_str(),
-						strerror(errno));
-					abort();
-				}
-			} else {
-				fprintf(stderr,
-					"iconv_open('%s//TRANSLIT', '%s') "
-					"failed: %s",
-					tocode.c_str(),
-					fromcode.c_str(),
-					strerror(errno));
-				abort();
-			}
-		} else {
-			state = TranslitState::SUPPORTED;
-		}
-
-		iconv_close(cd);
-	}
-
-	return ((state == TranslitState::SUPPORTED) ? (tocode + tlit)
-						     : (tocode));
+	return std::string(utils::bridged::translit(tocode, fromcode));
 }
 
-std::string utils::convert_text(const std::string& text,
-	const std::string& tocode,
-	const std::string& fromcode)
+std::string utils::utf8_to_locale(const std::string& text)
 {
-	std::string result;
+	const auto result = utils::bridged::utf8_to_locale(text);
+	return std::string(reinterpret_cast<const char*>(result.data()), result.size());
+}
 
-	if (strcasecmp(tocode.c_str(), fromcode.c_str()) == 0)
-		return text;
-
-	iconv_t cd = ::iconv_open(
-		translit(tocode, fromcode).c_str(), fromcode.c_str());
-
-	if (cd == reinterpret_cast<iconv_t>(-1))
-		return result;
-
-	size_t inbytesleft;
-	size_t outbytesleft;
-
-	/*
-	 * of all the Unix-like systems around there, only Linux/glibc seems to
-	 * come with a SuSv3-conforming iconv implementation.
-	 */
-#if !defined(__linux__) && !defined(__GLIBC__) && !defined(__APPLE__) && \
-	!defined(__OpenBSD__) && !defined(__FreeBSD__) &&                \
-	!defined(__DragonFly__)
-	const char* inbufp;
-#else
-	char* inbufp;
-#endif
-	char outbuf[16];
-	char* outbufp = outbuf;
-
-	outbytesleft = sizeof(outbuf);
-	inbufp = const_cast<char*>(
-		text.c_str()); // evil, but spares us some trouble
-	inbytesleft = strlen(inbufp);
-
-	do {
-		char* old_outbufp = outbufp;
-		int rc = ::iconv(
-			cd, &inbufp, &inbytesleft, &outbufp, &outbytesleft);
-		if (-1 == rc) {
-			switch (errno) {
-			case E2BIG:
-				result.append(
-					old_outbufp, outbufp - old_outbufp);
-				outbufp = outbuf;
-				outbytesleft = sizeof(outbuf);
-				inbufp += strlen(inbufp) - inbytesleft;
-				inbytesleft = strlen(inbufp);
-				break;
-			case EILSEQ:
-			case EINVAL:
-				result.append(
-					old_outbufp, outbufp - old_outbufp);
-				result.append("?");
-				inbufp += strlen(inbufp) - inbytesleft + 1;
-				inbytesleft = strlen(inbufp);
-				break;
-			default:
-				break;
-			}
-		} else {
-			result.append(old_outbufp, outbufp - old_outbufp);
-		}
-	} while (inbytesleft > 0);
-
-	iconv_close(cd);
-
-	return result;
+std::string utils::locale_to_utf8(const std::string& text)
+{
+	const auto text_slice =
+		rust::Slice<const unsigned char>(
+			reinterpret_cast<const unsigned char*>(text.c_str()),
+			text.length());
+	return std::string(utils::bridged::locale_to_utf8(text_slice));
 }
 
 std::string utils::get_command_output(const std::string& cmd)
 {
-	FILE* f = popen(cmd.c_str(), "r");
-	std::string buf;
-	if (f) {
-		char cbuf[1024];
-		size_t s;
-		while ((s = fread(cbuf, 1, sizeof(cbuf), f)) > 0) {
-			buf.append(cbuf, s);
-		}
-		pclose(f);
-	}
-	return buf;
+	return std::string(utils::bridged::get_command_output(cmd));
 }
 
-void utils::extract_filter(const std::string& line,
-	std::string& filter,
-	std::string& url)
-{
-	std::string::size_type pos = line.find_first_of(":", 0);
-	std::string::size_type pos1 = line.find_first_of(":", pos + 1);
-	filter = line.substr(pos + 1, pos1 - pos - 1);
-	pos = pos1;
-	url = line.substr(pos + 1, line.length() - pos);
-	LOG(Level::DEBUG,
-		"utils::extract_filter: %s -> filter: %s url: %s",
-		line,
-		filter,
-		url);
-}
-
-static size_t
-my_write_data(void* buffer, size_t size, size_t nmemb, void* userp)
+static size_t my_write_data(void* buffer, size_t size, size_t nmemb,
+	void* userp)
 {
 	std::string* pbuf = static_cast<std::string*>(userp);
 	pbuf->append(static_cast<const char*>(buffer), size * nmemb);
 	return size * nmemb;
 }
 
+std::string utils::http_method_str(const HTTPMethod method)
+{
+	std::string str = "";
+
+	switch (method) {
+	case HTTPMethod::GET:
+		str = "GET";
+		break;
+	case HTTPMethod::POST:
+		str = "POST";
+		break;
+	case HTTPMethod::PUT:
+		str = "PUT";
+		break;
+	case HTTPMethod::DELETE:
+		str = "DELETE";
+		break;
+	}
+
+	return str;
+}
+
 std::string utils::retrieve_url(const std::string& url,
 	ConfigContainer* cfgcont,
 	const std::string& authinfo,
-	const std::string* postdata,
+	const std::string* body,
+	const HTTPMethod method, /* = GET */
 	CURL* cached_handle)
 {
 	std::string buf;
@@ -465,17 +331,27 @@ std::string utils::retrieve_url(const std::string& url,
 	curl_easy_setopt(easyhandle, CURLOPT_WRITEFUNCTION, my_write_data);
 	curl_easy_setopt(easyhandle, CURLOPT_WRITEDATA, &buf);
 
-	if (postdata != nullptr) {
+	switch (method) {
+	case HTTPMethod::GET:
+		break;
+	case HTTPMethod::POST:
 		curl_easy_setopt(easyhandle, CURLOPT_POST, 1);
+		break;
+	case HTTPMethod::PUT:
+	case HTTPMethod::DELETE:
+		const std::string method_str = http_method_str(method);
+		curl_easy_setopt(easyhandle, CURLOPT_CUSTOMREQUEST, method_str.c_str());
+		break;
+	}
+
+	if (body != nullptr) {
 		curl_easy_setopt(
-			easyhandle, CURLOPT_POSTFIELDS, postdata->c_str());
+			easyhandle, CURLOPT_POSTFIELDS, body->c_str());
 	}
 
 	if (!authinfo.empty()) {
-		curl_easy_setopt(easyhandle,
-			CURLOPT_HTTPAUTH,
-			get_auth_method(
-				cfgcont->get_configvalue("http-auth-method")));
+		const auto auth_method = cfgcont->get_configvalue("http-auth-method");
+		curl_easy_setopt(easyhandle, CURLOPT_HTTPAUTH, get_auth_method(auth_method));
 		curl_easy_setopt(easyhandle, CURLOPT_USERPWD, authinfo.c_str());
 	}
 
@@ -484,11 +360,12 @@ std::string utils::retrieve_url(const std::string& url,
 		curl_easy_cleanup(easyhandle);
 	}
 
-	if (postdata != nullptr) {
+	if (body != nullptr) {
 		LOG(Level::DEBUG,
-			"utils::retrieve_url(%s)[%s]: %s",
+			"utils::retrieve_url(%s %s)[%s]: %s",
+			http_method_str(method),
 			url,
-			postdata,
+			body,
 			buf);
 	} else {
 		LOG(Level::DEBUG, "utils::retrieve_url(%s)[-]: %s", url, buf);
@@ -497,137 +374,61 @@ std::string utils::retrieve_url(const std::string& url,
 	return buf;
 }
 
-void utils::run_command(const std::string& cmd, const std::string& input)
+std::string utils::run_program(const char* argv[], const std::string& input)
 {
-	int rc = fork();
-	switch (rc) {
-	case -1:
-		break;
-	case 0: { // child:
-		int fd = ::open("/dev/null", O_RDWR);
-		if (fd == -1) {
-			LOG(Level::DEBUG,
-				"utils::run_command: error opening /dev/null: "
-				"(%i) "
-				"%s",
-				errno,
-				strerror(errno));
-			exit(1);
-		}
-		close(0);
-		close(1);
-		close(2);
-		dup2(fd, 0);
-		dup2(fd, 1);
-		dup2(fd, 2);
-		LOG(Level::DEBUG, "utils::run_command: %s '%s'", cmd, input);
-		execlp(cmd.c_str(), cmd.c_str(), input.c_str(), nullptr);
-		LOG(Level::DEBUG,
-			"utils::run_command: execlp of %s failed: %s",
-			cmd,
-			strerror(errno));
-		exit(1);
-	}
-	default:
-		break;
-	}
-}
-
-std::string utils::run_program(char* argv[], const std::string& input)
-{
-	std::string buf;
-	int ipipe[2];
-	int opipe[2];
-	if (pipe(ipipe) != 0) {
-		return "";
-	}
-	if (pipe(opipe) != 0) {
-		return "";
+	std::vector<rust::Str> slices;
+	for (; *argv; ++argv) {
+		slices.emplace_back(*argv);
 	}
 
-	int rc = fork();
-	switch (rc) {
-	case -1:
-		break;
-	case 0: { // child:
-		close(ipipe[1]);
-		close(opipe[0]);
-		dup2(ipipe[0], 0);
-		dup2(opipe[1], 1);
-		close(2);
+	const auto rs_argv = rust::Slice<const rust::Str>(slices.data(), slices.size());
 
-		int errfd = ::open("/dev/null", O_WRONLY);
-		if (errfd != -1)
-			dup2(errfd, 2);
-
-		execvp(argv[0], argv);
-		exit(1);
-	}
-	default: {
-		close(ipipe[0]);
-		close(opipe[1]);
-		ssize_t written = 0;
-		written = write(ipipe[1], input.c_str(), input.length());
-		if (written != -1) {
-			close(ipipe[1]);
-			char cbuf[1024];
-			int rc2;
-			while ((rc2 = read(opipe[0], cbuf, sizeof(cbuf))) > 0) {
-				buf.append(cbuf, rc2);
-			}
-		} else {
-			close(ipipe[1]);
-		}
-		close(opipe[0]);
-	} break;
-	}
-	return buf;
+	return std::string(utils::bridged::run_program(rs_argv, input));
 }
 
 std::string utils::resolve_tilde(const std::string& str)
 {
-	const char* homedir;
-	std::string filepath;
+	return std::string(utils::bridged::resolve_tilde(str));
+}
 
-	if (!(homedir = ::getenv("HOME"))) {
-		struct passwd* spw = ::getpwuid(::getuid());
-		if (spw) {
-			homedir = spw->pw_dir;
-		} else {
-			homedir = "";
-		}
-	}
-
-	if (strcmp(homedir, "") != 0) {
-		if (str == "~") {
-			filepath.append(homedir);
-		} else if (str.substr(0, 2) == "~/") {
-			filepath.append(homedir);
-			filepath.append(1, '/');
-			filepath.append(str.substr(2, str.length() - 2));
-		} else {
-			filepath.append(str);
-		}
-	} else {
-		filepath.append(str);
-	}
-
-	return filepath;
+std::string utils::resolve_relative(const std::string& reference,
+	const std::string& fname)
+{
+	return std::string(utils::bridged::resolve_relative(reference, fname));
 }
 
 std::string utils::replace_all(std::string str,
 	const std::string& from,
 	const std::string& to)
 {
-	return RustString( rs_replace_all(str.c_str(), from.c_str(), to.c_str()) );
+	return std::string(utils::bridged::replace_all(str, from, to));
 }
 
-std::wstring utils::utf8str2wstr(const std::string& utf8str)
+std::string utils::replace_all(const std::string& str,
+	const std::vector<std::pair<std::string, std::string>> from_to_pairs)
 {
-	stfl_ipool* pool = stfl_ipool_create("utf-8");
-	std::wstring wstr = stfl_ipool_towc(pool, utf8str.c_str());
-	stfl_ipool_destroy(pool);
-	return wstr;
+	std::size_t cur_index = 0;
+	std::string output;
+	while (cur_index != str.size()) {
+		std::size_t first_match = std::string::npos;
+		std::pair<std::string, std::string> first_match_pair;
+		for (const auto& p : from_to_pairs) {
+			auto match = str.find(p.first, cur_index);
+			if (match != std::string::npos && match < first_match) {
+				first_match = match;
+				first_match_pair = p;
+			}
+		}
+		if (first_match == std::string::npos) {
+			output += str.substr(cur_index);
+			break;
+		} else {
+			output += str.substr(cur_index, first_match - cur_index);
+			cur_index = first_match + first_match_pair.first.size();
+			output += first_match_pair.second;
+		}
+	}
+	return output;
 }
 
 std::wstring utils::str2wstr(const std::string& str)
@@ -651,16 +452,7 @@ std::string utils::wstr2str(const std::wstring& wstr)
 
 std::string utils::absolute_url(const std::string& url, const std::string& link)
 {
-	xmlChar* newurl = xmlBuildURI(
-		(const xmlChar*)link.c_str(), (const xmlChar*)url.c_str());
-	std::string retval;
-	if (newurl) {
-		retval = (const char*)newurl;
-		xmlFree(newurl);
-	} else {
-		retval = link;
-	}
-	return retval;
+	return std::string(utils::bridged::absolute_url(url, link));
 }
 
 std::string utils::get_useragent(ConfigContainer* cfgcont)
@@ -678,15 +470,15 @@ std::string utils::get_useragent(ConfigContainer* cfgcont)
 				PROCESSOR = "Intel ";
 			}
 			return strprintf::fmt("%s/%s (Macintosh; %sMac OS X)",
-				PROGRAM_NAME,
-				PROGRAM_VERSION,
-				PROCESSOR);
+					PROGRAM_NAME,
+					utils::program_version(),
+					PROCESSOR);
 		}
 		return strprintf::fmt("%s/%s (%s %s)",
-			PROGRAM_NAME,
-			PROGRAM_VERSION,
-			buf.sysname,
-			buf.machine);
+				PROGRAM_NAME,
+				utils::program_version(),
+				buf.sysname,
+				buf.machine);
 	}
 	return ua_pref;
 }
@@ -694,119 +486,13 @@ std::string utils::get_useragent(ConfigContainer* cfgcont)
 unsigned int utils::to_u(const std::string& str,
 	const unsigned int default_value)
 {
-	return rs_to_u(str.c_str(), default_value);
-}
-
-ScopeMeasure::ScopeMeasure(const std::string& func, Level ll)
-	: funcname(func)
-	, lvl(ll)
-{
-	gettimeofday(&tv1, nullptr);
-}
-
-void ScopeMeasure::stopover(const std::string& son)
-{
-	gettimeofday(&tv2, nullptr);
-	unsigned long diff =
-		(((tv2.tv_sec - tv1.tv_sec) * 1000000) + tv2.tv_usec) -
-		tv1.tv_usec;
-	LOG(lvl,
-		"ScopeMeasure: function `%s' (stop over `%s') took %lu.%06lu "
-		"s so "
-		"far",
-		funcname,
-		son,
-		diff / 1000000,
-		diff % 1000000);
-}
-
-ScopeMeasure::~ScopeMeasure()
-{
-	gettimeofday(&tv2, nullptr);
-	unsigned long diff =
-		(((tv2.tv_sec - tv1.tv_sec) * 1000000) + tv2.tv_usec) -
-		tv1.tv_usec;
-	LOG(Level::INFO,
-		"ScopeMeasure: function `%s' took %lu.%06lu s",
-		funcname,
-		diff / 1000000,
-		diff % 1000000);
-}
-
-bool utils::is_valid_color(const std::string& color)
-{
-	static const std::unordered_set<std::string> colors = {"black",
-		"red",
-		"green",
-		"yellow",
-		"blue",
-		"magenta",
-		"cyan",
-		"white",
-		"default"};
-	if (colors.find(color) != colors.end()) {
-		return true;
-	}
-
-	// does it start with "color"?
-	if (color.size() > 5 && color.substr(0, 5) == "color") {
-		if (color[5] == '0') {
-			// if the remainder of the string starts with zero, it
-			// can only be "color0"
-			return color == "color0" ? true : false;
-		} else {
-			// we're now sure that the remainder doesn't start with
-			// zero, but is it a valid decimal number?
-			const std::string number =
-				color.substr(5, color.size() - 5);
-			size_t pos{};
-			int n;
-			try {
-				n = std::stoi(number, &pos);
-			} catch (const std::invalid_argument& e) {
-				// What came after "color" wasn't a number,
-				// hence the input string is not a valid color.
-				return false;
-			} catch (const std::out_of_range& e) {
-				// What came after "color" couldn't fit into an
-				// int, whereas valid values all fit into a
-				// byte. Thus, the input string is not a valid
-				// color.
-				return false;
-			}
-
-			// remainder should not contain any trailing characters
-			if (number.size() != pos)
-				return false;
-
-			// remainder should be a number in (0; 255]. The
-			// interval is half-open because zero is already handled
-			// above.
-			if (n > 0 && n < 256)
-				return true;
-		}
-	}
-	return false;
-}
-
-bool utils::is_valid_attribute(const std::string& attrib)
-{
-	static const std::unordered_set<std::string> attribs = {"standout",
-		"underline",
-		"reverse",
-		"blink",
-		"dim",
-		"bold",
-		"protect",
-		"invis",
-		"default"};
-	return attribs.find(attrib) != attribs.end();
+	return bridged::to_u(str, default_value);
 }
 
 std::vector<std::pair<unsigned int, unsigned int>> utils::partition_indexes(
-	unsigned int start,
-	unsigned int end,
-	unsigned int parts)
+		unsigned int start,
+		unsigned int end,
+		unsigned int parts)
 {
 	std::vector<std::pair<unsigned int, unsigned int>> partitions;
 	unsigned int count = end - start + 1;
@@ -814,7 +500,7 @@ std::vector<std::pair<unsigned int, unsigned int>> utils::partition_indexes(
 
 	for (unsigned int i = 0; i < parts - 1; i++) {
 		partitions.push_back(std::pair<unsigned int, unsigned int>(
-			start, start + size - 1));
+				start, start + size - 1));
 		start += size;
 	}
 
@@ -822,111 +508,16 @@ std::vector<std::pair<unsigned int, unsigned int>> utils::partition_indexes(
 	return partitions;
 }
 
-size_t utils::strwidth(const std::string& str)
-{
-	std::wstring wstr = str2wstr(str);
-	int width = wcswidth(wstr.c_str(), wstr.length());
-	if (width < 1)                // a non-printable character found?
-		return wstr.length(); // return a sane width (which might be
-				      // larger than necessary)
-	return width;                 // exact width
-}
-
-size_t utils::strwidth_stfl(const std::string& str)
-{
-	size_t reduce_count = 0;
-	size_t len = str.length();
-	if (len > 1) {
-		for (size_t idx = 0; idx < len - 1; ++idx) {
-			if (str[idx] == '<' && str[idx + 1] != '>') {
-				reduce_count += 3;
-				idx += 3;
-			}
-		}
-	}
-
-	return strwidth(str) - reduce_count;
-}
-
-size_t utils::wcswidth_stfl(const std::wstring& str, size_t size)
-{
-	size_t reduce_count = 0;
-	size_t len = std::min(str.length(), size);
-	if (len > 1) {
-		for (size_t idx = 0; idx < len - 1; ++idx) {
-			if (str[idx] == L'<' && str[idx + 1] != L'>') {
-				reduce_count += 3;
-				idx += 3;
-			}
-		}
-	}
-
-	int width = wcswidth(str.c_str(), size);
-	if (width < 0) {
-		LOG(Level::ERROR, "oh, oh, wcswidth just failed");
-		return str.length() - reduce_count;
-	}
-
-	return width - reduce_count;
-}
-
 std::string utils::substr_with_width(const std::string& str,
 	const size_t max_width)
 {
-	// Returns a longest substring fits to the given width.
-	// Returns an empty string if `str` is an empty string or `max_width` is
-	// zero,
-	//
-	// Each chararacter width is calculated with wcwidth(3). If wcwidth()
-	// returns < 1, the character width is treated as 0. A STFL tag (e.g.
-	// `<b>`, `<foobar>`, `</>`) width is treated as 0, but escaped
-	// less-than (`<>`) width is treated as 1.
+	return std::string(utils::bridged::substr_with_width(str, max_width));
+}
 
-	if (str.empty() || max_width == 0) {
-		return std::string("");
-	}
-
-	const std::wstring wstr = utils::str2wstr(str);
-	size_t total_width = 0;
-	bool in_bracket = false;
-	std::wstring result;
-	std::wstring tagbuf;
-
-	for (const auto& wc : wstr) {
-		if (in_bracket) {
-			tagbuf += wc;
-			if (wc == L'>') { // tagbuf is escaped less-than or tag
-				in_bracket = false;
-				if (tagbuf == L"<>") {
-					if (total_width + 1 > max_width) {
-						break;
-					}
-					result += L"<>"; // escaped less-than
-					tagbuf.clear();
-					total_width++;
-				} else {
-					result += tagbuf;
-					tagbuf.clear();
-				}
-			}
-		} else {
-			if (wc == L'<') {
-				in_bracket = true;
-				tagbuf += wc;
-			} else {
-				int w = wcwidth(wc);
-				if (w < 1) {
-					w = 0;
-				}
-				if (total_width + w > max_width) {
-					break;
-				}
-				total_width += w;
-				result += wc;
-			}
-		}
-	}
-	return utils::wstr2str(result);
+std::string utils::substr_with_width_stfl(const std::string& str,
+	const size_t max_width)
+{
+	return std::string(utils::bridged::substr_with_width_stfl(str, max_width));
 }
 
 std::string utils::join(const std::vector<std::string>& strings,
@@ -946,99 +537,34 @@ std::string utils::join(const std::vector<std::string>& strings,
 	return result;
 }
 
-bool utils::is_special_url(const std::string& url)
-{
-	return is_query_url(url) || is_filter_url(url) || is_exec_url(url);
-}
-
-bool utils::is_http_url(const std::string& url)
-{
-	return url.substr(0, 7) == "http://" || url.substr(0, 8) == "https://";
-}
-
-bool utils::is_query_url(const std::string& url)
-{
-	return url.substr(0, 6) == "query:";
-}
-
-bool utils::is_filter_url(const std::string& url)
-{
-	return url.substr(0, 7) == "filter:";
-}
-
-bool utils::is_exec_url(const std::string& url)
-{
-	return url.substr(0, 5) == "exec:";
-}
-
 std::string utils::censor_url(const std::string& url)
 {
-	std::string rv(url);
-	if (!url.empty() && !utils::is_special_url(url)) {
-		const char* myuri = url.c_str();
-		xmlURIPtr uri = xmlParseURI(myuri);
-		if (uri) {
-			if (uri->user) {
-				xmlFree(uri->user);
-				uri->user =
-					(char*)xmlStrdup((const xmlChar*)"*:*");
-			}
-			xmlChar* uristr = xmlSaveUri(uri);
-
-			rv = (const char*)uristr;
-			xmlFree(uristr);
-			xmlFreeURI(uri);
-		}
-	}
-	return rv;
+	return std::string(utils::bridged::censor_url(url));
 }
 
 std::string utils::quote_for_stfl(std::string str)
 {
-	unsigned int len = str.length();
-	for (unsigned int i = 0; i < len; ++i) {
-		if (str[i] == '<') {
-			str.insert(i + 1, ">");
-			++len;
-		}
-	}
-	return str;
+	return std::string(utils::bridged::quote_for_stfl(str));
 }
 
 void utils::trim(std::string& str)
 {
-	str = RustString(rs_trim(str.c_str()));
+	str = std::string(utils::bridged::trim(str));
 }
 
 void utils::trim_end(std::string& str)
 {
-	str = RustString(rs_trim_end(str.c_str()));
+	str = std::string(utils::bridged::trim_end(str));
 }
 
 std::string utils::quote(const std::string& str)
 {
-	std::string rv = replace_all(str, "\"", "\\\"");
-	rv.insert(0, "\"");
-	rv.append("\"");
-	return rv;
-}
-
-unsigned int utils::get_random_value(unsigned int max)
-{
-	return rs_get_random_value(max);
+	return std::string(utils::bridged::quote(str));
 }
 
 std::string utils::quote_if_necessary(const std::string& str)
 {
-	std::string result;
-	if (str.find_first_of(" ", 0) == std::string::npos) {
-		result = str;
-	} else {
-		result = utils::replace_all(str, "\"", "\\\"");
-		result.insert(0, "\"");
-		result.append("\"");
-	}
-	return result;
+	return std::string(utils::bridged::quote_if_necessary(str));
 }
 
 void utils::set_common_curl_options(CURL* handle, ConfigContainer* cfg)
@@ -1131,68 +657,27 @@ std::string utils::get_content(xmlNode* node)
 
 std::string utils::get_basename(const std::string& url)
 {
-	std::string retval;
-	xmlURIPtr uri = xmlParseURI(url.c_str());
-	if (uri && uri->path) {
-		std::string path(uri->path);
-		// check for path ending with an empty filename
-		if (path[path.length() - 1] != '/') {
-			char* base = basename(uri->path);
-			if (base) {
-				// check for empty path
-				if (base[0] != '/') {
-					retval = std::string(base);
-				}
-			}
-		}
-		xmlFreeURI(uri);
-	}
-	return retval;
-}
-
-unsigned long utils::get_auth_method(const std::string& type)
-{
-	if (type == "any")
-		return CURLAUTH_ANY;
-	if (type == "basic")
-		return CURLAUTH_BASIC;
-	if (type == "digest")
-		return CURLAUTH_DIGEST;
-#ifdef CURLAUTH_DIGEST_IE
-	if (type == "digest_ie")
-		return CURLAUTH_DIGEST_IE;
-#else
-#warning \
-	"proxy-auth-method digest_ie not added due to libcurl older than 7.19.3"
-#endif
-	if (type == "gssnegotiate")
-		return CURLAUTH_GSSNEGOTIATE;
-	if (type == "ntlm")
-		return CURLAUTH_NTLM;
-	if (type == "anysafe")
-		return CURLAUTH_ANYSAFE;
-	if (type != "") {
-		LOG(Level::USERERROR,
-			"you configured an invalid proxy authentication "
-			"method: %s",
-			type);
-	}
-	return CURLAUTH_ANY;
+	return std::string(utils::bridged::get_basename(url));
 }
 
 curl_proxytype utils::get_proxy_type(const std::string& type)
 {
-	if (type == "http")
+	if (type == "http") {
 		return CURLPROXY_HTTP;
-	if (type == "socks4")
+	}
+	if (type == "socks4") {
 		return CURLPROXY_SOCKS4;
-	if (type == "socks5")
+	}
+	if (type == "socks5") {
 		return CURLPROXY_SOCKS5;
-	if (type == "socks5h")
+	}
+	if (type == "socks5h") {
 		return CURLPROXY_SOCKS5_HOSTNAME;
+	}
 #ifdef CURLPROXY_SOCKS4A
-	if (type == "socks4a")
+	if (type == "socks4a") {
 		return CURLPROXY_SOCKS4A;
+	}
 #endif
 
 	if (type != "") {
@@ -1203,218 +688,139 @@ curl_proxytype utils::get_proxy_type(const std::string& type)
 	return CURLPROXY_HTTP;
 }
 
-std::string utils::escape_url(const std::string& url)
-{
-	CURL* easyhandle = curl_easy_init();
-	char* output = curl_easy_escape(easyhandle, url.c_str(), 0);
-	if (!output) {
-		LOG(Level::DEBUG, "Libcurl failed to escape url: %s", url);
-		throw std::runtime_error("escaping url failed");
-	}
-	std::string s = output;
-	curl_free(output);
-	curl_easy_cleanup(easyhandle);
-	return s;
-}
-
 std::string utils::unescape_url(const std::string& url)
 {
-	CURL* easyhandle = curl_easy_init();
-	char* output = curl_easy_unescape(easyhandle, url.c_str(), 0, NULL);
-	if (!output) {
-		LOG(Level::DEBUG, "Libcurl failed to escape url: %s", url);
-		throw std::runtime_error("escaping url failed");
+	bool success = false;
+	const auto result = utils::bridged::unescape_url(url, success);
+	if (!success) {
+		LOG(Level::DEBUG, "Rust failed to unescape url: %s", url );
+		throw std::runtime_error("unescaping url failed");
+	} else {
+		return std::string(result);
 	}
-	std::string s = output;
-	curl_free(output);
-	curl_easy_cleanup(easyhandle);
-	return s;
 }
 
 std::wstring utils::clean_nonprintable_characters(std::wstring text)
 {
 	for (size_t idx = 0; idx < text.size(); ++idx) {
-		if (!iswprint(text[idx]))
+		if (!iswprint(text[idx])) {
 			text[idx] = L'\uFFFD';
+		}
 	}
 	return text;
-}
-
-unsigned int utils::gentabs(const std::string& str)
-{
-	int tabcount = 4 - (utils::strwidth(str) / 8);
-	if (tabcount <= 0) {
-		tabcount = 1;
-	}
-	return tabcount;
 }
 
 /* Like mkdir(), but creates ancestors (parent directories) if they don't
  * exist. */
 int utils::mkdir_parents(const std::string& p, mode_t mode)
 {
-	int result = -1;
-
-	/* Have to copy the path because we're going to modify it */
-	const size_t length = p.length() + 1;
-	char* pathname = (char*)malloc(length);
-	if (pathname == nullptr) {
-		// errno is already set by malloc(), so simply return with an error
-		return -1;
-	}
-	strncpy(pathname, p.c_str(), length);
-	/* This pointer will run through the whole string looking for '/'.
-	 * We move it by one if path starts with slash because if we don't, the
-	 * first call to access() will fail (because of empty path) */
-	char* curr = pathname + (*pathname == '/' ? 1 : 0);
-
-	while (*curr) {
-		if (*curr == '/') {
-			*curr = '\0';
-			result = access(pathname, F_OK);
-			if (result == -1) {
-				result = mkdir(pathname, mode);
-				if (result != 0 && errno != EEXIST)
-					break;
-			}
-			*curr = '/';
-		}
-		curr++;
-	}
-
-	if (result == 0) {
-		result = mkdir(p.c_str(), mode);
-	}
-
-	free(pathname);
-	return result;
+	return utils::bridged::mkdir_parents(p, static_cast<std::uint32_t>(mode));
 }
 
 std::string utils::make_title(const std::string& const_url)
 {
-	/* Sometimes it is possible to construct the title from the URL
-	 * This attempts to do just that. eg:
-	 * http://domain.com/story/yy/mm/dd/title-with-dashes?a=b
-	 */
-	std::string url = (std::string&)const_url;
-	// Strip out trailing slashes
-	while (url.length() > 0 && url.back() == '/') {
-		url.erase(url.length() - 1);
-	}
-	// get to the final part of the URI's path
-	std::string::size_type pos_of_slash = url.find_last_of('/');
-	// extract just the juicy part 'title-with-dashes?a=b'
-	std::string path = url.substr(pos_of_slash + 1);
-	// find where query part of URI starts
-	std::string::size_type pos_of_qmrk = path.find_first_of('?');
-	// throw away the query part 'title-with-dashes'
-	std::string title = path.substr(0, pos_of_qmrk);
-	// Throw away common webpage suffixes: .html, .php, .aspx, .htm
-	std::regex rx("\\.html$|\\.htm$|\\.php$|\\.aspx$");
-	title = std::regex_replace(title, rx, "");
-	// if there is nothing left, just give up
-	if (title.empty())
-		return title;
-	// 'title with dashes'
-	std::replace(title.begin(), title.end(), '-', ' ');
-	std::replace(title.begin(), title.end(), '_', ' ');
-	//'Title with dashes'
-	if (title.at(0) >= 'a' && title.at(0) <= 'z') {
-		title[0] -= 'a' - 'A';
-	}
-	// Un-escape any percent-encoding, e.g. "It%27s%202017%21" -> "It's
-	// 2017!"
-	auto const result = xmlURIUnescapeString(title.c_str(), 0, nullptr);
-	if (result) {
-		title = result;
-		xmlFree(result);
-	}
-	return title;
+	return std::string(utils::bridged::make_title(const_url));
 }
 
-int utils::run_interactively(const std::string& command,
+nonstd::optional<std::uint8_t> utils::run_interactively(
+	const std::string& command,
 	const std::string& caller)
 {
-	LOG(Level::DEBUG, "%s: running `%s'", caller, command);
-
-	int status = ::system(command.c_str());
-
-	if (status == -1) {
-		LOG(Level::DEBUG,
-			"%s: couldn't create a child process",
-			caller);
-	} else if (status == 127) {
-		LOG(Level::DEBUG, "%s: couldn't run shell", caller);
+	std::uint8_t exit_code = 0;
+	if (bridged::run_interactively(command, caller, exit_code)) {
+		return exit_code;
 	}
 
-	return status;
+	return nonstd::nullopt;
+}
+
+nonstd::optional<std::uint8_t> utils::run_non_interactively(
+	const std::string& command,
+	const std::string& caller)
+{
+	std::uint8_t exit_code = 0;
+	if (bridged::run_non_interactively(command, caller, exit_code)) {
+		return exit_code;
+	}
+
+	return nonstd::nullopt;
 }
 
 std::string utils::getcwd()
 {
-	// Linux seem to have its MAX_PATH set somewhere around this value, so
-	// should be a nice default
-	std::vector<char> result(4096, '\0');
-
-	while (true) {
-		char* ret = ::getcwd(result.data(), result.size());
-		if (ret == nullptr && errno == ERANGE) {
-			result.resize(result.size() * 2);
-		} else {
-			break;
-		}
-	}
-
-	return std::string(result.data());
+	return std::string(utils::bridged::getcwd());
 }
 
-int utils::strnaturalcmp(const std::string& a, const std::string& b)
+nonstd::expected<std::vector<std::string>, utils::ReadTextFileError> utils::read_text_file(
+	const std::string& filename)
 {
-	return doj::alphanum_comp(a, b);
+	rust::Vec<rust::String> c;
+	std::uint64_t error_line_number{};
+	rust::String error_reason;
+	const bool result = bridged::read_text_file(filename, c, error_line_number,
+			error_reason);
+
+	if (result) {
+		std::vector<std::string> contents;
+		for (const auto& line : c) {
+			contents.push_back(std::string(line));
+		}
+		return contents;
+	} else {
+		ReadTextFileError error;
+
+		if (error_line_number == 0) {
+			error.kind = ReadTextFileErrorKind::CantOpen;
+			error.message = strprintf::fmt(_("Failed to open file: %s"),
+					std::string(error_reason));
+		} else {
+			error.kind = ReadTextFileErrorKind::LineError;
+			error.message = strprintf::fmt(_("Failed to read line %u: %s"),
+					error_line_number, std::string(error_reason));
+		}
+
+		return nonstd::make_unexpected(error);
+	}
 }
 
 void utils::remove_soft_hyphens(std::string& text)
 {
-	/* Remove all soft-hyphens as they can behave unpredictably (see
-	 * https://github.com/akrennmair/newsbeuter/issues/259#issuecomment-259609490)
-	 * and inadvertently render as hyphens */
-
-	std::string::size_type pos = text.find("\u00AD");
-	while (pos != std::string::npos) {
-		text.erase(pos, 2);
-		pos = text.find("\u00AD", pos);
-	}
+	rust::String tmp(text);
+	utils::bridged::remove_soft_hyphens(tmp);
+	text = std::string(tmp);
 }
 
 bool utils::is_valid_podcast_type(const std::string& mimetype)
 {
-	const std::regex acceptable_rx{"(audio|video)/.*",
-		std::regex_constants::ECMAScript |
-			std::regex_constants::optimize};
-
-	const std::unordered_set<std::string> acceptable = {"application/ogg"};
-
-	const bool found = acceptable.find(mimetype) != acceptable.end();
-	const bool matches = std::regex_match(mimetype, acceptable_rx);
-
-	return found || matches;
+	return utils::bridged::is_valid_podcast_type(mimetype);
 }
 
-	/*
-	 * See
-	 * http://curl.haxx.se/libcurl/c/libcurl-tutorial.html#Multi-threading
-	 * for a reason why we do this.
-	 *
-	 * These callbacks are deprecated as of OpenSSL 1.1.0; see the
-	 * changelog: https://www.openssl.org/news/changelog.html#x6
-	 */
+nonstd::optional<LinkType> utils::podcast_mime_to_link_type(
+	const std::string& mimetype)
+{
+	std::int64_t result = 0;
+	if (utils::bridged::podcast_mime_to_link_type(mimetype, result)) {
+		return static_cast<LinkType>(result);
+	}
+
+	return nonstd::nullopt;
+}
+
+/*
+ * See
+ * http://curl.haxx.se/libcurl/c/libcurl-tutorial.html#Multi-threading
+ * for a reason why we do this.
+ *
+ * These callbacks are deprecated as of OpenSSL 1.1.0; see the
+ * changelog: https://www.openssl.org/news/changelog.html#x6
+ */
 
 #if HAVE_OPENSSL && OPENSSL_VERSION_NUMBER < 0x01010000fL
 static std::mutex* openssl_mutexes = nullptr;
 static int openssl_mutexes_size = 0;
 
-static void
-openssl_mth_locking_function(int mode, int n, const char* file, int line)
+static void openssl_mth_locking_function(int mode, int n, const char* file,
+	int line)
 {
 	if (n < 0 || n >= openssl_mutexes_size) {
 		LOG(Level::ERROR,
@@ -1456,11 +862,32 @@ void utils::initialize_ssl_implementation(void)
 
 std::string utils::get_default_browser()
 {
-	const char* browser = getenv("BROWSER");
-	if (!browser) {
-		browser = "lynx";
-	}
-	return std::string(browser);
+	return std::string(utils::bridged::get_default_browser());
+}
+
+std::string utils::program_version()
+{
+	return std::string(utils::bridged::program_version());
+}
+
+std::string utils::mt_strf_localtime(const std::string& format, time_t t)
+{
+	// localtime() returns a pointer to static memory, so we need to protect
+	// its caller with a mutex to ensure that no two threads concurrently
+	// access that static memory. In Newsboat, the only caller for localtime()
+	// is strftime(), that's why this function bakes the two together.
+
+	static std::mutex mtx;
+	std::lock_guard<std::mutex> guard(mtx);
+
+	const size_t BUFFER_SIZE = 4096;
+	char buffer[BUFFER_SIZE];
+	const size_t written = strftime(buffer,
+			BUFFER_SIZE,
+			format.c_str(),
+			localtime(&t));
+
+	return std::string(buffer, written);
 }
 
 } // namespace newsboat

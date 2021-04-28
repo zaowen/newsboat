@@ -1,6 +1,7 @@
 #include "tagsouppullparser.h"
 
 #include <algorithm>
+#include <cinttypes>
 #include <cstdlib>
 #include <iostream>
 #include <istream>
@@ -8,7 +9,6 @@
 #include <stdexcept>
 
 #include "config.h"
-#include "exceptions.h"
 #include "logger.h"
 #include "utils.h"
 
@@ -20,22 +20,15 @@ namespace newsboat {
  * remotely looks like XML. We use this parser for the HTML renderer.
  */
 
-TagSoupPullParser::TagSoupPullParser()
-	: inputstream(0)
+TagSoupPullParser::TagSoupPullParser(std::istream& is)
+	: inputstream(is)
 	, current_event(Event::START_DOCUMENT)
-	, c('\0')
 {
 }
 
 TagSoupPullParser::~TagSoupPullParser() {}
 
-void TagSoupPullParser::set_input(std::istream& is)
-{
-	inputstream = &is;
-	current_event = Event::START_DOCUMENT;
-}
-
-std::string TagSoupPullParser::get_attribute_value(
+nonstd::optional<std::string> TagSoupPullParser::get_attribute_value(
 	const std::string& name) const
 {
 	for (const auto& attr : attributes) {
@@ -43,7 +36,7 @@ std::string TagSoupPullParser::get_attribute_value(
 			return attr.second;
 		}
 	}
-	throw std::invalid_argument(_("attribute not found"));
+	return nonstd::nullopt;
 }
 
 TagSoupPullParser::Event TagSoupPullParser::get_event_type() const
@@ -66,23 +59,25 @@ TagSoupPullParser::Event TagSoupPullParser::next()
 	attributes.clear();
 	text = "";
 
-	if (inputstream->eof()) {
+	if (inputstream.eof()) {
 		current_event = Event::END_DOCUMENT;
 	}
 
 	switch (current_event) {
 	case Event::START_DOCUMENT:
 	case Event::START_TAG:
-	case Event::END_TAG:
-		skip_whitespace();
-		if (inputstream->eof()) {
+	case Event::END_TAG: {
+		char c = 0;
+		inputstream.read(&c, 1);
+		if (inputstream.eof()) {
 			current_event = Event::END_DOCUMENT;
-		} else if (c != '<') {
-			handle_text();
-		} else {
+		} else if (c == '<') {
 			handle_tag();
+		} else {
+			handle_text(c);
 		}
 		break;
+	}
 	case Event::TEXT:
 		handle_tag();
 		break;
@@ -92,27 +87,14 @@ TagSoupPullParser::Event TagSoupPullParser::next()
 	return get_event_type();
 }
 
-void TagSoupPullParser::skip_whitespace()
-{
-	c = '\0';
-	ws = "";
-	do {
-		inputstream->read(&c, 1);
-		if (!inputstream->eof()) {
-			if (!isspace(c))
-				break;
-			else
-				ws.append(1, c);
-		}
-	} while (!inputstream->eof());
-}
-
 void TagSoupPullParser::add_attribute(std::string s)
 {
-	if (s.length() > 0 && s[s.length() - 1] == '/')
+	if (s.length() > 0 && s[s.length() - 1] == '/') {
 		s.erase(s.length() - 1, 1);
-	if (s.length() == 0)
+	}
+	if (s.length() == 0) {
 		return;
+	}
 	std::string::size_type equalpos = s.find_first_of("=", 0);
 	std::string attribname, attribvalue;
 
@@ -131,15 +113,12 @@ void TagSoupPullParser::add_attribute(std::string s)
 	attributes.push_back(Attribute(attribname, attribvalue));
 }
 
-std::string TagSoupPullParser::read_tag()
+nonstd::optional<std::string> TagSoupPullParser::read_tag()
 {
 	std::string s;
-	getline(*inputstream, s, '>');
-	if (inputstream->eof()) {
-		throw XmlException(
-			_("EOF found while reading XML tag")); // TODO: test
-							       // whether this
-							       // works reliably
+	getline(inputstream, s, '>');
+	if (inputstream.eof()) {
+		return nonstd::nullopt;
 	}
 	return s;
 }
@@ -158,10 +137,12 @@ std::string TagSoupPullParser::decode_attribute(const std::string& s)
 	std::string s1 = s;
 	if ((s1[0] == '"' && s1[s1.length() - 1] == '"') ||
 		(s1[0] == '\'' && s1[s1.length() - 1] == '\'')) {
-		if (s1.length() > 0)
+		if (s1.length() > 0) {
 			s1.erase(0, 1);
-		if (s1.length() > 0)
+		}
+		if (s1.length() > 0) {
 			s1.erase(s1.length() - 1, 1);
+		}
 	}
 	return decode_entities(s1);
 }
@@ -175,6 +156,9 @@ std::string TagSoupPullParser::decode_entities(const std::string& s)
 	while (!sbuf.eof()) {
 		result.append(tmp);
 		getline(sbuf, tmp, ';');
+		if (sbuf.eof()) {
+			break;
+		}
 		result.append(decode_entity(tmp));
 		getline(sbuf, tmp, '&');
 	}
@@ -444,7 +428,8 @@ static struct {
 	{"clubs", 9827},
 	{"hearts", 9829},
 	{"diams", 9830},
-	{0, 0}};
+	{0, 0}
+};
 
 std::string TagSoupPullParser::decode_entity(std::string s)
 {
@@ -532,16 +517,17 @@ void TagSoupPullParser::parse_tag(const std::string& tagstr)
 	unsigned int count = 0;
 
 	LOG(Level::DEBUG,
-		"parse_tag: parsing '%s', pos = %d, last_pos = %d",
+		"parse_tag: parsing '%s', pos = %" PRIu64 ", last_pos = %" PRIu64,
 		tagstr,
-		pos,
-		last_pos);
+		static_cast<uint64_t>(pos),
+		static_cast<uint64_t>(last_pos));
 
 	while (last_pos != std::string::npos) {
 		if (count == 0) {
 			// first token: tag name
-			if (pos == std::string::npos)
+			if (pos == std::string::npos) {
 				pos = tagstr.length();
+			}
 			text = tagstr.substr(last_pos, pos - last_pos);
 			if (text[text.length() - 1] == '/') {
 				// a kludge for <br/>
@@ -559,18 +545,19 @@ void TagSoupPullParser::parse_tag(const std::string& tagstr)
 					if (tagstr[pos + 1] == '\'' ||
 						tagstr[pos + 1] == '"') {
 						pos = tagstr.find_first_of(
-							tagstr[pos + 1],
-							pos + 2);
-						if (pos != std::string::npos)
+								tagstr[pos + 1],
+								pos + 2);
+						if (pos != std::string::npos) {
 							pos++;
+						}
 						LOG(Level::DEBUG,
 							"parse_tag: finding "
 							"ending "
-							"quote, pos = %d",
-							pos);
+							"quote, pos = %" PRIu64,
+							static_cast<uint64_t>(pos));
 					} else {
 						pos = tagstr.find_first_of(
-							" \r\n\t", pos + 1);
+								" \r\n\t", pos + 1);
 						LOG(Level::DEBUG,
 							"parse_tag: finding "
 							"end of "
@@ -598,24 +585,20 @@ void TagSoupPullParser::parse_tag(const std::string& tagstr)
 
 void TagSoupPullParser::handle_tag()
 {
-	std::string s;
-	try {
-		s = read_tag();
-	} catch (const XmlException&) {
+	auto s = read_tag();
+	if (s.has_value()) {
+		parse_tag(s.value());
+		current_event = determine_tag_type();
+	} else {
 		current_event = Event::END_DOCUMENT;
-		return;
 	}
-	parse_tag(s);
-	current_event = determine_tag_type();
 }
 
-void TagSoupPullParser::handle_text()
+void TagSoupPullParser::handle_text(char c)
 {
-	if (current_event != Event::START_DOCUMENT)
-		text.append(ws);
-	text.append(1, c);
+	text.push_back(c);
 	std::string tmp;
-	getline(*inputstream, tmp, '<');
+	getline(inputstream, tmp, '<');
 	text.append(tmp);
 	text = decode_entities(text);
 	utils::remove_soft_hyphens(text);

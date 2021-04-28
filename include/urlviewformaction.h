@@ -3,6 +3,7 @@
 
 #include "formaction.h"
 #include "htmlrenderer.h"
+#include "listwidget.h"
 
 namespace newsboat {
 
@@ -28,13 +29,16 @@ public:
 	void handle_cmdline(const std::string& cmd) override;
 
 private:
-	void process_operation(Operation op,
+	bool process_operation(Operation op,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) override;
+	void open_current_position_in_browser(bool interactive);
+	void update_heading();
+
 	std::vector<LinkPair> links;
 	bool quit;
 	std::shared_ptr<RssFeed> feed;
-	ConfigContainer* cfg;
+	ListWidget urls_list;
 };
 
 } // namespace newsboat

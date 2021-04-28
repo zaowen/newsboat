@@ -1,8 +1,9 @@
 #include "filebrowserformaction.h"
 
 #include <algorithm>
+#include <cinttypes>
 #include <cstring>
-#include <curses.h>
+#include <ncurses.h>
 #include <dirent.h>
 #include <grp.h>
 #include <iomanip>
@@ -14,7 +15,8 @@
 #include <unistd.h>
 
 #include "config.h"
-#include "formatstring.h"
+#include "fmtstrformatter.h"
+#include "listformatter.h"
 #include "logger.h"
 #include "strprintf.h"
 #include "utils.h"
@@ -27,18 +29,18 @@ FileBrowserFormAction::FileBrowserFormAction(View* vv,
 	ConfigContainer* cfg)
 	: FormAction(vv, formstr, cfg)
 	, quit(false)
-	, cfg(cfg)
+	, files_list("files", FormAction::f, cfg->get_configvalue_as_int("scrolloff"))
 {
 	// In filebrowser, keyboard focus is at the input field, so user can't
 	// possibly use 'q' key to exit the dialog
-	KeyMap* keys = vv->get_keys();
+	KeyMap* keys = vv->get_keymap();
 	keys->set_key(OP_QUIT, "ESC", id());
 	vv->set_keymap(keys);
 }
 
 FileBrowserFormAction::~FileBrowserFormAction() {}
 
-void FileBrowserFormAction::process_operation(Operation op,
+bool FileBrowserFormAction::process_operation(Operation op,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
@@ -53,72 +55,61 @@ void FileBrowserFormAction::process_operation(Operation op,
 		 * needs to be returned.
 		 */
 		LOG(Level::DEBUG, "FileBrowserFormAction: 'opening' item");
-		std::string focus = f->get_focus();
+		const std::string focus = f.get_focus();
 		if (focus.length() > 0) {
 			if (focus == "files") {
-				std::string selection = f->get("listposname");
-				char filetype = selection[0];
+				const auto selected_position = files_list.get_position();
+				std::string selection = id_at_position[selected_position];
+				const char filetype = selection[0];
 				selection.erase(0, 1);
-				std::string filename(selection);
+				const std::string filename(selection);
 				switch (filetype) {
 				case 'd': {
-					std::string fileswidth =
-						f->get("files:w");
-					unsigned int width =
-						utils::to_u(fileswidth);
-
-					FmtStrFormatter fmt;
-					fmt.register_fmt('N', PROGRAM_NAME);
-					fmt.register_fmt('V', PROGRAM_VERSION);
-					fmt.register_fmt('f', filename);
-					f->set("head",
-						fmt.do_format(
-							cfg->get_configvalue(
-								"filebr"
-								"o"
-								"wser-"
-								"title-"
-								"forma"
-								"t"),
-							width));
-					int status = ::chdir(filename.c_str());
+					const int status = ::chdir(filename.c_str());
 					LOG(Level::DEBUG,
-						"FileBrowserFormAction:OP_"
-						"OPEN: "
-						"chdir(%s) = %i",
+						"FileBrowserFormAction:OP_OPEN: chdir(%s) = %i",
 						filename,
 						status);
-					f->set("listpos", "0");
+					files_list.set_position(0);
 					std::string fn = utils::getcwd();
-					fn.append(NEWSBEUTER_PATH_SEP);
-					std::string fnstr =
-						f->get("filenametext");
-					std::string::size_type base =
-						fnstr.find_first_of('/');
+					update_title(fn);
+
+					if (fn.back() != NEWSBEUTER_PATH_SEP) {
+						fn.push_back(NEWSBEUTER_PATH_SEP);
+					}
+
+					const std::string fnstr =
+						f.get("filenametext");
+					const std::string::size_type base =
+						fnstr.find_last_of(NEWSBEUTER_PATH_SEP);
 					if (base == std::string::npos) {
 						fn.append(fnstr);
 					} else {
 						fn.append(fnstr,
-							base,
+							base + 1,
 							std::string::npos);
 					}
-					f->set("filenametext", fn);
+					set_value("filenametext", fn);
 					do_redraw = true;
-				} break;
+				}
+				break;
 				case '-': {
 					std::string fn = utils::getcwd();
-					fn.append(NEWSBEUTER_PATH_SEP);
+					if (fn.back() != NEWSBEUTER_PATH_SEP) {
+						fn.push_back(NEWSBEUTER_PATH_SEP);
+					}
 					fn.append(filename);
-					f->set("filenametext", fn);
-					f->set_focus("filename");
-				} break;
+					set_value("filenametext", fn);
+					f.set_focus("filename");
+				}
+				break;
 				default:
 					// TODO: show error message
 					break;
 				}
 			} else {
 				bool do_pop = true;
-				std::string fn = f->get("filenametext");
+				std::string fn = f.get("filenametext");
 				struct stat sbuf;
 				/*
 				 * this check is very important, as people will
@@ -126,18 +117,16 @@ void FileBrowserFormAction::process_operation(Operation op,
 				 * files with no further warning...
 				 */
 				if (::stat(fn.c_str(), &sbuf) != -1) {
-					f->set_focus("files");
+					f.set_focus("files");
 					if (v->confirm(
-						    strprintf::fmt(
-							    _("Do you really "
-							      "want to "
-							      "overwrite `%s' "
-							      "(y:Yes n:No)? "),
-							    fn),
-						    _("yn")) == *_("n")) {
+							strprintf::fmt(
+								_("Do you really want to overwrite `%s' "
+									"(y:Yes n:No)? "),
+								fn),
+							_("yn")) == *_("n")) {
 						do_pop = false;
 					}
-					f->set_focus("filenametext");
+					f.set_focus("filenametext");
 				}
 				if (do_pop) {
 					curs_set(0);
@@ -145,38 +134,107 @@ void FileBrowserFormAction::process_operation(Operation op,
 				}
 			}
 		}
-	} break;
+	}
+	break;
+	case OP_SWITCH_FOCUS: {
+		LOG(Level::DEBUG, "view::filebrowser: focusing different widget");
+		const std::string focus = f.get_focus();
+		if (focus == "files") {
+			f.set_focus("filename");
+		} else {
+			f.set_focus("files");
+		}
+		break;
+	}
+	case OP_PREV:
+	case OP_SK_UP:
+		if (f.get_focus() == "files") {
+			files_list.move_up(cfg->get_configvalue_as_bool("wrap-scroll"));
+		} else {
+			f.set_focus("files");
+		}
+		break;
+	case OP_NEXT:
+	case OP_SK_DOWN:
+		if (f.get_focus() == "files") {
+			if (!files_list.move_down(cfg->get_configvalue_as_bool("wrap-scroll"))) {
+				f.set_focus("filename");
+			}
+		}
+		break;
+	case OP_SK_HOME:
+		if (f.get_focus() == "files") {
+			files_list.move_to_first();
+		} else {
+			set_value("filenametext_pos", "0");
+		}
+		break;
+	case OP_SK_END:
+		if (f.get_focus() == "files") {
+			files_list.move_to_last();
+		} else {
+			const std::size_t text_length = f.get("filenametext").length();
+			set_value("filenametext_pos", std::to_string(text_length));
+		}
+		break;
+	case OP_SK_PGUP:
+		if (f.get_focus() == "files") {
+			files_list.move_page_up(cfg->get_configvalue_as_bool("wrap-scroll"));
+		}
+		break;
+	case OP_SK_PGDOWN:
+		if (f.get_focus() == "files") {
+			files_list.move_page_down(cfg->get_configvalue_as_bool("wrap-scroll"));
+		}
+		break;
 	case OP_QUIT:
 		LOG(Level::DEBUG, "view::filebrowser: quitting");
 		curs_set(0);
 		v->pop_current_formaction();
-		f->set("filenametext", "");
+		set_value("filenametext", "");
 		break;
 	case OP_HARDQUIT:
 		LOG(Level::DEBUG, "view::filebrowser: hard quitting");
 		while (v->formaction_stack_size() > 0) {
 			v->pop_current_formaction();
 		}
-		f->set("filenametext", "");
+		set_value("filenametext", "");
 		break;
 	default:
 		break;
 	}
+	return true;
+}
+
+void FileBrowserFormAction::update_title(const std::string& working_directory)
+{
+	const unsigned int width = files_list.get_width();
+
+	FmtStrFormatter fmt;
+	fmt.register_fmt('N', PROGRAM_NAME);
+	fmt.register_fmt('V', utils::program_version());
+	fmt.register_fmt('f', working_directory);
+
+	const std::string title = fmt.do_format(
+			cfg->get_configvalue("filebrowser-title-format"), width);
+
+	set_value("head", title);
 }
 
 std::vector<std::string> get_sorted_filelist()
 {
 	std::vector<std::string> ret;
 
-	auto cwdtmp = utils::getcwd();
+	const std::string cwdtmp = utils::getcwd();
 
 	DIR* dirp = ::opendir(cwdtmp.c_str());
 	if (dirp) {
 		struct dirent* de = ::readdir(dirp);
 		while (de) {
 			if (strcmp(de->d_name, ".") != 0 &&
-				strcmp(de->d_name, "..") != 0)
+				strcmp(de->d_name, "..") != 0) {
 				ret.push_back(de->d_name);
+			}
 			de = ::readdir(dirp);
 		}
 		::closedir(dirp);
@@ -184,8 +242,9 @@ std::vector<std::string> get_sorted_filelist()
 
 	std::sort(ret.begin(), ret.end());
 
-	if (cwdtmp != "/")
+	if (cwdtmp != "/") {
 		ret.insert(ret.begin(), "..");
+	}
 
 	return ret;
 }
@@ -198,21 +257,23 @@ void FileBrowserFormAction::prepare()
 	 * in the current directory.
 	 */
 	if (do_redraw) {
+		const std::string cwdtmp = utils::getcwd();
+		update_title(cwdtmp);
+
 		std::vector<std::string> files = get_sorted_filelist();
 
-		std::string code = "{list";
+		ListFormatter listfmt;
 
+		id_at_position.clear();
 		for (std::string filename : files) {
-			code.append(add_file(filename));
+			add_file(listfmt, id_at_position, filename);
 		}
 
-		code.append("}");
-
-		f->modify("files", "replace_inner", code);
+		files_list.stfl_replace_lines(listfmt);
 		do_redraw = false;
 	}
 
-	std::string focus = f->get_focus();
+	std::string focus = f.get_focus();
 	if (focus == "files") {
 		curs_set(0);
 	} else {
@@ -224,47 +285,38 @@ void FileBrowserFormAction::init()
 {
 	set_keymap_hints();
 
-	f->set("fileprompt", _("File: "));
+	set_value("fileprompt", _("File: "));
 
-	if (dir == "") {
-		std::string save_path = cfg->get_configvalue("save-path");
+	const std::string save_path = cfg->get_configvalue("save-path");
 
-		LOG(Level::DEBUG,
-			"view::filebrowser: save-path is '%s'",
-			save_path);
+	LOG(Level::DEBUG,
+		"view::filebrowser: save-path is '%s'",
+		save_path);
 
-		dir = save_path;
-	}
+	const int status = ::chdir(save_path.c_str());
+	LOG(Level::DEBUG, "view::filebrowser: chdir(%s) = %i", save_path, status);
 
-	int status = ::chdir(dir.c_str());
-	LOG(Level::DEBUG, "view::filebrowser: chdir(%s) = %i", dir, status);
-
-	auto cwdtmp = utils::getcwd();
-
-	f->set("filenametext", default_filename);
+	set_value("filenametext", default_filename);
 
 	// Set position to 0 and back to ensure that the text is visible
-	f->run(-1);
-	f->set("filenametext_pos", std::to_string(default_filename.length()));
-
-	f->set("head",
-		strprintf::fmt(_("%s %s - Save File - %s"),
-			PROGRAM_NAME,
-			PROGRAM_VERSION,
-			cwdtmp));
+	draw_form();
+	set_value("filenametext_pos", std::to_string(default_filename.length()));
 }
 
 KeyMapHintEntry* FileBrowserFormAction::get_keymap_hint()
 {
 	static KeyMapHintEntry hints[] = {{OP_QUIT, _("Cancel")},
 		{OP_OPEN, _("Save")},
-		{OP_NIL, nullptr}};
+		{OP_NIL, nullptr}
+	};
 	return hints;
 }
 
-std::string FileBrowserFormAction::add_file(std::string filename)
+void FileBrowserFormAction::add_file(
+	ListFormatter& listfmt,
+	std::vector<std::string>& id_at_position,
+	std::string filename)
 {
-	std::string retval;
 	struct stat sb;
 	if (::lstat(filename.c_str(), &sb) == 0) {
 		char ftype = get_filetype(sb.st_mode);
@@ -275,20 +327,23 @@ std::string FileBrowserFormAction::add_file(std::string filename)
 		std::string formattedfilename =
 			get_formatted_filename(filename, ftype, sb.st_mode);
 
-		std::string sizestr = strprintf::fmt("%12u", sb.st_size);
+		std::string sizestr = strprintf::fmt(
+				"%12" PRIi64,
+				// `st_size` is `off_t`, which is a signed integer type of
+				// unspecified size. We'll have to bet it's no larger than 64
+				// bits.
+				static_cast<int64_t>(sb.st_size));
 		std::string line = strprintf::fmt("%c%s %s %s %s %s",
-			ftype,
-			rwxbits,
-			owner,
-			group,
-			sizestr,
-			formattedfilename);
-		retval = strprintf::fmt("{listitem[%c%s] text:%s}",
-			ftype,
-			Stfl::quote(filename),
-			Stfl::quote(line));
+				ftype,
+				rwxbits,
+				owner,
+				group,
+				sizestr,
+				formattedfilename);
+		listfmt.add_line(utils::quote_for_stfl(line));
+		const std::string id = strprintf::fmt("%c%s", ftype, filename);
+		id_at_position.push_back(id);
 	}
-	return retval;
 }
 
 std::string FileBrowserFormAction::get_formatted_filename(std::string filename,
@@ -311,8 +366,9 @@ std::string FileBrowserFormAction::get_formatted_filename(std::string filename,
 		suffix = '|';
 		break;
 	default:
-		if (mode & S_IXUSR)
+		if (mode & S_IXUSR) {
 			suffix = '*';
+		}
 	}
 
 	return strprintf::fmt("%s%c", filename, suffix);
@@ -322,7 +378,8 @@ std::string FileBrowserFormAction::get_rwx(unsigned short val)
 {
 	std::string str;
 	const char* bitstrs[] = {
-		"---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"};
+		"---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"
+	};
 	for (int i = 0; i < 3; ++i) {
 		unsigned char bits = val % 8;
 		val /= 8;
@@ -343,10 +400,12 @@ char FileBrowserFormAction::get_filetype(mode_t mode)
 		{S_IFIFO, 'p'},
 		{S_IFLNK, 'l'},
 		{S_IFSOCK, 's'},
-		{0, 0}};
+		{0, 0}
+	};
 	for (unsigned int i = 0; flags[i].flag != 0; i++) {
-		if ((mode & S_IFMT) == flags[i].flag)
+		if ((mode & S_IFMT) == flags[i].flag) {
 			return flags[i].ftype;
+		}
 	}
 	return '?';
 }

@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cerrno>
+#include <cstdint>
 #include <cstdlib>
 #include <ctime>
 #include <curl/curl.h>
@@ -12,7 +13,6 @@
 #include <libgen.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
-#include <libxml/uri.h>
 #include <libxml/xmlsave.h>
 #include <libxml/xmlversion.h>
 #include <mutex>
@@ -28,27 +28,39 @@
 #include "colormanager.h"
 #include "config.h"
 #include "configcontainer.h"
-#include "configparser.h"
+#include "configexception.h"
+#include "configpaths.h"
+#include "dbexception.h"
 #include "downloadthread.h"
 #include "exception.h"
-#include "exceptions.h"
 #include "feedhqapi.h"
+#include "feedhqurlreader.h"
+#include "freshrssapi.h"
+#include "freshrssurlreader.h"
 #include "fileurlreader.h"
-#include "formatstring.h"
 #include "globals.h"
 #include "inoreaderapi.h"
+#include "inoreaderurlreader.h"
 #include "itemrenderer.h"
 #include "logger.h"
+#include "minifluxapi.h"
+#include "minifluxurlreader.h"
 #include "newsblurapi.h"
+#include "newsblururlreader.h"
 #include "ocnewsapi.h"
+#include "ocnewsurlreader.h"
 #include "oldreaderapi.h"
+#include "oldreaderurlreader.h"
 #include "opmlurlreader.h"
 #include "regexmanager.h"
 #include "remoteapi.h"
+#include "rssfeed.h"
 #include "rssparser.h"
+#include "scopemeasure.h"
 #include "stflpp.h"
 #include "strprintf.h"
 #include "ttrssapi.h"
+#include "ttrssurlreader.h"
 #include "utils.h"
 #include "view.h"
 
@@ -66,21 +78,14 @@ void ignore_signal(int sig)
 	LOG(Level::WARN, "caught signal %d but ignored it", sig);
 }
 
-void omg_a_child_died(int /* sig */)
-{
-	pid_t pid;
-	int stat;
-	while ((pid = waitpid(-1, &stat, WNOHANG)) > 0) {
-	}
-	::signal(SIGCHLD, omg_a_child_died); /* in case of unreliable signals */
-}
-
-Controller::Controller()
+Controller::Controller(ConfigPaths& configpaths)
 	: v(0)
 	, urlcfg(0)
 	, rsscache(0)
 	, refresh_on_start(false)
 	, api(0)
+	, configpaths(configpaths)
+	, queueManager(&cfg, configpaths.queue_file())
 {
 }
 
@@ -89,9 +94,6 @@ Controller::~Controller()
 	delete rsscache;
 	delete urlcfg;
 	delete api;
-
-	feedcontainer.clear_feeds_items();
-	feedcontainer.feeds.clear();
 }
 
 void Controller::set_view(View* vv)
@@ -104,95 +106,77 @@ int Controller::run(const CliArgsParser& args)
 	::signal(SIGINT, View::ctrl_c_action);
 	::signal(SIGPIPE, ignore_signal);
 	::signal(SIGHUP, sighup_action);
-	::signal(SIGCHLD, omg_a_child_died);
 
-	if (!configpaths.initialized()) {
-		std::cerr << configpaths.error_message() << std::endl;
+	refresh_on_start = args.refresh_on_start();
+
+	if (args.log_file().has_value()) {
+		Logger::set_logfile(args.log_file().value());
+	}
+
+	if (args.log_level().has_value()) {
+		Logger::set_loglevel(args.log_level().value());
+	}
+
+	if (!args.display_msg().empty()) {
+		std::cerr << args.display_msg() << std::endl;
+	}
+
+	if (args.return_code().has_value()) {
+		return args.return_code().value();
+	}
+
+	const auto migrated = configpaths.try_migrate_from_newsbeuter();
+	if (migrated) {
+		std::cerr << "\nPlease check the results and press Enter to "
+			"continue.";
+		std::cin.ignore();
+	}
+
+	if (!configpaths.create_dirs()) {
 		return EXIT_FAILURE;
 	}
 
-	refresh_on_start = args.refresh_on_start;
-
-	if (args.set_log_file) {
-		Logger::getInstance().set_logfile(args.log_file);
-	}
-
-	if (args.set_log_level) {
-		Logger::getInstance().set_loglevel(args.log_level);
-	}
-
-	if (!args.display_msg.empty()) {
-		std::cerr << args.display_msg << std::endl;
-	}
-
-	if (args.should_return) {
-		return args.return_code;
-	}
-
-	configpaths.process_args(args);
-
-	if (args.do_import) {
-		LOG(Level::INFO,
-			"Importing OPML file from %s",
-			args.importfile);
-		urlcfg = new FileUrlReader(configpaths.url_file());
-		urlcfg->reload();
-		import_opml(args.importfile);
+	if (args.do_import()) {
+		LOG(Level::INFO, "Importing OPML file from %s", args.importfile());
+		import_opml(args.importfile(), configpaths.url_file());
 		return EXIT_SUCCESS;
 	}
 
 	LOG(Level::INFO, "nl_langinfo(CODESET): %s", nl_langinfo(CODESET));
 
-	if (!configpaths.setup_dirs()) {
-		return EXIT_FAILURE;
-	}
-
-	if (!args.do_export) {
-		if (!args.silent)
+	if (!args.do_export()) {
+		if (!args.silent())
 			std::cout << strprintf::fmt(_("Starting %s %s..."),
-					     PROGRAM_NAME,
-					     PROGRAM_VERSION)
-				  << std::endl;
-
-		fslock = std::unique_ptr<FsLock>(new FsLock());
-		pid_t pid;
-		if (!fslock->try_lock(configpaths.lock_file(), pid)) {
-			if (!args.execute_cmds) {
-				std::cout << strprintf::fmt(
-						     _("Error: an instance of "
-						       "%s is already running "
-						       "(PID: %u)"),
-						     PROGRAM_NAME,
-						     pid)
-					  << std::endl;
-			}
-			return EXIT_FAILURE;
-		}
+					PROGRAM_NAME,
+					utils::program_version())
+				<< std::endl;
 	}
 
-	if (!args.silent)
+	if (!args.silent()) {
 		std::cout << _("Loading configuration...");
+	}
 	std::cout.flush();
 
 	cfg.register_commands(cfgparser);
 	colorman.register_commands(cfgparser);
 
 	KeyMap keys(KM_NEWSBOAT);
-	cfgparser.register_handler("bind-key", &keys);
-	cfgparser.register_handler("unbind-key", &keys);
-	cfgparser.register_handler("macro", &keys);
+	cfgparser.register_handler("bind-key", keys);
+	cfgparser.register_handler("unbind-key", keys);
+	cfgparser.register_handler("macro", keys);
+	cfgparser.register_handler("run-on-startup", keys);
 
-	cfgparser.register_handler("ignore-article", &ign);
-	cfgparser.register_handler("always-download", &ign);
-	cfgparser.register_handler("reset-unread-on-update", &ign);
+	cfgparser.register_handler("ignore-article", ign);
+	cfgparser.register_handler("always-download", ign);
+	cfgparser.register_handler("reset-unread-on-update", ign);
 
-	cfgparser.register_handler("define-filter", &filters);
-	cfgparser.register_handler("highlight", &rxman);
-	cfgparser.register_handler("highlight-article", &rxman);
+	cfgparser.register_handler("define-filter", filters);
+	cfgparser.register_handler("highlight", rxman);
+	cfgparser.register_handler("highlight-article", rxman);
 
 	try {
-		cfgparser.parse("/etc/" PROGRAM_NAME "/config");
-		cfgparser.parse(configpaths.config_file());
+		cfgparser.parse_file("/etc/" PACKAGE "/config");
+		cfgparser.parse_file(configpaths.config_file());
 	} catch (const ConfigException& ex) {
 		LOG(Level::ERROR,
 			"an exception occurred while parsing the configuration "
@@ -204,27 +188,35 @@ int Controller::run(const CliArgsParser& args)
 
 	update_config();
 
-	if (!args.silent)
+	if (!args.silent()) {
 		std::cout << _("done.") << std::endl;
+	}
 
 	// create cache object
 	std::string cachefilepath = cfg.get_configvalue("cache-file");
-	if (cachefilepath.length() > 0 && !args.set_cache_file) {
+	if (cachefilepath.length() > 0 && !args.cache_file().has_value()) {
 		configpaths.set_cache_file(cachefilepath);
-		fslock = std::unique_ptr<FsLock>(new FsLock());
-		pid_t pid;
-		if (!fslock->try_lock(configpaths.lock_file(), pid)) {
-			std::cout << strprintf::fmt(
-					     _("Error: an instance of %s is "
-					       "already running (PID: %u)"),
-					     PROGRAM_NAME,
-					     pid)
-				  << std::endl;
-			return EXIT_FAILURE;
-		}
 	}
 
-	if (!args.silent) {
+	pid_t pid;
+	std::string error;
+	if (!fslock.try_lock(configpaths.lock_file(), pid, error)) {
+		if (pid != 0) {
+			// pid_t size could vary so cast to known integer format to get correct print format
+			std::int64_t p = pid;
+			std::cout << strprintf::fmt(
+					_("Error: an instance of %s is "
+						"already running (PID: %" PRId64 ")"),
+					PROGRAM_NAME,
+					p)
+				<< std::endl;
+		} else {
+			std::cout << _("Error: ") << error << std::endl;
+		}
+		return EXIT_FAILURE;
+	}
+
+	if (!args.silent()) {
 		std::cout << _("Opening cache...");
 		std::cout.flush();
 	}
@@ -232,23 +224,23 @@ int Controller::run(const CliArgsParser& args)
 		rsscache = new Cache(configpaths.cache_file(), &cfg);
 	} catch (const DbException& e) {
 		std::cerr << strprintf::fmt(
-				     _("Error: opening the cache file `%s' "
-				       "failed: %s"),
-				     configpaths.cache_file(),
-				     e.what())
-			  << std::endl;
+				_("Error: opening the cache file `%s' "
+					"failed: %s"),
+				configpaths.cache_file(),
+				e.what())
+			<< std::endl;
 		return EXIT_FAILURE;
 	} catch (const std::runtime_error& e) {
 		std::cerr << strprintf::fmt(
-				     _("Error: opening the cache file `%s' "
-				       "failed: %s"),
-				     configpaths.cache_file(),
-				     e.what())
-			  << std::endl;
+				_("Error: opening the cache file `%s' "
+					"failed: %s"),
+				configpaths.cache_file(),
+				e.what())
+			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
-	if (!args.silent) {
+	if (!args.silent()) {
 		std::cout << _("done.") << std::endl;
 	}
 
@@ -271,16 +263,16 @@ int Controller::run(const CliArgsParser& args)
 		const auto cookies = cfg.get_configvalue("cookie-cache");
 		if (cookies.empty()) {
 			std::cout << strprintf::fmt(
-				_("ERROR: You must set `cookie-cache` to use "
-				  "Newsblur.\n"));
+					_("ERROR: You must set `cookie-cache` to use "
+						"NewsBlur.\n"));
 			return EXIT_FAILURE;
 		}
 
 		std::ofstream check(cookies);
 		if (!check.is_open()) {
 			std::cout << strprintf::fmt(
-				_("%s is inaccessible and can't be created\n"),
-				cookies);
+					_("%s is inaccessible and can't be created\n"),
+					cookies);
 			return EXIT_FAILURE;
 		}
 
@@ -289,22 +281,77 @@ int Controller::run(const CliArgsParser& args)
 	} else if (type == "feedhq") {
 		api = new FeedHqApi(&cfg);
 		urlcfg = new FeedHqUrlReader(&cfg, configpaths.url_file(), api);
+	} else if (type == "freshrss") {
+		const auto freshrss_url = cfg.get_configvalue("freshrss-url");
+		if (freshrss_url.empty()) {
+			std::cerr <<
+				_("ERROR: You must set `freshrss-url` to use FreshRSS\n");
+			return EXIT_FAILURE;
+		}
+
+		const std::string user = cfg.get_configvalue("freshrss-login");
+		const std::string pass = cfg.get_configvalue("freshrss-password");
+		const std::string pass_file = cfg.get_configvalue("freshrss-passwordfile");
+		const std::string pass_eval = cfg.get_configvalue("freshrss-passwordeval");
+		const bool creds_set = !user.empty() &&
+			(!pass.empty() || !pass_file.empty() || !pass_eval.empty());
+		if (!creds_set) {
+			std::cerr <<
+				_("ERROR: You must set `freshrss-login` and one of `freshrss-password`, "
+					"`freshrss-passwordfile` or `freshrss-passwordeval` to use "
+					"FreshRSS\n");
+			return EXIT_FAILURE;
+		}
+
+		api = new FreshRssApi(&cfg);
+		urlcfg = new FreshRssUrlReader(&cfg, configpaths.url_file(), api);
 	} else if (type == "ocnews") {
 		api = new OcNewsApi(&cfg);
 		urlcfg = new OcNewsUrlReader(configpaths.url_file(), api);
+	} else if (type == "miniflux") {
+		const auto miniflux_url = cfg.get_configvalue("miniflux-url");
+		if (miniflux_url.empty()) {
+			std::cerr <<
+				_("ERROR: You must set `miniflux-url` to use Miniflux\n");
+			return EXIT_FAILURE;
+		}
+
+		const std::string user = cfg.get_configvalue("miniflux-login");
+		const std::string pass = cfg.get_configvalue("miniflux-password");
+		const std::string pass_file = cfg.get_configvalue("miniflux-passwordfile");
+		const std::string pass_eval = cfg.get_configvalue("miniflux-passwordeval");
+		const bool creds_set = !user.empty() &&
+			(!pass.empty() || !pass_file.empty() || !pass_eval.empty());
+		if (!creds_set) {
+			std::cerr <<
+				_("ERROR: You must set `miniflux-login` and one of `miniflux-password`, "
+					"`miniflux-passwordfile` or `miniflux-passwordeval` to use "
+					"Miniflux\n");
+			return EXIT_FAILURE;
+		}
+
+		api = new MinifluxApi(&cfg);
+		urlcfg = new MinifluxUrlReader(configpaths.url_file(), api);
 	} else if (type == "inoreader") {
+		const auto all_set = !cfg.get_configvalue("inoreader-app-id").empty()
+			&& !cfg.get_configvalue("inoreader-app-key").empty();
+		if (!all_set) {
+			std::cerr <<
+				_("ERROR: You must set *both* `inoreader-app-id` and `inoreader-app-key` to use Inoreader.\n");
+			return EXIT_FAILURE;
+		}
+
 		api = new InoreaderApi(&cfg);
-		urlcfg = new InoreaderUrlReader(
-			&cfg, configpaths.url_file(), api);
+		urlcfg = new InoreaderUrlReader(&cfg, configpaths.url_file(), api);
 	} else {
-		LOG(Level::ERROR,
-			"unknown urls-source `%s'",
-			urlcfg->get_source());
+		std::cerr << strprintf::fmt(_("ERROR: Unknown urls-source `%s'"),
+				type) << std::endl;
+		return EXIT_FAILURE;
 	}
 
-	if (!args.do_export && !args.silent) {
+	if (!args.do_export() && !args.silent()) {
 		std::cout << strprintf::fmt(
-			_("Loading URLs from %s..."), urlcfg->get_source());
+				_("Loading URLs from %s..."), urlcfg->get_source());
 		std::cout.flush();
 	}
 	if (api) {
@@ -313,8 +360,11 @@ int Controller::run(const CliArgsParser& args)
 			return EXIT_FAILURE;
 		}
 	}
-	urlcfg->reload();
-	if (!args.do_export && !args.silent) {
+	const auto error_message = urlcfg->reload();
+	if (error_message.has_value()) {
+		std::cout << error_message.value() << std::endl << std::endl;
+		return EXIT_FAILURE;
+	} else if (!args.do_export() && !args.silent()) {
 		std::cout << _("done.") << std::endl;
 	}
 
@@ -323,35 +373,45 @@ int Controller::run(const CliArgsParser& args)
 		std::string msg;
 		if (type == "local") {
 			msg = strprintf::fmt(
-				_("Error: no URLs configured. Please fill the "
-				  "file %s with RSS feed URLs or import an "
-				  "OPML file."),
-				configpaths.url_file());
+					_("Error: no URLs configured. Please fill the "
+						"file %s with RSS feed URLs or import an "
+						"OPML file."),
+					configpaths.url_file());
 		} else if (type == "opml") {
 			msg = strprintf::fmt(
-				_("It looks like the OPML feed you subscribed "
-				  "contains no feeds. Please fill it with "
-				  "feeds, and try again."));
+					_("It looks like the OPML feed you subscribed "
+						"contains no feeds. Please fill it with "
+						"feeds, and try again."));
 		} else if (type == "oldreader") {
 			msg = strprintf::fmt(
-				_("It looks like you haven't configured any "
-				  "feeds in your The Old Reader account. "
-				  "Please do so, and try again."));
+					_("It looks like you haven't configured any "
+						"feeds in your The Old Reader account. "
+						"Please do so, and try again."));
 		} else if (type == "ttrss") {
 			msg = strprintf::fmt(
-				_("It looks like you haven't configured any "
-				  "feeds in your Tiny Tiny RSS account. Please "
-				  "do so, and try again."));
+					_("It looks like you haven't configured any "
+						"feeds in your Tiny Tiny RSS account. Please "
+						"do so, and try again."));
 		} else if (type == "newsblur") {
 			msg = strprintf::fmt(
-				_("It looks like you haven't configured any "
-				  "feeds in your NewsBlur account. Please do "
-				  "so, and try again."));
+					_("It looks like you haven't configured any "
+						"feeds in your NewsBlur account. Please do "
+						"so, and try again."));
 		} else if (type == "inoreader") {
 			msg = strprintf::fmt(
-				_("It looks like you haven't configured any "
-				  "feeds in your Inoreader account. Please do "
-				  "so, and try again."));
+					_("It looks like you haven't configured any "
+						"feeds in your Inoreader account. Please do "
+						"so, and try again."));
+		} else if (type == "miniflux") {
+			msg = strprintf::fmt(
+					_("It looks like you haven't configured any "
+						"feeds in your Miniflux account. Please do "
+						"so, and try again."));
+		} else if (type == "ocnews") {
+			msg = strprintf::fmt(
+					_("It looks like you haven't configured any feeds in your "
+						"Owncloud/Nextcloud account. Please do so, and try "
+						"again."));
 		} else {
 			assert(0); // shouldn't happen
 		}
@@ -359,13 +419,8 @@ int Controller::run(const CliArgsParser& args)
 		return EXIT_FAILURE;
 	}
 
-	if (!args.do_export && !args.do_vacuum && !args.silent)
-		std::cout << _("Loading articles from cache...");
-	if (args.do_vacuum)
+	if (args.do_vacuum()) {
 		std::cout << _("Opening cache...");
-	std::cout.flush();
-
-	if (args.do_vacuum) {
 		std::cout << _("done.") << std::endl;
 		std::cout << _("Cleaning up cache thoroughly...");
 		std::cout.flush();
@@ -373,6 +428,11 @@ int Controller::run(const CliArgsParser& args)
 		std::cout << _("done.") << std::endl;
 		return EXIT_SUCCESS;
 	}
+
+	if (!args.do_export() && !args.silent()) {
+		std::cout << _("Loading articles from cache...");
+	}
+	std::cout.flush();
 
 	unsigned int i = 0;
 	for (const auto& url : urlcfg->get_urls()) {
@@ -388,16 +448,16 @@ int Controller::run(const CliArgsParser& args)
 			feedcontainer.add_feed(feed);
 		} catch (const DbException& e) {
 			std::cout << _("Error while loading feeds from "
-				       "database: ")
-				  << e.what() << std::endl;
+					"database: ")
+				<< e.what() << std::endl;
 			return EXIT_FAILURE;
 		} catch (const std::string& str) {
 			std::cout << strprintf::fmt(
-					     _("Error while loading feed '%s': "
-					       "%s"),
-					     url,
-					     str)
-				  << std::endl;
+					_("Error while loading feed '%s': "
+						"%s"),
+					url,
+					str)
+				<< std::endl;
 			return EXIT_FAILURE;
 		}
 		i++;
@@ -405,49 +465,59 @@ int Controller::run(const CliArgsParser& args)
 
 	std::vector<std::string> tags = urlcfg->get_alltags();
 
-	if (!args.do_export && !args.silent)
+	if (!args.do_export() && !args.silent()) {
 		std::cout << _("done.") << std::endl;
+	}
+
+	if (args.do_cleanup()) {
+		std::cout << _("Cleaning up cache...");
+		std::cout.flush();
+		rsscache->cleanup_cache(feedcontainer.get_all_feeds(), true);
+		std::cout << _("done.") << std::endl;
+		return EXIT_SUCCESS;
+	}
+
 
 	// if configured, we fill all query feeds with some data; no need to
 	// sort it, it will be refilled when actually opening it.
 	if (cfg.get_configvalue_as_bool("prepopulate-query-feeds")) {
-		if (!args.do_export && !args.silent) {
+		if (!args.do_export() && !args.silent()) {
 			std::cout << _("Prepopulating query feeds...");
 			std::cout.flush();
 		}
 
 		feedcontainer.populate_query_feeds();
 
-		if (!args.do_export && !args.silent) {
+		if (!args.do_export() && !args.silent()) {
 			std::cout << _("done.") << std::endl;
 		}
 	}
 
 	feedcontainer.sort_feeds(cfg.get_feed_sort_strategy());
 
-	if (args.do_export) {
+	if (args.do_export()) {
 		export_opml();
 		return EXIT_SUCCESS;
 	}
 
-	if (args.do_read_import) {
+	if (args.readinfo_import_file().has_value()) {
 		LOG(Level::INFO,
 			"Importing read information file from %s",
-			args.readinfofile);
+			args.readinfo_import_file().value());
 		std::cout << _("Importing list of read articles...");
 		std::cout.flush();
-		import_read_information(args.readinfofile);
+		import_read_information(args.readinfo_import_file().value());
 		std::cout << _("done.") << std::endl;
 		return EXIT_SUCCESS;
 	}
 
-	if (args.do_read_export) {
+	if (args.readinfo_export_file().has_value()) {
 		LOG(Level::INFO,
 			"Exporting read information file to %s",
-			args.readinfofile);
+			args.readinfo_export_file().value());
 		std::cout << _("Exporting list of read articles...");
 		std::cout.flush();
-		export_read_information(args.readinfofile);
+		export_read_information(args.readinfo_export_file().value());
 		std::cout << _("done.") << std::endl;
 		return EXIT_SUCCESS;
 	}
@@ -457,10 +527,10 @@ int Controller::run(const CliArgsParser& args)
 	v->set_keymap(&keys);
 	v->set_tags(tags);
 	v->set_cache(rsscache);
-	v->set_filters(&filters);
 
-	if (args.execute_cmds) {
-		execute_commands(args.cmds_to_execute);
+	const auto cmds_to_execute = args.cmds_to_execute();
+	if (cmds_to_execute.size() >= 1) {
+		execute_commands(cmds_to_execute);
 		return EXIT_SUCCESS;
 	}
 
@@ -484,19 +554,24 @@ int Controller::run(const CliArgsParser& args)
 		configpaths.cmdline_file(),
 		history_limit);
 
-	if (!args.silent) {
+	if (!args.silent()) {
 		std::cout << _("Cleaning up cache...");
 		std::cout.flush();
 	}
 	try {
-		std::lock_guard<std::mutex> feedslock(feeds_mutex);
-		rsscache->cleanup_cache(feedcontainer.feeds);
-		if (!args.silent) {
+		const std::uint64_t amt = rsscache->cleanup_cache(
+				feedcontainer.get_all_feeds());
+		if (!args.silent()) {
 			std::cout << _("done.") << std::endl;
+			if (amt > 0u) {
+				std::cout << _("Unreachable feeds found, consider setting "
+						"`cleanup-on-quit yes` or run `newsboat --cleanup`")
+					<< std::endl;
+			}
 		}
 	} catch (const DbException& e) {
 		LOG(Level::USERERROR, "Cleaning up cache failed: %s", e.what());
-		if (!args.silent) {
+		if (!args.silent()) {
 			std::cout << _("failed: ") << e.what() << std::endl;
 			ret = EXIT_FAILURE;
 		}
@@ -507,14 +582,12 @@ int Controller::run(const CliArgsParser& args)
 
 void Controller::update_feedlist()
 {
-	std::lock_guard<std::mutex> feedslock(feeds_mutex);
-	v->set_feedlist(feedcontainer.feeds);
+	v->set_feedlist(feedcontainer.get_all_feeds());
 }
 
 void Controller::update_visible_feeds()
 {
-	std::lock_guard<std::mutex> feedslock(feeds_mutex);
-	v->update_visible_feeds(feedcontainer.feeds);
+	v->update_visible_feeds(feedcontainer.get_all_feeds());
 }
 
 void Controller::mark_all_read(const std::string& feedurl)
@@ -522,22 +595,20 @@ void Controller::mark_all_read(const std::string& feedurl)
 	try {
 		rsscache->mark_all_read(feedurl);
 	} catch (const DbException& e) {
-		v->show_error(strprintf::fmt(
-			_("Error: couldn't mark all feeds read: %s"),
-			e.what()));
+		v->get_statusline().show_error(strprintf::fmt(
+				_("Error: couldn't mark all feeds read: %s"),
+				e.what()));
 		return;
 	}
 
 	if (feedurl.empty()) { // Mark all feeds as read
 		if (api) {
-			std::lock_guard<std::mutex> feedslock(feeds_mutex);
-			for (const auto& feed : feedcontainer.feeds) {
+			for (const auto& feed : feedcontainer.get_all_feeds()) {
 				api->mark_all_read(feed->rssurl());
 			}
 		}
 		feedcontainer.mark_all_feeds_read();
 	} else { // Mark a specific feed as read
-		std::lock_guard<std::mutex> feedslock(feeds_mutex);
 		const auto feed = feedcontainer.get_feed_by_url(feedurl);
 		if (!feed) {
 			return;
@@ -560,23 +631,41 @@ void Controller::mark_article_read(const std::string& guid, bool read)
 
 void Controller::mark_all_read(unsigned int pos)
 {
-	if (pos < feedcontainer.feeds.size()) {
-		ScopeMeasure m("Controller::mark_all_read");
-		std::lock_guard<std::mutex> feedslock(feeds_mutex);
-		const auto feed = feedcontainer.get_feed(pos);
-		if (feed->is_query_feed()) {
-			rsscache->mark_all_read(feed);
-		} else {
-			rsscache->mark_all_read(feed->rssurl());
-			if (api) {
-				api->mark_all_read(feed->rssurl());
-			}
-		}
-		m.stopover(
-			"after rsscache->mark_all_read, before iteration over "
-			"items");
+	ScopeMeasure m("Controller::mark_all_read");
+	const auto feed = feedcontainer.get_feed(pos);
+	if (feed == nullptr) {
+		return;
+	}
 
-		feedcontainer.mark_all_feed_items_read(pos);
+	if (feed->is_query_feed()) {
+		if (api) {
+			std::vector<std::string> item_guids;
+			for (const auto& item : feed->items()) {
+				if (item->unread()) {
+					item_guids.push_back(item->guid());
+				}
+			}
+			api->mark_articles_read(item_guids);
+		}
+		rsscache->mark_all_read(feed);
+	} else {
+		rsscache->mark_all_read(feed->rssurl());
+		if (api) {
+			api->mark_all_read(feed->rssurl());
+		}
+	}
+	m.stopover(
+		"after rsscache->mark_all_read, before iteration over "
+		"items");
+
+	feedcontainer.mark_all_feed_items_read(feed);
+}
+
+void Controller::mark_all_read(const std::vector<std::string>& item_guids)
+{
+	ScopeMeasure m("Controller::mark_all_read");
+	if (api) {
+		api->mark_articles_read(item_guids);
 	}
 }
 
@@ -585,9 +674,7 @@ void Controller::replace_feed(std::shared_ptr<RssFeed> oldfeed,
 	unsigned int pos,
 	bool unattended)
 {
-	std::lock_guard<std::mutex> feedslock(feeds_mutex);
-
-	LOG(Level::DEBUG, "Controller::replace_feed: feed is nonempty, saving");
+	LOG(Level::DEBUG, "Controller::replace_feed: saving");
 	rsscache->externalize_rssfeed(
 		newfeed, ign.matches_resetunread(newfeed->rssurl()));
 	LOG(Level::DEBUG,
@@ -595,35 +682,66 @@ void Controller::replace_feed(std::shared_ptr<RssFeed> oldfeed,
 
 	bool ignore_disp = (cfg.get_configvalue("ignore-mode") == "display");
 	std::shared_ptr<RssFeed> feed = rsscache->internalize_rssfeed(
-		oldfeed->rssurl(), ignore_disp ? &ign : nullptr);
+			oldfeed->rssurl(), ignore_disp ? &ign : nullptr);
 	LOG(Level::DEBUG,
 		"Controller::replace_feed: after internalize_rssfeed");
 
 	feed->set_tags(urlcfg->get_tags(oldfeed->rssurl()));
 	feed->set_order(oldfeed->get_order());
-	feedcontainer.feeds[pos] = feed;
-	enqueue_items(feed);
+	feedcontainer.replace_feed(pos, feed);
 
-	oldfeed->clear_items();
+	if (cfg.get_configvalue_as_bool("podcast-auto-enqueue")) {
+		const auto result = queueManager.autoenqueue(feed);
+		switch (result.status) {
+		case EnqueueStatus::QUEUED_SUCCESSFULLY:
+		case EnqueueStatus::URL_QUEUED_ALREADY:
+			// All is well, nothing to be done
+			break;
+		case EnqueueStatus::OUTPUT_FILENAME_USED_ALREADY:
+			v->get_statusline().show_error(
+				strprintf::fmt(_("Generated filename (%s) is used already."),
+					result.extra_info));
+			break;
+		case EnqueueStatus::QUEUE_FILE_OPEN_ERROR:
+			v->get_statusline().show_error(
+				strprintf::fmt(_("Failed to open queue file: %s."), result.extra_info));
+			break;
+		}
+	}
 
-	v->notify_itemlist_change(feedcontainer.feeds[pos]);
+	for (const auto& item : feed->items()) {
+		rsscache->update_rssitem_unread_and_enqueued(item, feed->rssurl());
+	}
+
+	v->notify_itemlist_change(feed);
 	if (!unattended) {
-		v->set_feedlist(feedcontainer.feeds);
+		v->set_feedlist(feedcontainer.get_all_feeds());
 	}
 }
 
-void Controller::import_opml(const std::string& filename)
+int Controller::import_opml(const std::string& opmlFile,
+	const std::string& urlFile)
 {
-	if (!opml::import(filename, urlcfg)) {
+	auto urlReader = FileUrlReader(urlFile);
+	const auto error_message = urlReader.reload(); // Load existing URLs
+	if (error_message.has_value()) {
+		std::cout << error_message.value() << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	const auto import_error = opml::import(opmlFile, urlReader);
+	if (import_error.has_value()) {
 		std::cout << strprintf::fmt(
-				     _("An error occurred while parsing %s."),
-				     filename)
-			  << std::endl;
-		return;
+				_("An error occurred while parsing %s: %s"),
+				opmlFile,
+				import_error.value())
+			<< std::endl;
+		return EXIT_FAILURE;
 	} else {
 		std::cout << strprintf::fmt(
-				     _("Import of %s finished."), filename)
-			  << std::endl;
+				_("Import of %s finished."), opmlFile)
+			<< std::endl;
+		return EXIT_SUCCESS;
 	}
 }
 
@@ -639,11 +757,11 @@ void Controller::export_opml()
 }
 
 std::vector<std::shared_ptr<RssItem>> Controller::search_for_items(
-	const std::string& query,
-	std::shared_ptr<RssFeed> feed)
+		const std::string& query,
+		std::shared_ptr<RssFeed> feed)
 {
 	std::vector<std::shared_ptr<RssItem>> items;
-	if (feed && feed->is_query_feed()) {
+	if (feed && (feed->is_query_feed() || feed->is_search_feed())) {
 		std::unordered_set<std::string> guids;
 		for (const auto& item : feed->items()) {
 			if (!item->deleted()) {
@@ -658,7 +776,7 @@ std::vector<std::shared_ptr<RssItem>> Controller::search_for_items(
 		}
 	} else {
 		items = rsscache->search_for_items(
-			query, (feed != nullptr ? feed->rssurl() : ""));
+				query, (feed != nullptr ? feed->rssurl() : ""));
 		for (const auto& item : items) {
 			item->set_feedptr(
 				feedcontainer.get_feed_by_url(item->feedurl()));
@@ -667,42 +785,20 @@ std::vector<std::shared_ptr<RssItem>> Controller::search_for_items(
 	return items;
 }
 
-void Controller::enqueue_url(const std::string& url,
-	const std::string& title,
-	const time_t pubDate,
+EnqueueResult Controller::enqueue_url(std::shared_ptr<RssItem> item,
 	std::shared_ptr<RssFeed> feed)
 {
-	bool url_found = false;
-	std::fstream f;
-	f.open(configpaths.queue_file().c_str(), std::fstream::in);
-	if (f.is_open()) {
-		do {
-			std::string line;
-			getline(f, line);
-			if (!f.eof() && line.length() > 0) {
-				std::vector<std::string> fields =
-					utils::tokenize_quoted(line);
-				if (!fields.empty() && fields[0] == url) {
-					url_found = true;
-					break;
-				}
-			}
-		} while (!f.eof());
-		f.close();
-	}
-	if (!url_found) {
-		f.open(configpaths.queue_file().c_str(),
-			std::fstream::app | std::fstream::out);
-		std::string filename =
-			generate_enqueue_filename(url, title, pubDate, feed);
-		f << url << " " << Stfl::quote(filename) << std::endl;
-		f.close();
-	}
+	return queueManager.enqueue_url(item, feed);
 }
 
 void Controller::reload_urls_file()
 {
-	urlcfg->reload();
+	const auto error_message = urlcfg->reload();
+	if (error_message.has_value()) {
+		v->get_statusline().show_message(error_message.value());
+		return;
+	}
+
 	std::vector<std::shared_ptr<RssFeed>> new_feeds;
 	unsigned int i = 0;
 
@@ -746,19 +842,21 @@ void Controller::edit_urls_file()
 	const char* editor;
 
 	editor = getenv("VISUAL");
-	if (!editor)
+	if (!editor) {
 		editor = getenv("EDITOR");
-	if (!editor)
+	}
+	if (!editor) {
 		editor = "vi";
+	}
 
 	std::string cmdline = strprintf::fmt("%s \"%s\"",
-		editor,
-		utils::replace_all(configpaths.url_file(), "\"", "\\\""));
+			editor,
+			utils::replace_all(configpaths.url_file(), "\"", "\\\""));
 
 	v->push_empty_formaction();
 	Stfl::reset();
-
 	utils::run_interactively(cmdline, "Controller::edit_urls_file");
+	v->drop_queued_input();
 
 	v->pop_current_formaction();
 
@@ -767,8 +865,9 @@ void Controller::edit_urls_file()
 
 int Controller::execute_commands(const std::vector<std::string>& cmds)
 {
-	if (v->formaction_stack_size() > 0)
+	if (v->formaction_stack_size() > 0) {
 		v->pop_current_formaction();
+	}
 	for (const auto& cmd : cmds) {
 		LOG(Level::DEBUG,
 			"Controller::execute_commands: executing `%s'",
@@ -777,14 +876,14 @@ int Controller::execute_commands(const std::vector<std::string>& cmds)
 			reloader->reload_all(true);
 		} else if (cmd == "print-unread") {
 			std::cout << strprintf::fmt(_("%u unread articles"),
-					     rsscache->get_unread_count())
-				  << std::endl;
+					feedcontainer.unread_item_count())
+				<< std::endl;
 		} else {
 			std::cerr
-				<< strprintf::fmt(_("%s: %s: unknown command"),
-					   "newsboat",
-					   cmd)
-				<< std::endl;
+					<< strprintf::fmt(_("%s: %s: unknown command"),
+							"newsboat",
+							cmd)
+						<< std::endl;
 			return EXIT_FAILURE;
 		}
 	}
@@ -818,8 +917,7 @@ std::string Controller::write_temporary_item(std::shared_ptr<RssItem> item)
 void Controller::write_item(std::shared_ptr<RssItem> item,
 	const std::string& filename)
 {
-	std::fstream f;
-	f.open(filename.c_str(), std::fstream::out);
+	std::fstream f(filename, std::fstream::out);
 	if (!f.is_open()) {
 		throw Exception(errno);
 	}
@@ -832,100 +930,11 @@ void Controller::write_item(std::shared_ptr<RssItem> item, std::ostream& ostr)
 	ostr << item_renderer::to_plain_text(cfg, item) << std::endl;
 }
 
-void Controller::enqueue_items(std::shared_ptr<RssFeed> feed)
-{
-	if (!cfg.get_configvalue_as_bool("podcast-auto-enqueue"))
-		return;
-	std::lock_guard<std::mutex> lock(feed->item_mutex);
-	for (const auto& item : feed->items()) {
-		if (!item->enqueued() && item->enclosure_url().length() > 0) {
-			LOG(Level::DEBUG,
-				"Controller::enqueue_items: enclosure_url = "
-				"`%s' "
-				"enclosure_type = `%s'",
-				item->enclosure_url(),
-				item->enclosure_type());
-			if (utils::is_http_url(item->enclosure_url())) {
-				LOG(Level::INFO,
-					"Controller::enqueue_items: enqueuing "
-					"`%s'",
-					item->enclosure_url());
-				enqueue_url(item->enclosure_url(),
-					item->title(),
-					item->pubDate_timestamp(),
-					feed);
-				item->set_enqueued(true);
-				rsscache->update_rssitem_unread_and_enqueued(
-					item, feed->rssurl());
-			}
-		}
-	}
-}
-
-std::string Controller::generate_enqueue_filename(const std::string& url,
-	const std::string& title,
-	const time_t pubDate,
-	std::shared_ptr<RssFeed> feed)
-{
-	std::string dlformat = cfg.get_configvalue("download-path");
-	if (dlformat[dlformat.length() - 1] != NEWSBEUTER_PATH_SEP[0])
-		dlformat.append(NEWSBEUTER_PATH_SEP);
-
-	std::string filemask = cfg.get_configvalue("download-filename-format");
-	dlformat.append(filemask);
-
-	auto time_formatter = [&pubDate](const char* format) {
-		char pubDate_formatted[1024];
-		strftime(pubDate_formatted,
-			sizeof(pubDate_formatted),
-			format,
-			localtime(&pubDate));
-		return std::string(pubDate_formatted);
-	};
-
-	std::string base = utils::get_basename(url);
-	std::string extension;
-	std::size_t pos = base.rfind('.');
-	if (pos != std::string::npos) {
-		extension.append(base.substr(pos + 1));
-	}
-
-	FmtStrFormatter fmt;
-	fmt.register_fmt('n', feed->title());
-	fmt.register_fmt('h', get_hostname_from_url(url));
-	fmt.register_fmt('u', base);
-	fmt.register_fmt('F', time_formatter("%F"));
-	fmt.register_fmt('m', time_formatter("%m"));
-	fmt.register_fmt('b', time_formatter("%b"));
-	fmt.register_fmt('d', time_formatter("%d"));
-	fmt.register_fmt('H', time_formatter("%H"));
-	fmt.register_fmt('M', time_formatter("%M"));
-	fmt.register_fmt('S', time_formatter("%S"));
-	fmt.register_fmt('y', time_formatter("%y"));
-	fmt.register_fmt('Y', time_formatter("%Y"));
-	fmt.register_fmt('t', title);
-	fmt.register_fmt('e', extension);
-
-	std::string dlpath = fmt.do_format(dlformat);
-	return dlpath;
-}
-
-std::string Controller::get_hostname_from_url(const std::string& url)
-{
-	xmlURIPtr uri = xmlParseURI(url.c_str());
-	std::string hostname;
-	if (uri) {
-		hostname = uri->server;
-		xmlFreeURI(uri);
-	}
-	return hostname;
-}
-
 void Controller::import_read_information(const std::string& readinfofile)
 {
 	std::vector<std::string> guids;
 
-	std::ifstream f(readinfofile.c_str());
+	std::ifstream f(readinfofile);
 	std::string line;
 	getline(f, line);
 	if (!f.is_open()) {
@@ -942,8 +951,7 @@ void Controller::export_read_information(const std::string& readinfofile)
 {
 	std::vector<std::string> guids = rsscache->get_read_item_guids();
 
-	std::fstream f;
-	f.open(readinfofile.c_str(), std::fstream::out);
+	std::fstream f(readinfofile, std::fstream::out);
 	if (f.is_open()) {
 		for (const auto& guid : guids) {
 			f << guid << std::endl;
@@ -953,26 +961,17 @@ void Controller::export_read_information(const std::string& readinfofile)
 
 void Controller::update_config()
 {
-	v->set_regexmanager(&rxman);
-	v->update_bindings();
-
-	if (colorman.colors_loaded()) {
-		v->set_colors(colorman.get_fgcolors(),
-			colorman.get_bgcolors(),
-			colorman.get_attributes());
-		v->apply_colors_to_all_formactions();
-	}
+	v->apply_colors_to_all_formactions();
 
 	if (cfg.get_configvalue("error-log").length() > 0) {
 		try {
-			Logger::getInstance().set_errorlogfile(
-				cfg.get_configvalue("error-log"));
+			Logger::set_user_error_logfile(cfg.get_configvalue("error-log"));
 		} catch (const Exception& e) {
 			const std::string msg =
 				strprintf::fmt("Couldn't open %s: %s",
 					cfg.get_configvalue("error-log"),
 					e.what());
-			v->show_error(msg);
+			v->get_statusline().show_error(msg);
 			std::cerr << msg << std::endl;
 		}
 	}
@@ -980,28 +979,27 @@ void Controller::update_config()
 
 void Controller::load_configfile(const std::string& filename)
 {
-	if (cfgparser.parse(filename, true)) {
+	if (cfgparser.parse_file(filename)) {
 		update_config();
 	} else {
-		v->show_error(strprintf::fmt(
-			_("Error: couldn't open configuration file `%s'!"),
-			filename));
+		v->get_statusline().show_error(strprintf::fmt(
+				_("Error: couldn't open configuration file `%s'!"),
+				filename));
 	}
 }
 
-void Controller::dump_config(const std::string& filename)
+void Controller::dump_config(const std::string& filename) const
 {
 	std::vector<std::string> configlines;
 	cfg.dump_config(configlines);
 	if (v) {
-		v->get_keys()->dump_config(configlines);
+		v->get_keymap()->dump_config(configlines);
 	}
 	ign.dump_config(configlines);
 	filters.dump_config(configlines);
 	colorman.dump_config(configlines);
 	rxman.dump_config(configlines);
-	std::fstream f;
-	f.open(filename.c_str(), std::fstream::out);
+	std::fstream f(filename, std::fstream::out);
 	if (f.is_open()) {
 		for (const auto& line : configlines) {
 			f << line << std::endl;

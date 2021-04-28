@@ -1,20 +1,19 @@
 #include "matcher.h"
 
 #include <cassert>
+#include <cinttypes>
 #include <ctime>
 #include <regex.h>
 #include <sstream>
-#include <sys/time.h>
 #include <vector>
 
-#include "exceptions.h"
 #include "logger.h"
+#include "matchable.h"
+#include "matcherexception.h"
+#include "scopemeasure.h"
 #include "utils.h"
 
 namespace newsboat {
-
-Matchable::Matchable() {}
-Matchable::~Matchable() {}
 
 Matcher::Matcher() {}
 
@@ -24,32 +23,28 @@ Matcher::Matcher(const std::string& expr)
 	parse(expr);
 }
 
-const std::string& Matcher::get_expression()
+std::string Matcher::get_expression()
 {
 	return exp;
 }
 
 bool Matcher::parse(const std::string& expr)
 {
-	struct timeval tv1, tv2;
-	gettimeofday(&tv1, nullptr);
+	ScopeMeasure measurer("Matcher::parse");
 
 	errmsg = "";
 
 	bool b = p.parse_string(expr);
 
-	if (!b) {
+	if (b) {
+		exp = expr;
+	} else {
 		errmsg = utils::wstr2str(p.get_error());
 	}
 
-	gettimeofday(&tv2, nullptr);
-	unsigned long diff =
-		(((tv2.tv_sec - tv1.tv_sec) * 1000000) + tv2.tv_usec) -
-		tv1.tv_usec;
 	LOG(Level::DEBUG,
-		"Matcher::parse: parsing `%s' took %lu µs (success = %d)",
+		"Matcher::parse: parsing `%s' succeeded: %d",
 		expr,
-		diff,
 		b ? 1 : 0);
 
 	return b;
@@ -65,8 +60,7 @@ bool Matcher::matches(Matchable* item)
 	 * This makes it easy to use the Matcher virtually everywhere, since C++
 	 * allows multiple inheritance (i.e. deriving from Matchable can even be
 	 * used in class hierarchies), and deriving from Matchable means that
-	 * you only have to implement two methods has_attribute() and
-	 * get_attribute().
+	 * you only have to implement the method attribute_value().
 	 *
 	 * The whole matching code is speed-critical, as the matching happens on
 	 * a lot of different occassions, and slow matching can be easily
@@ -81,66 +75,71 @@ bool Matcher::matches(Matchable* item)
 	return retval;
 }
 
+std::string get_attr_or_throw(Matchable* item, const std::string& attr_name)
+{
+	const auto attr = item->attribute_value(attr_name);
+
+	if (!attr.has_value()) {
+		LOG(Level::WARN,
+			"Matcher::matches: attribute %s is not available",
+			attr_name);
+		throw MatcherException(MatcherException::Type::ATTRIB_UNAVAIL, attr_name);
+	}
+
+	return attr.value();
+}
+
 bool Matcher::matchop_lt(expression* e, Matchable* item)
 {
-	if (!item->has_attribute(e->name))
-		throw MatcherException(
-			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
-	std::istringstream islit(e->literal);
-	std::istringstream isatt(item->get_attribute(e->name));
-	int ilit, iatt;
-	islit >> ilit;
-	isatt >> iatt;
+	const int ilit = string_to_num(e->literal);
+
+	const auto attr = get_attr_or_throw(item, e->name);
+	const int iatt = string_to_num(attr);
+
 	return iatt < ilit;
 }
 
 bool Matcher::matchop_between(expression* e, Matchable* item)
 {
-	if (!item->has_attribute(e->name))
-		throw MatcherException(
-			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
-	std::vector<std::string> lit = utils::tokenize(e->literal, ":");
-	std::istringstream isatt(item->get_attribute(e->name));
-	int att;
-	isatt >> att;
-	if (lit.size() < 2)
+	const auto attr = get_attr_or_throw(item, e->name);
+	const int att = string_to_num(attr);
+
+	const std::vector<std::string> lit = utils::tokenize(e->literal, ":");
+	if (lit.size() < 2) {
 		return false;
-	std::istringstream is1(lit[0]), is2(lit[1]);
-	int i1, i2;
-	is1 >> i1;
-	is2 >> i2;
-	if (i1 > i2) {
-		int tmp = i1;
-		i1 = i2;
-		i2 = tmp;
 	}
+
+	int i1 = string_to_num(lit[0]);
+	int i2 = string_to_num(lit[1]);
+	if (i1 > i2) {
+		std::swap(i1, i2);
+	}
+
 	return (att >= i1 && att <= i2);
 }
 
 bool Matcher::matchop_gt(expression* e, Matchable* item)
 {
-	if (!item->has_attribute(e->name))
-		throw MatcherException(
-			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
-	std::istringstream islit(e->literal);
-	std::istringstream isatt(item->get_attribute(e->name));
-	int ilit, iatt;
-	islit >> ilit;
-	isatt >> iatt;
+	const auto attr = get_attr_or_throw(item, e->name);
+	const int iatt = string_to_num(attr);
+
+	const int ilit = string_to_num(e->literal);
+
 	return iatt > ilit;
 }
 
 bool Matcher::matchop_rxeq(expression* e, Matchable* item)
 {
-	if (!item->has_attribute(e->name))
-		throw MatcherException(
-			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
+	const auto attr = get_attr_or_throw(item, e->name);
+
 	if (!e->regex) {
 		e->regex = new regex_t;
 		int err;
 		if ((err = regcomp(e->regex,
-			     e->literal.c_str(),
-			     REG_EXTENDED | REG_ICASE | REG_NOSUB)) != 0) {
+						e->literal.c_str(),
+						REG_EXTENDED | REG_ICASE | REG_NOSUB)) != 0) {
+			delete e->regex;
+			e->regex = nullptr;
 			char buf[1024];
 			regerror(err, e->regex, buf, sizeof(buf));
 			throw MatcherException(
@@ -150,22 +149,21 @@ bool Matcher::matchop_rxeq(expression* e, Matchable* item)
 		}
 	}
 	if (regexec(e->regex,
-		    item->get_attribute(e->name).c_str(),
-		    0,
-		    nullptr,
-		    0) == 0)
+			attr.c_str(),
+			0,
+			nullptr,
+			0) == 0) {
 		return true;
+	}
 	return false;
 }
 
 bool Matcher::matchop_cont(expression* e, Matchable* item)
 {
-	if (!item->has_attribute(e->name))
-		throw MatcherException(
-			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
-	std::vector<std::string> elements =
-		utils::tokenize(item->get_attribute(e->name), " ");
-	std::string literal = e->literal;
+	const auto attr = get_attr_or_throw(item, e->name);
+
+	const std::vector<std::string> elements = utils::tokenize(attr, " ");
+	const std::string literal = e->literal;
 	for (const auto& elem : elements) {
 		if (literal == elem) {
 			return true;
@@ -176,14 +174,9 @@ bool Matcher::matchop_cont(expression* e, Matchable* item)
 
 bool Matcher::matchop_eq(expression* e, Matchable* item)
 {
-	if (!item->has_attribute(e->name)) {
-		LOG(Level::WARN,
-			"Matcher::matches_r: attribute %s not available",
-			e->name);
-		throw MatcherException(
-			MatcherException::Type::ATTRIB_UNAVAIL, e->name);
-	}
-	return (item->get_attribute(e->name) == e->literal);
+	const auto attr = get_attr_or_throw(item, e->name);
+
+	return (attr == e->literal);
 }
 
 bool Matcher::matches_r(expression* e, Matchable* item)
@@ -193,12 +186,9 @@ bool Matcher::matches_r(expression* e, Matchable* item)
 		/* the operator "and" and "or" simply connect two different
 		 * subexpressions */
 		case LOGOP_AND:
+			// short-circuit evaluation in C -> short circuit evaluation in the filter language
 			return matches_r(e->l, item) &&
-				matches_r(e->r, item); // short-circuit
-						       // evaulation in C ->
-						       // short circuit
-						       // evaluation in the
-						       // filter language
+				matches_r(e->r, item);
 
 		case LOGOP_OR:
 			return matches_r(e->l, item) ||
@@ -244,9 +234,16 @@ bool Matcher::matches_r(expression* e, Matchable* item)
 	}
 }
 
-const std::string& Matcher::get_parse_error()
+std::string Matcher::get_parse_error()
 {
 	return errmsg;
+}
+
+int Matcher::string_to_num(const std::string& number)
+{
+	int result = 0;
+	std::istringstream(number) >> result;
+	return result;
 }
 
 } // namespace newsboat

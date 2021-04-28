@@ -1,27 +1,33 @@
 #ifndef NEWSBOAT_VIEW_H_
 #define NEWSBOAT_VIEW_H_
 
+#include <cstdint>
 #include <list>
 #include <mutex>
 #include <string>
 #include <vector>
 
+#include "3rd-party/optional.hpp"
+
 #include "colormanager.h"
 #include "configcontainer.h"
 #include "controller.h"
+#include "dirbrowserformaction.h"
+#include "feedlistformaction.h"
 #include "filebrowserformaction.h"
 #include "htmlrenderer.h"
 #include "keymap.h"
 #include "regexmanager.h"
-#include "rss.h"
+#include "statusline.h"
 #include "stflpp.h"
 
 namespace newsboat {
 
 class ItemListFormAction;
 class ItemViewFormAction;
+class FeedListFormAction;
 
-class View {
+class View : public IStatus {
 public:
 	explicit View(Controller*);
 	~View();
@@ -33,9 +39,7 @@ public:
 	void update_visible_feeds(std::vector<std::shared_ptr<RssFeed>> feeds);
 	void set_keymap(KeyMap* k);
 	void set_config_container(ConfigContainer* cfgcontainer);
-	void show_error(const std::string& msg);
-	void set_status(const std::string& msg);
-	void set_status_unlocked(const std::string& msg);
+	StatusLine& get_statusline();
 	Controller* get_ctrl()
 	{
 		return ctrl;
@@ -44,12 +48,16 @@ public:
 	{
 		return cfg;
 	}
-	KeyMap* get_keys()
+	KeyMap* get_keymap()
+	{
+		return keys;
+	}
+	const KeyMap* get_keymap() const
 	{
 		return keys;
 	}
 	void set_tags(const std::vector<std::string>& t);
-	void push_empty_formaction();
+	void drop_queued_input();
 	void pop_current_formaction();
 	void remove_formaction(unsigned int pos);
 	void set_current_formaction(unsigned int pos);
@@ -60,10 +68,12 @@ public:
 	char confirm(const std::string& prompt, const std::string& charset);
 
 	void push_itemlist(unsigned int pos);
-	void push_itemlist(std::shared_ptr<RssFeed> feed);
+	std::shared_ptr<ItemListFormAction> push_itemlist(std::shared_ptr<RssFeed>
+		feed);
 	void push_itemview(std::shared_ptr<RssFeed> f,
 		const std::string& guid,
 		const std::string& searchphrase = "");
+	void push_empty_formaction();
 	void push_help();
 	void push_urlview(const std::vector<LinkPair>& links,
 		std::shared_ptr<RssFeed>& feed);
@@ -71,51 +81,45 @@ public:
 		const std::string& phrase = "");
 	void view_dialogs();
 
-	std::string run_filebrowser(const std::string& default_filename = "",
-		const std::string& dir = "");
+	std::string run_filebrowser(const std::string& default_filename = "");
+	std::string run_dirbrowser();
 	std::string select_tag();
 	std::string select_filter(
 		const std::vector<FilterNameExprPair>& filters);
 
-	void open_in_browser(const std::string& url);
+	nonstd::optional<std::uint8_t> open_in_browser(const std::string& url,
+		const std::string& feedurl, bool interactive);
 	void open_in_pager(const std::string& filename);
 
 	std::string get_filename_suggestion(const std::string& s);
 
-	bool get_next_unread(ItemListFormAction* itemlist,
+	bool get_next_unread(ItemListFormAction& itemlist,
 		ItemViewFormAction* itemview = nullptr);
-	bool get_previous_unread(ItemListFormAction* itemlist,
+	bool get_previous_unread(ItemListFormAction& itemlist,
 		ItemViewFormAction* itemview = nullptr);
-	bool get_next(ItemListFormAction* itemlist,
+	bool get_next(ItemListFormAction& itemlist,
 		ItemViewFormAction* itemview = nullptr);
-	bool get_previous(ItemListFormAction* itemlist,
+	bool get_previous(ItemListFormAction& itemlist,
 		ItemViewFormAction* itemview = nullptr);
-	bool get_random_unread(ItemListFormAction* itemlist,
+	bool get_random_unread(ItemListFormAction& itemlist,
 		ItemViewFormAction* itemview = nullptr);
 
-	bool get_next_unread_feed(ItemListFormAction* itemlist);
-	bool get_prev_unread_feed(ItemListFormAction* itemlist);
-	bool get_next_feed(ItemListFormAction* itemlist);
-	bool get_prev_feed(ItemListFormAction* itemlist);
+	bool get_next_unread_feed(ItemListFormAction& itemlist);
+	bool get_prev_unread_feed(ItemListFormAction& itemlist);
+	bool get_next_feed(ItemListFormAction& itemlist);
+	bool get_prev_feed(ItemListFormAction& itemlist);
 
 	void prepare_query_feed(std::shared_ptr<RssFeed> feed);
 
 	void force_redraw();
 
-	void set_colors(std::map<std::string, std::string>& fg_colors,
-		std::map<std::string, std::string>& bg_colors,
-		std::map<std::string, std::vector<std::string>>& attributes);
-
 	void notify_itemlist_change(std::shared_ptr<RssFeed> feed);
 
 	void feedlist_mark_pos_if_visible(unsigned int pos);
 
-	void set_regexmanager(RegexManager* r);
 	void set_cache(Cache* c);
-	void set_filters(FilterContainer* f);
 
-	std::vector<std::pair<unsigned int, std::string>>
-	get_formaction_names();
+	std::vector<std::pair<unsigned int, std::string>> get_formaction_names();
 
 	std::shared_ptr<FormAction> get_current_formaction();
 
@@ -129,17 +133,14 @@ public:
 
 	void apply_colors_to_all_formactions();
 
-	void update_bindings();
-
 	void inside_qna(bool f);
 	void inside_cmdline(bool f);
-
-	void dump_current_form();
 
 	static void ctrl_c_action(int sig);
 
 protected:
-	void set_bindings(std::shared_ptr<FormAction> fa);
+	bool run_commands(const std::vector<MacroCmd>& commands);
+
 	void apply_colors(std::shared_ptr<FormAction> fa);
 
 	void handle_cmdline_completion(std::shared_ptr<FormAction> fa);
@@ -147,6 +148,8 @@ protected:
 	void clear_eol(std::shared_ptr<FormAction> fa);
 	void cancel_input(std::shared_ptr<FormAction> fa);
 	void delete_word(std::shared_ptr<FormAction> fa);
+	bool handle_qna_event(const std::string& event, std::shared_ptr<FormAction> fa);
+	void handle_resize();
 
 	Controller* ctrl;
 
@@ -154,18 +157,19 @@ protected:
 	KeyMap* keys;
 	std::mutex mtx;
 
-	friend class ColorManager;
-
 	std::vector<std::shared_ptr<FormAction>> formaction_stack;
 	unsigned int current_formaction;
+	std::shared_ptr<FeedListFormAction> feedlist_form;
+
+	void set_status(const std::string& msg) override;
+	void show_error(const std::string& msg) override;
+	StatusLine status_line;
 
 	std::vector<std::string> tags;
 
-	RegexManager* rxman;
+	RegexManager& rxman;
 
-	std::map<std::string, std::string> fg_colors;
-	std::map<std::string, std::string> bg_colors;
-	std::map<std::string, std::vector<std::string>> attributes;
+	std::map<std::string, TextStyle> text_styles;
 
 	bool is_inside_qna;
 	bool is_inside_cmdline;
@@ -173,7 +177,8 @@ protected:
 	std::string last_fragment;
 	unsigned int tab_count;
 	Cache* rsscache;
-	FilterContainer* filters;
+	FilterContainer& filters;
+	const ColorManager& colorman;
 	std::vector<std::string> suggestions;
 };
 

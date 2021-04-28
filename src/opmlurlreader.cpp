@@ -11,12 +11,7 @@ OpmlUrlReader::OpmlUrlReader(ConfigContainer* c)
 {
 }
 
-void OpmlUrlReader::write_config()
-{
-	// do nothing.
-}
-
-void OpmlUrlReader::reload()
+nonstd::optional<std::string> OpmlUrlReader::reload()
 {
 	urls.clear();
 	tags.clear();
@@ -59,6 +54,8 @@ void OpmlUrlReader::reload()
 
 		xmlFreeDoc(doc);
 	}
+
+	return {};
 }
 
 void OpmlUrlReader::handle_node(xmlNode* node, const std::string& tag)
@@ -92,9 +89,10 @@ void OpmlUrlReader::rec_find_rss_outlines(xmlNode* node, std::string tag)
 		if (strcmp((const char*)node->name, "outline") == 0) {
 			if (type && strcmp(type, "rss") == 0) {
 				handle_node(node, tag);
+				xmlFree(type);
 			} else {
 				char* text = (char*)xmlGetProp(
-					node, (const xmlChar*)"title");
+						node, (const xmlChar*)"title");
 				if (text) {
 					if (newtag.length() > 0) {
 						newtag.append("/");

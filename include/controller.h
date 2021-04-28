@@ -6,26 +6,29 @@
 #include "cache.h"
 #include "colormanager.h"
 #include "configcontainer.h"
-#include "configpaths.h"
+#include "configparser.h"
 #include "feedcontainer.h"
 #include "filtercontainer.h"
 #include "fslock.h"
 #include "opml.h"
+#include "queuemanager.h"
 #include "regexmanager.h"
 #include "reloader.h"
 #include "remoteapi.h"
-#include "rss.h"
+#include "rssignores.h"
 #include "urlreader.h"
 
 namespace newsboat {
 
+class CliArgsParser;
+class ConfigPaths;
 class View;
 
 class CurlHandle;
 
 class Controller {
 public:
-	Controller();
+	Controller(ConfigPaths& configpaths);
 	~Controller();
 	void set_view(View* vv);
 	View* get_view()
@@ -35,8 +38,8 @@ public:
 	int run(const CliArgsParser& args);
 
 	std::vector<std::shared_ptr<RssItem>> search_for_items(
-		const std::string& query,
-		std::shared_ptr<RssFeed> feed);
+			const std::string& query,
+			std::shared_ptr<RssFeed> feed);
 
 	void update_feedlist();
 	void update_visible_feeds();
@@ -47,13 +50,12 @@ public:
 	{
 		rsscache->mark_all_read(feed);
 	}
+	void mark_all_read(const std::vector<std::string>& item_guids);
 	bool get_refresh_on_start() const
 	{
 		return refresh_on_start;
 	}
-	void enqueue_url(const std::string& url,
-		const std::string& title,
-		const time_t pubDate,
+	EnqueueResult enqueue_url(std::shared_ptr<RssItem> item,
 		std::shared_ptr<RssFeed> feed);
 
 	void reload_urls_file();
@@ -73,7 +75,7 @@ public:
 
 	void load_configfile(const std::string& filename);
 
-	void dump_config(const std::string& filename);
+	void dump_config(const std::string& filename) const;
 
 	void update_flags(std::shared_ptr<RssItem> item);
 
@@ -97,19 +99,26 @@ public:
 		return api;
 	}
 
+	RegexManager& get_regexmanager()
+	{
+		return rxman;
+	}
+
+	FilterContainer& get_filtercontainer()
+	{
+		return filters;
+	}
+
+	const ColorManager& get_colormanager()
+	{
+		return colorman;
+	}
+
 private:
-	void import_opml(const std::string& filename);
+	int import_opml(const std::string& opmlFile, const std::string& urlFile);
 	void export_opml();
 	void rec_find_rss_outlines(xmlNode* node, std::string tag);
 	int execute_commands(const std::vector<std::string>& cmds);
-
-	void enqueue_items(std::shared_ptr<RssFeed> feed);
-
-	std::string generate_enqueue_filename(const std::string& url,
-		const std::string& title,
-		const time_t pubDate,
-		std::shared_ptr<RssFeed> feed);
-	std::string get_hostname_from_url(const std::string& url);
 
 	void import_read_information(const std::string& readinfofile);
 	void export_read_information(const std::string& readinfofile);
@@ -127,13 +136,14 @@ private:
 	ColorManager colorman;
 	RegexManager rxman;
 	RemoteApi* api;
-	std::mutex feeds_mutex;
 
-	std::unique_ptr<FsLock> fslock;
+	FsLock fslock;
 
-	ConfigPaths configpaths;
+	ConfigPaths& configpaths;
 
 	std::unique_ptr<Reloader> reloader;
+
+	QueueManager queueManager;
 };
 
 } // namespace newsboat

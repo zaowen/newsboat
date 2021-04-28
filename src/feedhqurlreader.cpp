@@ -1,7 +1,10 @@
-#include "feedhqapi.h"
+#include "feedhqurlreader.h"
 
+#include "configcontainer.h"
 #include "fileurlreader.h"
 #include "logger.h"
+#include "remoteapi.h"
+#include "utils.h"
 
 namespace newsboat {
 
@@ -15,11 +18,6 @@ FeedHqUrlReader::FeedHqUrlReader(ConfigContainer* c,
 }
 
 FeedHqUrlReader::~FeedHqUrlReader() {}
-
-void FeedHqUrlReader::write_config()
-{
-	// NOTHING
-}
 
 #define BROADCAST_FRIENDS_URL                                    \
 	"http://feedhq.org/reader/atom/user/-/state/com.google/" \
@@ -37,7 +35,7 @@ void FeedHqUrlReader::write_config()
 		tags[(url)] = tmptags;        \
 	} while (0)
 
-void FeedHqUrlReader::reload()
+nonstd::optional<std::string> FeedHqUrlReader::reload()
 {
 	urls.clear();
 	tags.clear();
@@ -53,7 +51,11 @@ void FeedHqUrlReader::reload()
 	}
 
 	FileUrlReader ur(file);
-	ur.reload();
+	const auto error_message = ur.reload();
+	if (error_message.has_value()) {
+		LOG(Level::DEBUG, "Reloading failed: %s", error_message.value());
+		// Ignore errors for now: https://github.com/newsboat/newsboat/issues/1273
+	}
 
 	for (const auto& url : ur.get_urls()) {
 		if (utils::is_query_url(url)) {
@@ -80,6 +82,8 @@ void FeedHqUrlReader::reload()
 			alltags.insert(tag);
 		}
 	}
+
+	return {};
 }
 
 std::string FeedHqUrlReader::get_source()

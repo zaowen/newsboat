@@ -3,6 +3,7 @@
 
 #include "filtercontainer.h"
 #include "formaction.h"
+#include "listwidget.h"
 
 namespace newsboat {
 
@@ -35,12 +36,12 @@ public:
 	std::string id() const override
 	{
 		return (type == SelectionType::TAG) ? "tagselection"
-						     : "filterselection";
+			: "filterselection";
 	}
 	std::string title() override;
 
 private:
-	void process_operation(Operation op,
+	bool process_operation(Operation op,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) override;
 	bool quit;
@@ -48,7 +49,14 @@ private:
 	std::string value;
 	std::vector<std::string> tags;
 	std::vector<FilterNameExprPair> filters;
-	ConfigContainer* cfg;
+
+	std::string format_line(const std::string& selecttag_format,
+		const std::string& tag,
+		unsigned int pos,
+		unsigned int width);
+	void update_heading();
+
+	ListWidget tags_list;
 };
 
 } // namespace newsboat

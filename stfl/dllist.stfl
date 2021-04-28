@@ -1,21 +1,24 @@
 vbox
   @style_normal[background]:
   @info#style_normal[info]:bg=blue,fg=yellow,attr=bold
-  @bind_up[bind_up]:**
-  @bind_down[bind_down]:**
-  @bind_page_up[bind_page_up]:**
-  @bind_page_down[bind_page_down]:**
-  @bind_home[bind_home]:**
-  @bind_end[bind_end]:**
+  @bind_up[bind_up]:
+  @bind_down[bind_down]:
+  @bind_page_up[bind_page_up]:
+  @bind_page_down[bind_page_down]:
+  @bind_home[bind_home]:
+  @bind_end[bind_end]:
+  @on_TAB:"TAB"
   label#info[title]
     text[head]:"Queue"
     .expand:h
+    .display[showtitle]:1
   !list[dls]
     style_normal[listnormal]:
     style_focus[listfocus]:fg=yellow,bg=blue,attr=bold
     .expand:vh
-    pos_name[dlposname]:
-    pos[dlpos]:0
+    richtext:1
+    pos[dls_pos]:0
+    offset[dls_offset]:0
   vbox[hints]
     .expand:0
     .display[showhint]:1

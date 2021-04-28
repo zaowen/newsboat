@@ -2,6 +2,7 @@
 #define NEWSBOAT_DIALOGSFORMACTION_H_
 
 #include "formaction.h"
+#include "listwidget.h"
 
 namespace newsboat {
 
@@ -20,11 +21,12 @@ public:
 	void handle_cmdline(const std::string& cmd) override;
 
 private:
-	void process_operation(Operation op,
+	bool process_operation(Operation op,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) override;
-	bool update_list;
-	ConfigContainer* cfg;
+	void update_heading();
+
+	ListWidget dialogs_list;
 };
 
 } // namespace newsboat

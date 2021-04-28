@@ -1,39 +1,42 @@
 #include "opml.h"
 
 #include <libxml/xmlsave.h>
-#include "cache.h"
-#include "fileurlreader.h"
 
 #include "3rd-party/catch.hpp"
-#include "test-helpers.h"
+#include "cache.h"
+#include "fileurlreader.h"
+#include "rssfeed.h"
+#include "test-helpers/misc.h"
+#include "test-helpers/tempfile.h"
 
 using namespace newsboat;
 
-TEST_CASE("generate_opml creates an XML document with feed URLs in OPML format",
-		"[Opml]")
+TEST_CASE("opml::generate creates an XML document with feed URLs in OPML format",
+	"[Opml]")
 {
 	const auto check =
 		[]
 		(const FeedContainer& feedcontainer)
-		-> std::string
-		{
-			xmlDocPtr opml = opml::generate(feedcontainer);
+	-> std::string {
+		xmlDocPtr opml = opml::generate(feedcontainer);
 
-			xmlBufferPtr buffer = xmlBufferCreate();
+		xmlBufferPtr buffer = xmlBufferCreate();
 
-			xmlSaveCtxtPtr context = xmlSaveToBuffer(buffer, nullptr, 0);
-			xmlSaveDoc(context, opml);
-			xmlSaveClose(context);
+		xmlSaveCtxtPtr context = xmlSaveToBuffer(buffer, nullptr, 0);
+		xmlSaveDoc(context, opml);
+		xmlSaveClose(context);
 
-			const std::string opmlText(
-					reinterpret_cast<char*>(buffer->content),
-					buffer->use);
+		xmlFreeDoc(opml);
 
-			xmlBufferFree(buffer);
-			buffer = nullptr;
+		const std::string opmlText(
+			reinterpret_cast<char*>(buffer->content),
+			buffer->use);
 
-			return opmlText;
-		};
+		xmlBufferFree(buffer);
+		buffer = nullptr;
+
+		return opmlText;
+	};
 
 	SECTION("No feeds") {
 		FeedContainer feeds;
@@ -41,7 +44,7 @@ TEST_CASE("generate_opml creates an XML document with feed URLs in OPML format",
 		const std::string expectedOpmlText(
 			"<?xml version=\"1.0\"?>\n"
 			"<opml version=\"1.0\">"
-			"<head><title>newsboat - Exported Feeds</title></head>"
+			"<head><title>Newsboat - Exported Feeds</title></head>"
 			"<body/></opml>\n");
 
 		REQUIRE(check(feeds) == expectedOpmlText);
@@ -53,31 +56,29 @@ TEST_CASE("generate_opml creates an XML document with feed URLs in OPML format",
 		FeedContainer feeds;
 
 		std::shared_ptr<RssFeed> feed =
-			std::make_shared<RssFeed>(&rsscache);
+			std::make_shared<RssFeed>(&rsscache, "https://example.com/feed1.xml");
 		feed->set_title("Feed 1");
 		feed->set_link("https://example.com/feed1/");
-		feed->set_rssurl("https://example.com/feed1.xml");
 		feeds.add_feed(std::move(feed));
 
-		feed = std::make_shared<RssFeed>(&rsscache);
+		feed = std::make_shared<RssFeed>(&rsscache, "https://example.com/feed2.xml");
 		feed->set_title("Feed 2");
 		feed->set_link("https://example.com/feed2/");
-		feed->set_rssurl("https://example.com/feed2.xml");
 		feeds.add_feed(std::move(feed));
 
 		const std::string expectedOpmlText(
 			"<?xml version=\"1.0\"?>\n"
 			"<opml version=\"1.0\">"
-			"<head><title>newsboat - Exported Feeds</title></head>"
+			"<head><title>Newsboat - Exported Feeds</title></head>"
 			"<body>"
 			"<outline type=\"rss\" "
-				"xmlUrl=\"https://example.com/feed1.xml\" "
-				"htmlUrl=\"https://example.com/feed1/\" "
-				"title=\"Feed 1\"/>"
+			"xmlUrl=\"https://example.com/feed1.xml\" "
+			"htmlUrl=\"https://example.com/feed1/\" "
+			"title=\"Feed 1\"/>"
 			"<outline type=\"rss\" "
-				"xmlUrl=\"https://example.com/feed2.xml\" "
-				"htmlUrl=\"https://example.com/feed2/\" "
-				"title=\"Feed 2\"/>"
+			"xmlUrl=\"https://example.com/feed2.xml\" "
+			"htmlUrl=\"https://example.com/feed2/\" "
+			"title=\"Feed 2\"/>"
 			"</body>"
 			"</opml>\n");
 
@@ -89,31 +90,18 @@ TEST_CASE("import() populates UrlReader with URLs from the OPML file", "[Opml]")
 {
 	TestHelpers::TempFile urlsFile;
 
-	std::ifstream urlsExampleFile;
-	urlsExampleFile.open("data/test-urls.txt");
-	REQUIRE(urlsExampleFile.is_open());
-
-	std::ofstream urlsFileStream;
-	urlsFileStream.open(urlsFile.getPath());
-	REQUIRE(urlsFileStream.is_open());
-
-	for (std::string line; std::getline(urlsExampleFile, line); ) {
-		urlsFileStream << line << '\n';
-	}
-
-	urlsExampleFile.close();
-	urlsFileStream.close();
+	TestHelpers::copy_file("data/test-urls.txt", urlsFile.get_path());
 
 	using URL = std::string;
 	using Tag = std::string;
 	using Tags = std::vector<Tag>;
 	const std::map<URL, Tags> testUrls {
-		{"http://test1.url.cc/feed.xml", {"tag1", "tag2"}},
+		{"http://test1.url.cc/feed.xml", {"~title", "tag1", "tag2"}},
 		{"http://anotherfeed.com/", {}},
-		{"http://onemorefeed.at/feed/", {"tag1", "tag3"}}
+		{"http://onemorefeed.at/feed/", {"tag1", "~another title", "tag3"}}
 	};
 
-	FileUrlReader urlcfg(urlsFile.getPath());
+	FileUrlReader urlcfg(urlsFile.get_path());
 	urlcfg.reload();
 
 	REQUIRE(urlcfg.get_urls().size() == testUrls.size());
@@ -128,9 +116,10 @@ TEST_CASE("import() populates UrlReader with URLs from the OPML file", "[Opml]")
 		REQUIRE(tags == entry->second);
 	}
 
-	const std::string cwd(::getcwd(nullptr, 0));
 	REQUIRE_NOTHROW(
-			opml::import("file://" + cwd + "/data/example.opml", &urlcfg));
+		opml::import(
+			"file://" + utils::getcwd() + "/data/example.opml",
+			urlcfg));
 
 	const std::map<URL, Tags> opmlUrls {
 		{"https://example.com/feed.xml", {}},
@@ -160,16 +149,17 @@ TEST_CASE("import() populates UrlReader with URLs from the OPML file", "[Opml]")
 }
 
 TEST_CASE("import() turns URLs that start with a pipe symbol (\"|\") "
-		"into `exec:` URLs (Liferea convention)", "[Opml]")
+	"into `exec:` URLs (Liferea convention)", "[Opml]")
 {
 	TestHelpers::TempFile urlsFile;
 
-	FileUrlReader urlcfg(urlsFile.getPath());
+	FileUrlReader urlcfg(urlsFile.get_path());
 	urlcfg.reload();
 
-	const std::string cwd(::getcwd(nullptr, 0));
 	REQUIRE_NOTHROW(
-			opml::import("file://" + cwd + "/data/piped.opml", &urlcfg));
+		opml::import(
+			"file://" + utils::getcwd() + "/data/piped.opml",
+			urlcfg));
 
 	using URL = std::string;
 	using Tag = std::string;
@@ -193,17 +183,18 @@ TEST_CASE("import() turns URLs that start with a pipe symbol (\"|\") "
 }
 
 TEST_CASE("import() turns \"filtercmd\" attribute into a `filter:` URL "
-		"(appears to be Liferea convention)",
-		"[Opml]")
+	"(appears to be Liferea convention)",
+	"[Opml]")
 {
 	TestHelpers::TempFile urlsFile;
 
-	FileUrlReader urlcfg(urlsFile.getPath());
+	FileUrlReader urlcfg(urlsFile.get_path());
 	urlcfg.reload();
 
-	const std::string cwd(::getcwd(nullptr, 0));
 	REQUIRE_NOTHROW(
-			opml::import("file://" + cwd + "/data/filtered.opml", &urlcfg));
+		opml::import(
+			"file://" + utils::getcwd() + "/data/filtered.opml",
+			urlcfg));
 
 	using URL = std::string;
 	using Tag = std::string;
@@ -227,35 +218,22 @@ TEST_CASE("import() turns \"filtercmd\" attribute into a `filter:` URL "
 }
 
 TEST_CASE("import() skips URLs that are already present in UrlReader",
-		"[Opml]")
+	"[Opml]")
 {
 	TestHelpers::TempFile urlsFile;
 
-	std::ifstream urlsExampleFile;
-	urlsExampleFile.open("data/test-urls.txt");
-	REQUIRE(urlsExampleFile.is_open());
-
-	std::ofstream urlsFileStream;
-	urlsFileStream.open(urlsFile.getPath());
-	REQUIRE(urlsFileStream.is_open());
-
-	for (std::string line; std::getline(urlsExampleFile, line); ) {
-		urlsFileStream << line << '\n';
-	}
-
-	urlsExampleFile.close();
-	urlsFileStream.close();
+	TestHelpers::copy_file("data/test-urls.txt", urlsFile.get_path());
 
 	using URL = std::string;
 	using Tag = std::string;
 	using Tags = std::vector<Tag>;
 	const std::map<URL, Tags> testUrls {
-		{"http://test1.url.cc/feed.xml", {"tag1", "tag2"}},
+		{"http://test1.url.cc/feed.xml", {"~title", "tag1", "tag2"}},
 		{"http://anotherfeed.com/", {}},
-		{"http://onemorefeed.at/feed/", {"tag1", "tag3"}}
+		{"http://onemorefeed.at/feed/", {"tag1", "~another title", "tag3"}}
 	};
 
-	FileUrlReader urlcfg(urlsFile.getPath());
+	FileUrlReader urlcfg(urlsFile.get_path());
 	urlcfg.reload();
 
 	REQUIRE(urlcfg.get_urls().size() == testUrls.size());
@@ -270,9 +248,10 @@ TEST_CASE("import() skips URLs that are already present in UrlReader",
 		REQUIRE(tags == entry->second);
 	}
 
-	const std::string cwd(::getcwd(nullptr, 0));
 	REQUIRE_NOTHROW(
-			opml::import("file://" + cwd + "/data/test-urls+.opml", &urlcfg));
+		opml::import(
+			"file://" + utils::getcwd() + "/data/test-urls+.opml",
+			urlcfg));
 
 	const std::map<URL, Tags> opmlUrls {
 		{"https://example.com/another_feed.atom", {}},

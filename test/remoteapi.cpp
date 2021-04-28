@@ -4,6 +4,8 @@
 
 #include "3rd-party/catch.hpp"
 
+#include "configparser.h"
+
 using namespace newsboat;
 
 /*
@@ -58,12 +60,14 @@ TEST_CASE("get_credentials() returns the users name and password",
 	ConfigContainer cfg;
 	ConfigParser cfgparser;
 	cfg.register_commands(cfgparser);
-	cfgparser.parse("data/test-config-credentials.txt");
+	cfgparser.parse_file("data/test-config-credentials.txt");
 	std::unique_ptr<test_api> api(new test_api(&cfg));
 	REQUIRE(api->get_user("ttrss", "") == "ttrss-user");
 	REQUIRE(api->get_pass("ttrss", "") == "my-birthday");
 	REQUIRE(api->get_pass("ocnews", "") == "dadada");
 	REQUIRE(api->get_pass("oldreader", "") == "123456");
+	REQUIRE(api->get_user("miniflux", "") == "miniflux-user");
+	REQUIRE(api->get_pass("miniflux", "") == "securepassw0rd");
 	// test cases that would raise a prompt and ask for username or password
 	// can not be covered at the moment and would require a redesign of this
 	// method with a sole purpose to make it testable.
@@ -79,7 +83,7 @@ TEST_CASE("read_password() returns the first line of the file", "[RemoteApi]")
 {
 	REQUIRE(RemoteApi::read_password("/dev/null") == "");
 	REQUIRE_NOTHROW(RemoteApi::read_password(
-		"a-passwordfile-that-is-guaranteed-to-not-exist.txt"));
+			"a-passwordfile-that-is-guaranteed-to-not-exist.txt"));
 	REQUIRE(RemoteApi::read_password(
 			"a-passwordfile-that-is-guaranteed-to-not-exist.txt") ==
 		"");
@@ -100,7 +104,7 @@ TEST_CASE("eval_password() returns the first line of command's output",
 	REQUIRE(RemoteApi::eval_password("echo ' aaa \naaa'") == " aaa ");
 	REQUIRE(RemoteApi::eval_password("echo '\naaa'") == "");
 	REQUIRE_NOTHROW(RemoteApi::eval_password(
-		"a-program-that-is-guaranteed-to-not-exists"));
+			"a-program-that-is-guaranteed-to-not-exists"));
 	REQUIRE(RemoteApi::eval_password(
 			"a-program-that-is-guaranteed-to-not-exists") == "");
 	REQUIRE_NOTHROW(

@@ -29,12 +29,13 @@ public:
 	virtual void add_custom_headers(curl_slist** custom_headers) = 0;
 	virtual bool mark_all_read(const std::string& feedurl) = 0;
 	virtual bool mark_article_read(const std::string& guid, bool read) = 0;
+	virtual bool mark_articles_read(const std::vector<std::string>& guids);
 	virtual bool update_article_flags(const std::string& oldflags,
 		const std::string& newflags,
 		const std::string& guid) = 0;
 	static const std::string read_password(const std::string& file);
 	static const std::string eval_password(const std::string& cmd);
-	// TODO
+
 protected:
 	ConfigContainer* cfg;
 	Credentials get_credentials(const std::string& scope,

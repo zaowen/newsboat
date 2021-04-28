@@ -4,15 +4,15 @@
 #include <libxml/tree.h>
 
 #include "feedcontainer.h"
-#include "urlreader.h"
+#include "fileurlreader.h"
 
 namespace newsboat {
 
 namespace opml {
-	xmlDocPtr generate(const FeedContainer& feedcontainer);
-	bool import(
-			const std::string& filename,
-			UrlReader* urlcfg);
+xmlDocPtr generate(const FeedContainer& feedcontainer);
+nonstd::optional<std::string> import(
+	const std::string& filename,
+	FileUrlReader& urlcfg);
 }
 
 } // namespace newsboat

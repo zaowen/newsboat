@@ -1,0 +1,10 @@
+A podcast is a media file distributed over the internet using syndication feeds
+such as RSS, for later playback on portable players or computers.
+Newsboat supports downloading, saving and streaming podcasts, though an external
+media player is needed for playback. This support differs a bit from other
+podcast aggregators or "podcatchers" in how it is done.
+
+Podcast content is transported in RSS feeds via special tags called
+"enclosures". Newsboat recognizes these enclosures and stores the relevant
+information for every podcast item it finds in an RSS feed. Since version 2.0,
+it also recognizes and handles the Yahoo Media RSS extensions.

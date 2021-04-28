@@ -1,15 +1,18 @@
 #include "opmlurlreader.h"
 
-#include <unistd.h>
+#include <fstream>
 #include <map>
+#include <unistd.h>
 
 #include "3rd-party/catch.hpp"
-#include "test-helpers.h"
+#include "test-helpers/misc.h"
+#include "test-helpers/tempfile.h"
+#include "utils.h"
 
 using namespace newsboat;
 
 TEST_CASE("OPML URL reader gets the path to input file from \"opml-url\" "
-		"setting", "[OpmlUrlReader]")
+	"setting", "[OpmlUrlReader]")
 {
 	ConfigContainer cfg;
 	OpmlUrlReader reader(&cfg);
@@ -26,12 +29,12 @@ TEST_CASE("OPML URL reader gets the path to input file from \"opml-url\" "
 }
 
 TEST_CASE("OpmlUrlReader::reload() reads URLs and tags from an OPML file",
-		"[OpmlUrlReader]")
+	"[OpmlUrlReader]")
 {
-	const std::string cwd(::getcwd(nullptr, 0));
-
 	ConfigContainer cfg;
-	cfg.set_configvalue("opml-url", "file://" + cwd + "/data/example.opml");
+	cfg.set_configvalue(
+		"opml-url",
+		"file://" + utils::getcwd() + "/data/example.opml");
 
 	OpmlUrlReader reader(&cfg);
 
@@ -65,8 +68,8 @@ TEST_CASE("OpmlUrlReader::reload() reads URLs and tags from an OPML file",
 	std::set<Tag> expected_tags;
 	for (const auto& entry : expected) {
 		expected_tags.insert(
-				entry.second.cbegin(),
-				entry.second.cend());
+			entry.second.cbegin(),
+			entry.second.cend());
 	}
 	std::set<Tag> tags;
 	const auto alltags = reader.get_alltags();
@@ -75,15 +78,15 @@ TEST_CASE("OpmlUrlReader::reload() reads URLs and tags from an OPML file",
 }
 
 TEST_CASE("OpmlUrlReader::reload() loads URLs from multiple sources",
-		"[OpmlUrlReader]")
+	"[OpmlUrlReader]")
 {
-	const std::string cwd(::getcwd(nullptr, 0));
+	const auto cwd = utils::getcwd();
 
 	ConfigContainer cfg;
 	cfg.set_configvalue("opml-url",
-			"file://" + cwd + "/data/example.opml"
-			+ " "
-			+ "file://" + cwd + "/data/example2.opml");
+		"file://" + cwd + "/data/example.opml"
+		+ " "
+		+ "file://" + cwd + "/data/example2.opml");
 
 	OpmlUrlReader reader(&cfg);
 
@@ -124,8 +127,8 @@ TEST_CASE("OpmlUrlReader::reload() loads URLs from multiple sources",
 	std::set<Tag> expected_tags;
 	for (const auto& entry : expected) {
 		expected_tags.insert(
-				entry.second.cbegin(),
-				entry.second.cend());
+			entry.second.cbegin(),
+			entry.second.cend());
 	}
 	std::set<Tag> tags;
 	const auto alltags = reader.get_alltags();
@@ -134,19 +137,19 @@ TEST_CASE("OpmlUrlReader::reload() loads URLs from multiple sources",
 }
 
 TEST_CASE("OpmlUrlReader::reload() skips things that can't be parsed",
-		"[OpmlUrlReader]")
+	"[OpmlUrlReader]")
 {
-	const std::string cwd(::getcwd(nullptr, 0));
+	const auto cwd = utils::getcwd();
 
 	ConfigContainer cfg;
 	cfg.set_configvalue("opml-url",
-			"file://" + cwd + "/data/example.opml"
-			+ " "
-			+ "file:///dev/null" // empty file
-			+ " "
-			+ "file://" + cwd + "/data/guaranteed-not-to-exist.xml"
-			+ " "
-			+ "file://" + cwd + "/data/example2.opml");
+		"file://" + cwd + "/data/example.opml"
+		+ " "
+		+ "file:///dev/null" // empty file
+		+ " "
+		+ "file://" + cwd + "/data/guaranteed-not-to-exist.xml"
+		+ " "
+		+ "file://" + cwd + "/data/example2.opml");
 
 	OpmlUrlReader reader(&cfg);
 
@@ -187,55 +190,11 @@ TEST_CASE("OpmlUrlReader::reload() skips things that can't be parsed",
 	std::set<Tag> expected_tags;
 	for (const auto& entry : expected) {
 		expected_tags.insert(
-				entry.second.cbegin(),
-				entry.second.cend());
+			entry.second.cbegin(),
+			entry.second.cend());
 	}
 	std::set<Tag> tags;
 	const auto alltags = reader.get_alltags();
 	tags.insert(alltags.cbegin(), alltags.cend());
 	REQUIRE(tags == expected_tags);
-}
-
-TEST_CASE("OpmlUrlReader::write_config() doesn't change the input file",
-		"[OpmlUrlReader]")
-{
-	const std::string testDataPath("data/example.opml");
-
-	TestHelpers::TempFile urlsFile;
-
-	std::ofstream urlsFileStream;
-	urlsFileStream.open(urlsFile.getPath());
-	REQUIRE(urlsFileStream.is_open());
-
-	std::ifstream testData;
-	testData.open(testDataPath);
-	REQUIRE(testData.is_open());
-
-	for (std::string line; std::getline(testData, line); ) {
-		urlsFileStream << line << '\n';
-	}
-
-	urlsFileStream.close();
-	testData.close();
-
-	ConfigContainer cfg;
-	cfg.set_configvalue("opml-url", "file://" + urlsFile.getPath());
-
-	OpmlUrlReader u(&cfg);
-	REQUIRE_NOTHROW(u.reload());
-
-	const std::string sentry("wasn't touched by OpmlUrlReader at all");
-	urlsFileStream.open(urlsFile.getPath());
-	REQUIRE(urlsFileStream.is_open());
-	urlsFileStream << sentry;
-	urlsFileStream.close();
-
-	REQUIRE_NOTHROW(u.write_config());
-
-	std::ifstream urlsFileReadStream;
-	urlsFileReadStream.open(urlsFile.getPath());
-	REQUIRE(urlsFileReadStream.is_open());
-	std::string line;
-	std::getline(urlsFileReadStream, line);
-	REQUIRE(line == sentry);
 }

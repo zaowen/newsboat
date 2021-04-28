@@ -1,16 +1,18 @@
 #ifndef NEWSBOAT_FORMACTION_H_
 #define NEWSBOAT_FORMACTION_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "history.h"
 #include "keymap.h"
-#include "rss.h"
 #include "stflpp.h"
 
 namespace newsboat {
 
+class ConfigContainer;
+class RssFeed;
 class View;
 
 struct KeyMapHintEntry {
@@ -26,7 +28,6 @@ public:
 	virtual ~FormAction();
 	virtual void prepare() = 0;
 	virtual void init() = 0;
-	std::shared_ptr<Stfl::Form> get_form();
 	virtual void set_redraw(bool b)
 	{
 		do_redraw = b;
@@ -36,11 +37,17 @@ public:
 
 	virtual std::string id() const = 0;
 
-	virtual std::string get_value(const std::string& value);
+	std::string get_value(const std::string& name);
+	void set_value(const std::string& name, const std::string& value);
+
+	void draw_form();
+	std::string draw_form_wait_for_event(unsigned int timeout);
+	void recalculate_widget_dimensions();
 
 	virtual void handle_cmdline(const std::string& cmd);
+	bool handle_single_argument_set(std::string argument);
 
-	void process_op(Operation op,
+	bool process_op(Operation op,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr);
 
@@ -48,12 +55,10 @@ public:
 
 	void start_cmdline(std::string default_value = "");
 
-	virtual void recalculate_form();
-
 	std::string get_qna_response(unsigned int i)
 	{
 		return (qna_responses.size() >= (i + 1)) ? qna_responses[i]
-							 : "";
+			: "";
 	}
 	void start_qna(const std::vector<QnaPair>& prompts,
 		Operation finish_op,
@@ -85,7 +90,7 @@ public:
 		const std::string& feed_title);
 
 protected:
-	virtual void process_operation(Operation op,
+	virtual bool process_operation(Operation op,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) = 0;
 	virtual void set_keymap_hints();
@@ -94,11 +99,10 @@ protected:
 		const std::string& default_url,
 		const std::string& default_desc,
 		const std::string& default_feed_title);
-	void open_unread_items_in_browser(std::shared_ptr<RssFeed> feed,
-		bool markread);
 
 	View* v;
-	std::shared_ptr<Stfl::Form> f;
+	ConfigContainer* cfg;
+	Stfl::Form f;
 	bool do_redraw;
 
 	std::vector<std::string> qna_responses;
@@ -115,7 +119,6 @@ private:
 	std::vector<QnaPair> qna_prompts;
 	Operation finish_operation;
 	History* qna_history;
-	ConfigContainer* cfg;
 	std::shared_ptr<FormAction> parent_formaction;
 };
 

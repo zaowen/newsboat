@@ -1,6 +1,9 @@
 #ifndef NEWSBOAT_FEEDLISTFORMACTION_H_
 #define NEWSBOAT_FEEDLISTFORMACTION_H_
 
+#include "3rd-party/optional.hpp"
+
+#include "configcontainer.h"
 #include "history.h"
 #include "listformaction.h"
 #include "matcher.h"
@@ -16,23 +19,16 @@ public:
 	FeedListFormAction(View*,
 		std::string formstr,
 		Cache* cc,
-		FilterContainer* f,
-		ConfigContainer* cfg);
+		FilterContainer& f,
+		ConfigContainer* cfg,
+		RegexManager& r);
 	~FeedListFormAction() override;
 	void prepare() override;
 	void init() override;
 	void set_feedlist(std::vector<std::shared_ptr<RssFeed>>& feeds);
 	void update_visible_feeds(std::vector<std::shared_ptr<RssFeed>>& feeds);
-	void set_tags(const std::vector<std::string>& t);
 	KeyMapHintEntry* get_keymap_hint() override;
 	std::shared_ptr<RssFeed> get_feed();
-
-	void set_redraw(bool b) override
-	{
-		FormAction::set_redraw(b);
-		apply_filter =
-			!(cfg->get_configvalue_as_bool("show-read-feeds"));
-	}
 
 	std::string id() const override
 	{
@@ -52,13 +48,20 @@ public:
 
 	void mark_pos_if_visible(unsigned int pos);
 
-	void set_regexmanager(RegexManager* r);
-
 private:
+	void register_format_styles();
+
+	void update_form_title(unsigned int width);
+
+	unsigned int count_unread_feeds();
+	unsigned int count_unread_articles();
+
 	int get_pos(unsigned int realidx);
-	void process_operation(Operation op,
+	bool process_operation(Operation op,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) override;
+
+	bool open_position_in_browser(unsigned int pos, bool interactive) const;
 
 	void goto_feed(const std::string& str);
 
@@ -79,33 +82,24 @@ private:
 		unsigned int width);
 
 	bool zero_feedpos;
-	unsigned int feeds_shown;
-	bool quit;
 	std::vector<FeedPtrPosPair> visible_feeds;
 	std::string tag;
-	std::vector<std::string> tags;
 
-	Matcher m;
+	Matcher matcher;
 	bool apply_filter;
 
 	History filterhistory;
 
-	std::shared_ptr<RssFeed> search_dummy_feed;
-
 	unsigned int filterpos;
 	bool set_filterpos;
 
-	RegexManager* rxman;
+	RegexManager& rxman;
 
-	unsigned int old_width;
+	FilterContainer& filters;
 
-	unsigned int unread_feeds;
-	unsigned int total_feeds;
+	nonstd::optional<FeedSortStrategy> old_sort_strategy;
 
-	FilterContainer* filters;
-	ConfigContainer* cfg;
-
-	std::string old_sort_order;
+	Cache* cache;
 };
 
 } // namespace newsboat

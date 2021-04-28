@@ -2,30 +2,11 @@
 #define NEWSBOAT_CONFIG_H_
 
 #define PACKAGE				"newsboat"
-#define PROGRAM_NAME			PACKAGE
-
-#define STRINGIFY_HELPER(str) #str
-#define STRINGIFY(str) STRINGIFY_HELPER(str)
-
-#define NEWSBOAT_VERSION_MAJOR 2
-#define NEWSBOAT_VERSION_MINOR 13
-#define NEWSBOAT_VERSION_PATCH 0
-#define REAL_VERSION \
-	STRINGIFY(NEWSBOAT_VERSION_MAJOR) \
-	"." \
-	STRINGIFY(NEWSBOAT_VERSION_MINOR) \
-	"." \
-	STRINGIFY(NEWSBOAT_VERSION_PATCH)
-
-#ifdef GIT_HASH
-#define PROGRAM_VERSION			GIT_HASH
-#else
-#define PROGRAM_VERSION			REAL_VERSION
-#endif
+#define PROGRAM_NAME			"Newsboat"
 
 #define PROGRAM_URL			"https://newsboat.org/"
 
-#define NEWSBEUTER_PATH_SEP			"/"
+#define NEWSBEUTER_PATH_SEP			'/'
 #define NEWSBEUTER_CONFIG_SUBDIR	".newsbeuter"
 #define NEWSBEUTER_SUBDIR_XDG		"newsbeuter"
 #define NEWSBOAT_CONFIG_SUBDIR	".newsboat"
@@ -45,6 +26,12 @@
 #endif
 
 #define _s(msg) std::string(gettext(msg))
+
+// Use this macro instead of `_` and `_s` if you want the string to get extracted
+// by xgettext, but don't want to call gettext(). This is useful for
+// initializers of statically-allocated global objects, where gettext() calls
+// operate with default (C) locale and are useless.
+#define translatable(msg) msg
 
 /* #define NDEBUG */ // only enable this #define if you want to disable all debug logging.
 

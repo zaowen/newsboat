@@ -1,6 +1,8 @@
 #ifndef NEWSBOAT_FSLOCK_H_
 #define NEWSBOAT_FSLOCK_H_
 
+#include "fslock.rs.h"
+
 #include <string>
 #include <sys/types.h>
 
@@ -8,15 +10,14 @@ namespace newsboat {
 
 class FsLock {
 public:
-	FsLock() = default;
-	~FsLock();
+	FsLock();
+	~FsLock() = default;
 
-	bool try_lock(const std::string& lock_file, pid_t& pid);
+	bool try_lock(const std::string& lock_file, pid_t& pid,
+		std::string& error_message);
 
 private:
-	std::string lock_filepath;
-	int fd = -1;
-	bool locked = false;
+	rust::Box<fslock::bridged::FsLock> rs_object;
 };
 
 } // namespace newsboat

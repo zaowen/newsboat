@@ -1,42 +1,36 @@
-#include "rssppinternal.h"
+#include "rss09xparser.h"
 
 #include <cstring>
 
 #include "config.h"
+#include "exception.h"
+#include "feed.h"
+#include "item.h"
+#include "medianamespace.h"
+#include "rsspp_uris.h"
 #include "utils.h"
+#include "xmlutilities.h"
 
 using namespace newsboat;
 
 namespace rsspp {
 
-void Rss20Parser::parse_feed(Feed& f, xmlNode* rootNode)
-{
-	if (!rootNode)
-		throw Exception(_("XML root node is NULL"));
-
-	if (rootNode->ns) {
-		const char* ns = (const char*)rootNode->ns->href;
-		if (strcmp(ns, RSS20USERLAND_URI) == 0) {
-			this->ns = strdup(ns);
-		}
-	}
-
-	Rss09xParser::parse_feed(f, rootNode);
-}
-
 void Rss09xParser::parse_feed(Feed& f, xmlNode* rootNode)
 {
-	if (!rootNode)
+	if (!rootNode) {
 		throw Exception(_("XML root node is NULL"));
+	}
 
 	globalbase = get_prop(rootNode, "base", XML_URI);
 
 	xmlNode* channel = rootNode->children;
-	while (channel && strcmp((const char*)channel->name, "channel") != 0)
+	while (channel && strcmp((const char*)channel->name, "channel") != 0) {
 		channel = channel->next;
+	}
 
-	if (!channel)
+	if (!channel) {
 		throw Exception(_("no RSS channel found"));
+	}
 
 	for (xmlNode* node = channel->children; node != nullptr;
 		node = node->next) {
@@ -45,7 +39,7 @@ void Rss09xParser::parse_feed(Feed& f, xmlNode* rootNode)
 			f.title_type = "text";
 		} else if (node_is(node, "link", ns)) {
 			f.link = utils::absolute_url(
-				globalbase, get_content(node));
+					globalbase, get_content(node));
 		} else if (node_is(node, "description", ns)) {
 			f.description = get_content(node);
 		} else if (node_is(node, "language", ns)) {
@@ -65,8 +59,9 @@ Item Rss09xParser::parse_item(xmlNode* itemNode)
 	std::string dc_date;
 
 	std::string base = get_prop(itemNode, "base", XML_URI);
-	if (base.empty())
+	if (base.empty()) {
 		base = globalbase;
+	}
 
 	for (xmlNode* node = itemNode->children; node != nullptr;
 		node = node->next) {
@@ -77,9 +72,11 @@ Item Rss09xParser::parse_item(xmlNode* itemNode)
 			it.link = utils::absolute_url(base, get_content(node));
 		} else if (node_is(node, "description", ns)) {
 			it.base = get_prop(node, "base", XML_URI);
-			if (it.base.empty())
+			if (it.base.empty()) {
 				it.base = base;
+			}
 			it.description = get_content(node);
+			it.description_mime_type = "";
 		} else if (node_is(node, "encoded", CONTENT_URI)) {
 			it.content_encoded = get_content(node);
 		} else if (node_is(node, "summary", ITUNES_URI)) {
@@ -97,8 +94,8 @@ Item Rss09xParser::parse_item(xmlNode* itemNode)
 		} else if (node_is(node, "date", DC_URI)) {
 			dc_date = w3cdtf_to_rfc822(get_content(node));
 		} else if (node_is(node, "author", ns)) {
-			std::string authorfield = get_content(node);
-			if (authorfield[authorfield.length() - 1] == ')') {
+			const std::string authorfield = get_content(node);
+			if (authorfield.length() > 2 && authorfield.back() == ')') {
 				it.author_email =
 					utils::tokenize(authorfield, " ")[0];
 				unsigned int start, end;
@@ -108,7 +105,7 @@ Item Rss09xParser::parse_item(xmlNode* itemNode)
 					start--) {
 				}
 				it.author = authorfield.substr(
-					start + 1, end - start);
+						start + 1, end - start);
 			} else {
 				it.author_email = authorfield;
 				it.author = authorfield;
@@ -121,27 +118,8 @@ Item Rss09xParser::parse_item(xmlNode* itemNode)
 				it.enclosure_url = get_prop(node, "url");
 				it.enclosure_type = std::move(type);
 			}
-		} else if (node_is(node, "content", MEDIA_RSS_URI)) {
-			const std::string type = get_prop(node, "type");
-			if (utils::is_valid_podcast_type(type)) {
-				it.enclosure_url = get_prop(node, "url");
-				it.enclosure_type = std::move(type);
-			}
-		} else if (node_is(node, "group", MEDIA_RSS_URI)) {
-			for (xmlNode* mnode = node->children; mnode != nullptr;
-				mnode = mnode->next) {
-				if (node_is(mnode, "content", MEDIA_RSS_URI)) {
-					const std::string type =
-						get_prop(mnode, "type");
-					if (utils::is_valid_podcast_type(
-						    type)) {
-						it.enclosure_url =
-							get_prop(mnode, "url");
-						it.enclosure_type =
-							std::move(type);
-					}
-				}
-			}
+		} else if (is_media_node(node)) {
+			parse_media_node(node, it);
 		}
 	}
 

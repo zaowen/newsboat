@@ -1,7 +1,10 @@
-#include "oldreaderapi.h"
+#include "oldreaderurlreader.h"
 
+#include "configcontainer.h"
 #include "fileurlreader.h"
 #include "logger.h"
+#include "remoteapi.h"
+#include "utils.h"
 
 namespace newsboat {
 
@@ -15,11 +18,6 @@ OldReaderUrlReader::OldReaderUrlReader(ConfigContainer* c,
 }
 
 OldReaderUrlReader::~OldReaderUrlReader() {}
-
-void OldReaderUrlReader::write_config()
-{
-	// NOTHING
-}
 
 #define BROADCAST_FRIENDS_URL                                           \
 	"https://theoldreader.com/reader/atom/user/-/state/com.google/" \
@@ -38,7 +36,7 @@ void OldReaderUrlReader::write_config()
 		tags[(url)] = tmptags;        \
 	} while (0)
 
-void OldReaderUrlReader::reload()
+nonstd::optional<std::string> OldReaderUrlReader::reload()
 {
 	urls.clear();
 	tags.clear();
@@ -54,7 +52,11 @@ void OldReaderUrlReader::reload()
 	}
 
 	FileUrlReader ur(file);
-	ur.reload();
+	const auto error_message = ur.reload();
+	if (error_message.has_value()) {
+		LOG(Level::DEBUG, "Reloading failed: %s", error_message.value());
+		// Ignore errors for now: https://github.com/newsboat/newsboat/issues/1273
+	}
 
 	std::vector<std::string>& file_urls(ur.get_urls());
 	for (const auto& url : file_urls) {
@@ -78,6 +80,8 @@ void OldReaderUrlReader::reload()
 			alltags.insert(tag);
 		}
 	}
+
+	return {};
 }
 
 std::string OldReaderUrlReader::get_source()

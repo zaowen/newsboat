@@ -1,14 +1,18 @@
 #ifndef NEWSBOAT_CACHE_H_
 #define NEWSBOAT_CACHE_H_
 
+#include <memory>
 #include <mutex>
 #include <sqlite3.h>
 #include <unordered_set>
 
 #include "configcontainer.h"
-#include "rss.h"
 
 namespace newsboat {
+
+class RssFeed;
+class RssIgnores;
+class RssItem;
 
 struct SchemaVersion {
 	unsigned int major, minor;
@@ -47,11 +51,14 @@ public:
 		const std::string& feedurl);
 	void update_rssitem_unread_and_enqueued(RssItem* item,
 		const std::string& feedurl);
-	void cleanup_cache(std::vector<std::shared_ptr<RssFeed>>& feeds);
+	/// if requested, removes unreachable data stored in cache.
+	/// returns a count of unreachable feeds and items.
+	std::uint64_t cleanup_cache(std::vector<std::shared_ptr<RssFeed>> feeds,
+		bool always_clean = false);
 	void do_vacuum();
 	std::vector<std::shared_ptr<RssItem>> search_for_items(
-		const std::string& querystr,
-		const std::string& feedurl);
+			const std::string& querystr,
+			const std::string& feedurl);
 	std::unordered_set<std::string> search_in_items(
 		const std::string& querystr,
 		const std::unordered_set<std::string>& guids);
@@ -64,14 +71,12 @@ public:
 	void update_lastmodified(const std::string& uri,
 		time_t t,
 		const std::string& etag);
-	unsigned int get_unread_count();
 	void mark_item_deleted(const std::string& guid, bool b);
-	void mark_feed_items_deleted(const std::string& feedurl);
-	void remove_old_deleted_items(const std::string& rssurl,
-		const std::vector<std::string>& guids);
+	void remove_old_deleted_items(RssFeed* feed);
 	void mark_items_read_by_guid(const std::vector<std::string>& guids);
 	std::vector<std::string> get_read_item_guids();
 	void fetch_descriptions(RssFeed* feed);
+	std::string fetch_description(const RssItem& item);
 
 private:
 	SchemaVersion get_schema_version();
@@ -89,8 +94,8 @@ private:
 		const std::string& arg,
 		Args... args);
 	template<typename T, typename... Args>
-	std::string
-	prepare_query(const std::string& format, const T& arg, Args... args);
+	std::string prepare_query(const std::string& format, const T& arg,
+		Args... args);
 
 	void run_sql(const std::string& query,
 		int (*callback)(void*, int, char**, char**) = nullptr,

@@ -1,70 +1,111 @@
 #include "listformaction.h"
 
+#include "rssfeed.h"
 #include "view.h"
 
 namespace newsboat {
 
 ListFormAction::ListFormAction(View* v,
 	std::string formstr,
+	std::string list_name,
 	ConfigContainer* cfg)
 	: FormAction(v, formstr, cfg)
-	, cfg(cfg)
+	, list(list_name, FormAction::f, cfg->get_configvalue_as_int("scrolloff"))
 {
 }
 
-void ListFormAction::process_operation(Operation op,
+bool ListFormAction::process_operation(Operation op,
 	bool,
 	std::vector<std::string>*)
 {
 	switch (op) {
-	case OP_1:
+	case OP_CMD_START_1:
 		FormAction::start_cmdline("1");
 		break;
-	case OP_2:
+	case OP_CMD_START_2:
 		FormAction::start_cmdline("2");
 		break;
-	case OP_3:
+	case OP_CMD_START_3:
 		FormAction::start_cmdline("3");
 		break;
-	case OP_4:
+	case OP_CMD_START_4:
 		FormAction::start_cmdline("4");
 		break;
-	case OP_5:
+	case OP_CMD_START_5:
 		FormAction::start_cmdline("5");
 		break;
-	case OP_6:
+	case OP_CMD_START_6:
 		FormAction::start_cmdline("6");
 		break;
-	case OP_7:
+	case OP_CMD_START_7:
 		FormAction::start_cmdline("7");
 		break;
-	case OP_8:
+	case OP_CMD_START_8:
 		FormAction::start_cmdline("8");
 		break;
-	case OP_9:
+	case OP_CMD_START_9:
 		FormAction::start_cmdline("9");
+		break;
+
+	case OP_SK_UP:
+		list.move_up(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
+	case OP_SK_DOWN:
+		list.move_down(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
+	case OP_SK_HOME:
+		list.move_to_first();
+		break;
+	case OP_SK_END:
+		list.move_to_last();
+		break;
+	case OP_SK_PGUP:
+		list.move_page_up(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
+	case OP_SK_PGDOWN:
+		list.move_page_down(cfg->get_configvalue_as_bool("wrap-scroll"));
 		break;
 	default:
 		break;
 	}
+	return true;
 }
 
-void ListFormAction::open_unread_items_in_browser(std::shared_ptr<RssFeed> feed,
+nonstd::optional<std::uint8_t> ListFormAction::open_unread_items_in_browser(
+	std::shared_ptr<RssFeed> feed,
 	bool markread)
 {
 	int tabcount = 0;
+	nonstd::optional<std::uint8_t> return_value = 0;
+	std::vector<std::string> guids_of_read_articles;
 	for (const auto& item : feed->items()) {
 		if (tabcount <
 			cfg->get_configvalue_as_int("max-browser-tabs")) {
 			if (item->unread()) {
-				v->open_in_browser(item->link());
+				const bool interactive = true;
+				const auto exit_code = v->open_in_browser(item->link(), item->feedurl(),
+						interactive);
+				if (!exit_code.has_value() || *exit_code != 0) {
+					return_value = exit_code;
+					break;
+				}
+
 				tabcount += 1;
-				item->set_unread(!markread);
+				if (markread) {
+					item->set_unread(false);
+					guids_of_read_articles.push_back(item->guid());
+				}
 			}
 		} else {
 			break;
 		}
 	}
+
+	if (guids_of_read_articles.size() > 0) {
+		v->get_ctrl()->mark_all_read(guids_of_read_articles);
+	}
+
+	return return_value;
 }
 
 } // namespace newsboat

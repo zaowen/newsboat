@@ -5,13 +5,7 @@
 
 namespace newsboat {
 
-class Matchable {
-public:
-	Matchable();
-	virtual ~Matchable();
-	virtual bool has_attribute(const std::string& attribname) = 0;
-	virtual std::string get_attribute(const std::string& attribname) = 0;
-};
+class Matchable;
 
 class Matcher {
 public:
@@ -19,8 +13,15 @@ public:
 	explicit Matcher(const std::string& expr);
 	bool parse(const std::string& expr);
 	bool matches(Matchable* item);
-	const std::string& get_parse_error();
-	const std::string& get_expression();
+	std::string get_parse_error();
+	std::string get_expression();
+
+	/// Convert numerical prefix of the string to an `int`.
+	///
+	/// Return 0 if there is no numeric prefix. On underflow, return `int`'s
+	/// minimum. On overflow, return `int`'s maximum.
+	// This is made public so it can be tested. DON'T USE OUTSIDE OF MATCHER.
+	static int string_to_num(const std::string& number);
 
 private:
 	bool matches_r(expression* e, Matchable* item);

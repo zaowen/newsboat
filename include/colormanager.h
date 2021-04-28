@@ -1,10 +1,11 @@
 #ifndef NEWSBOAT_COLORMANAGER_H_
 #define NEWSBOAT_COLORMANAGER_H_
 
+#include <functional>
 #include <map>
 #include <vector>
 
-#include "configparser.h"
+#include "configactionhandler.h"
 
 namespace podboat {
 class PbView;
@@ -14,6 +15,14 @@ class View;
 
 namespace newsboat {
 
+class ConfigParser;
+
+struct TextStyle {
+	std::string fg_color;
+	std::string bg_color;
+	std::vector<std::string> attributes;
+};
+
 class ColorManager : public ConfigActionHandler {
 public:
 	ColorManager();
@@ -21,30 +30,16 @@ public:
 	void register_commands(ConfigParser& cfgparser);
 	void handle_action(const std::string& action,
 		const std::vector<std::string>& params) override;
-	void dump_config(std::vector<std::string>& config_output) override;
-	bool colors_loaded()
+	void dump_config(std::vector<std::string>& config_output) const override;
+	void apply_colors(std::function<void(const std::string&, const std::string&)>
+		stfl_value_setter) const;
+	std::map<std::string, TextStyle> get_styles() const
 	{
-		return colors_loaded_;
-	}
-	void set_pb_colors(podboat::PbView* v);
-	std::map<std::string, std::string>& get_fgcolors()
-	{
-		return fg_colors;
-	}
-	std::map<std::string, std::string>& get_bgcolors()
-	{
-		return bg_colors;
-	}
-	std::map<std::string, std::vector<std::string>>& get_attributes()
-	{
-		return attributes;
+		return element_styles;
 	}
 
 private:
-	bool colors_loaded_;
-	std::map<std::string, std::string> fg_colors;
-	std::map<std::string, std::string> bg_colors;
-	std::map<std::string, std::vector<std::string>> attributes;
+	std::map<std::string, TextStyle> element_styles;
 };
 
 } // namespace newsboat

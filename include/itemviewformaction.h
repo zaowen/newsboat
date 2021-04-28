@@ -4,12 +4,14 @@
 #include "formaction.h"
 #include "htmlrenderer.h"
 #include "regexmanager.h"
-#include "rss.h"
 #include "textformatter.h"
+#include "textviewwidget.h"
 
 namespace newsboat {
 
+class Cache;
 class ItemListFormAction;
+class RssItem;
 
 class ItemViewFormAction : public FormAction {
 public:
@@ -17,7 +19,8 @@ public:
 		std::shared_ptr<ItemListFormAction> il,
 		std::string formstr,
 		Cache* cc,
-		ConfigContainer* cfg);
+		ConfigContainer* cfg,
+		RegexManager& r);
 	~ItemViewFormAction() override;
 	void prepare() override;
 	void init() override;
@@ -47,14 +50,17 @@ public:
 		std::vector<LinkPair>& thelinks,
 		const std::string& url);
 
-	void set_regexmanager(RegexManager* r);
-
 	void update_percent();
 
 private:
-	void process_operation(Operation op,
+	void register_format_styles();
+
+	bool process_operation(Operation op,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) override;
+
+	bool open_link_in_browser(const std::string& link, bool interactive) const;
+
 	void update_head(const std::shared_ptr<RssItem>& item);
 	void set_head(const std::string& s,
 		const std::string& feedtitle,
@@ -69,15 +75,15 @@ private:
 
 	std::string guid;
 	std::shared_ptr<RssFeed> feed;
+	std::shared_ptr<RssItem> item;
 	bool show_source;
 	std::vector<LinkPair> links;
-	bool quit;
-	RegexManager* rxman;
+	RegexManager& rxman;
 	unsigned int num_lines;
 	std::shared_ptr<ItemListFormAction> itemlist;
 	bool in_search;
 	Cache* rsscache;
-	ConfigContainer* cfg;
+	TextviewWidget textview;
 };
 
 } // namespace newsboat

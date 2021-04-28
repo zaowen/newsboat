@@ -1,6 +1,7 @@
 #ifndef PODBOAT_DOWNLOAD_H_
 #define PODBOAT_DOWNLOAD_H_
 
+#include <functional>
 #include <string>
 
 namespace podboat {
@@ -17,11 +18,9 @@ enum class DlStatus {
 	PLAYED
 };
 
-class PbController;
-
 class Download {
 public:
-	explicit Download(PbController* c = 0);
+	explicit Download(std::function<void()> cb_require_view_update);
 	~Download();
 	double percents_finished() const;
 	const std::string status_text() const;
@@ -29,12 +28,17 @@ public:
 	{
 		return download_status;
 	}
+	const std::string& status_msg() const
+	{
+		return msg;
+	}
 	const std::string filename() const;
+	const std::string basename() const;
 	const std::string url() const;
 	void set_filename(const std::string& str);
 	void set_url(const std::string& url);
 	void set_progress(double downloaded, double total);
-	void set_status(DlStatus dls);
+	void set_status(DlStatus dls, const std::string& msg_ = {});
 	void set_kbps(double kbps);
 	double kbps() const;
 	void set_offset(unsigned long offset);
@@ -52,11 +56,12 @@ private:
 	std::string fn;
 	std::string url_;
 	DlStatus download_status;
-	float cursize;
-	float totalsize;
+	std::string msg;
+	double cursize;
+	double totalsize;
 	double curkbps;
 	unsigned long offs;
-	PbController* ctrl;
+	std::function<void()> cb_require_view_update;
 };
 
 } // namespace podboat

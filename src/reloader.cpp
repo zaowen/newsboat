@@ -1,18 +1,22 @@
 #include "reloader.h"
 
 #include <algorithm>
+#include <cinttypes>
 #include <iostream>
 #include <ncurses.h>
 #include <thread>
 
 #include "controller.h"
+#include "curlhandle.h"
+#include "dbexception.h"
 #include "downloadthread.h"
-#include "exceptions.h"
-#include "formatstring.h"
+#include "fmtstrformatter.h"
 #include "reloadrangethread.h"
 #include "reloadthread.h"
-#include "rss/rsspp.h"
+#include "rss/exception.h"
+#include "rssfeed.h"
 #include "rssparser.h"
+#include "scopemeasure.h"
 #include "utils.h"
 #include "view.h"
 
@@ -31,7 +35,7 @@ void Reloader::spawn_reloadthread()
 	t.detach();
 }
 
-void Reloader::start_reload_all_thread(std::vector<int>* indexes)
+void Reloader::start_reload_all_thread(const std::vector<int>& indexes)
 {
 	LOG(Level::INFO, "starting reload all thread");
 	std::thread t(DownloadThread(*this, indexes));
@@ -49,23 +53,34 @@ bool Reloader::trylock_reload_mutex()
 }
 
 void Reloader::reload(unsigned int pos,
-	unsigned int max,
+	bool show_progress,
 	bool unattended,
 	CurlHandle* easyhandle)
 {
-	LOG(Level::DEBUG, "Reloader::reload: pos = %u max = %u", pos, max);
-	if (pos < ctrl->get_feedcontainer()->feeds.size()) {
-		std::shared_ptr<RssFeed> oldfeed =
-			ctrl->get_feedcontainer()->feeds[pos];
-		std::string errmsg;
-		if (!unattended) {
-			ctrl->get_view()->set_status(
-				strprintf::fmt(_("%sLoading %s..."),
-					prepare_message(pos + 1, max),
-					utils::censor_url(oldfeed->rssurl())));
+	LOG(Level::DEBUG, "Reloader::reload: pos = %u", pos);
+	std::shared_ptr<RssFeed> oldfeed = ctrl->get_feedcontainer()->get_feed(pos);
+	if (oldfeed) {
+		// Query feed reloading should be handled by the calling functions
+		// (e.g.  Reloader::reload_all() calling View::prepare_query_feed())
+		if (oldfeed->is_query_feed()) {
+			LOG(Level::DEBUG, "Reloader::reload: skipping query feed");
+			return;
 		}
 
-		bool ignore_dl =
+		std::string errmsg;
+		std::shared_ptr<AutoDiscardMessage> message_lifetime;
+		if (!unattended) {
+			const auto max = ctrl->get_feedcontainer()->feeds_size();
+			const std::string progress = show_progress ?
+				strprintf::fmt("(%u/%u) ", pos + 1, max) :
+				"";
+			message_lifetime = ctrl->get_view()->get_statusline().show_message_until_finished(
+					strprintf::fmt(_("%sLoading %s..."),
+						progress,
+						utils::censor_url(oldfeed->rssurl())));
+		}
+
+		const bool ignore_dl =
 			(cfg->get_configvalue("ignore-mode") == "download");
 
 		RssParser parser(oldfeed->rssurl(),
@@ -76,59 +91,54 @@ void Reloader::reload(unsigned int pos,
 		parser.set_easyhandle(easyhandle);
 		LOG(Level::DEBUG, "Reloader::reload: created parser");
 		try {
+			const auto inner_message_lifetime = message_lifetime;
+			message_lifetime.reset();
 			oldfeed->set_status(DlStatus::DURING_DOWNLOAD);
 			std::shared_ptr<RssFeed> newfeed = parser.parse();
-			if (newfeed->total_item_count() > 0) {
+			if (newfeed != nullptr) {
 				ctrl->replace_feed(
 					oldfeed, newfeed, pos, unattended);
-			} else {
-				LOG(Level::DEBUG,
-					"Reloader::reload: feed is empty");
+				if (newfeed->total_item_count() == 0) {
+					LOG(Level::DEBUG,
+						"Reloader::reload: feed is empty");
+				}
 			}
 			oldfeed->set_status(DlStatus::SUCCESS);
-			ctrl->get_view()->set_status("");
 		} catch (const DbException& e) {
 			errmsg = strprintf::fmt(
-				_("Error while retrieving %s: %s"),
-				utils::censor_url(oldfeed->rssurl()),
-				e.what());
+					_("Error while retrieving %s: %s"),
+					utils::censor_url(oldfeed->rssurl()),
+					e.what());
 		} catch (const std::string& emsg) {
 			errmsg = strprintf::fmt(
-				_("Error while retrieving %s: %s"),
-				utils::censor_url(oldfeed->rssurl()),
-				emsg);
+					_("Error while retrieving %s: %s"),
+					utils::censor_url(oldfeed->rssurl()),
+					emsg);
 		} catch (rsspp::Exception& e) {
 			errmsg = strprintf::fmt(
-				_("Error while retrieving %s: %s"),
-				utils::censor_url(oldfeed->rssurl()),
-				e.what());
+					_("Error while retrieving %s: %s"),
+					utils::censor_url(oldfeed->rssurl()),
+					e.what());
 		}
-		if (errmsg != "") {
+		if (!errmsg.empty()) {
 			oldfeed->set_status(DlStatus::DL_ERROR);
-			ctrl->get_view()->set_status(errmsg);
+			ctrl->get_view()->get_statusline().show_error(errmsg);
 			LOG(Level::USERERROR, "%s", errmsg);
 		}
 	} else {
-		ctrl->get_view()->show_error(_("Error: invalid feed!"));
+		ctrl->get_view()->get_statusline().show_error(_("Error: invalid feed!"));
 	}
-}
-
-std::string Reloader::prepare_message(unsigned int pos, unsigned int max)
-{
-	if (max > 0) {
-		return strprintf::fmt("(%u/%u) ", pos, max);
-	}
-	return "";
 }
 
 void Reloader::reload_all(bool unattended)
 {
+	ScopeMeasure sm("Reloader::reload_all");
+
 	const auto unread_feeds =
 		ctrl->get_feedcontainer()->unread_feed_count();
 	const auto unread_articles =
 		ctrl->get_feedcontainer()->unread_item_count();
 	int num_threads = cfg->get_configvalue_as_int("reload-threads");
-	time_t t1, t2, dt;
 
 	ctrl->get_feedcontainer()->reset_feeds_status();
 	const auto num_feeds = ctrl->get_feedcontainer()->feeds_size();
@@ -138,29 +148,25 @@ void Reloader::reload_all(bool unattended)
 	const int max_threads = num_feeds;
 	num_threads = std::max(min_threads, std::min(num_threads, max_threads));
 
-	t1 = time(nullptr);
-
 	LOG(Level::DEBUG, "Reloader::reload_all: starting with reload all...");
 	if (num_threads == 1) {
-		reload_range(0, num_feeds - 1, num_feeds, unattended);
+		reload_range(0, num_feeds - 1, unattended);
 	} else {
 		std::vector<std::pair<unsigned int, unsigned int>> partitions =
-			utils::partition_indexes(0, num_feeds - 1, num_threads);
+				utils::partition_indexes(0, num_feeds - 1, num_threads);
 		std::vector<std::thread> threads;
 		LOG(Level::DEBUG,
 			"Reloader::reload_all: starting reload threads...");
 		for (int i = 0; i < num_threads - 1; i++) {
 			threads.push_back(std::thread(ReloadRangeThread(*this,
-				partitions[i].first,
-				partitions[i].second,
-				num_feeds,
-				unattended)));
+						partitions[i].first,
+						partitions[i].second,
+						unattended)));
 		}
 		LOG(Level::DEBUG,
 			"Reloader::reload_all: starting my own reload...");
 		reload_range(partitions[num_threads - 1].first,
 			partitions[num_threads - 1].second,
-			num_feeds,
 			unattended);
 		LOG(Level::DEBUG,
 			"Reloader::reload_all: joining other threads...");
@@ -171,40 +177,18 @@ void Reloader::reload_all(bool unattended)
 
 	// refresh query feeds (update and sort)
 	LOG(Level::DEBUG, "Reloader::reload_all: refresh query feeds");
-	for (const auto& feed : ctrl->get_feedcontainer()->feeds) {
-		ctrl->get_view()->prepare_query_feed(feed);
+	for (const auto& feed : ctrl->get_feedcontainer()->get_all_feeds()) {
+		if (feed->is_query_feed()) {
+			ctrl->get_view()->prepare_query_feed(feed);
+			feed->set_status(DlStatus::SUCCESS);
+		}
 	}
-	ctrl->get_view()->force_redraw();
 
 	ctrl->get_feedcontainer()->sort_feeds(cfg->get_feed_sort_strategy());
 	ctrl->update_feedlist();
+	ctrl->get_view()->force_redraw();
 
-	t2 = time(nullptr);
-	dt = t2 - t1;
-	LOG(Level::INFO, "Reloader::reload_all: reload took %d seconds", dt);
-
-	const auto unread_feeds2 =
-		ctrl->get_feedcontainer()->unread_feed_count();
-	const auto unread_articles2 =
-		ctrl->get_feedcontainer()->unread_item_count();
-	bool notify_always = cfg->get_configvalue_as_bool("notify-always");
-	if (notify_always || unread_feeds2 > unread_feeds ||
-		unread_articles2 > unread_articles) {
-		int article_count = unread_articles2 - unread_articles;
-		int feed_count = unread_feeds2 - unread_feeds;
-
-		LOG(Level::DEBUG, "unread article count: %d", article_count);
-		LOG(Level::DEBUG, "unread feed count: %d", feed_count);
-
-		FmtStrFormatter fmt;
-		fmt.register_fmt('f', std::to_string(unread_feeds2));
-		fmt.register_fmt('n', std::to_string(unread_articles2));
-		fmt.register_fmt('d',
-			std::to_string(article_count >= 0 ? article_count : 0));
-		fmt.register_fmt(
-			'D', std::to_string(feed_count >= 0 ? feed_count : 0));
-		notify(fmt.do_format(cfg->get_configvalue("notify-format")));
-	}
+	notify_reload_finished(unread_feeds, unread_articles);
 }
 
 void Reloader::reload_indexes(const std::vector<int>& indexes, bool unattended)
@@ -214,36 +198,16 @@ void Reloader::reload_indexes(const std::vector<int>& indexes, bool unattended)
 		ctrl->get_feedcontainer()->unread_feed_count();
 	const auto unread_articles =
 		ctrl->get_feedcontainer()->unread_item_count();
-	const auto size = ctrl->get_feedcontainer()->feeds_size();
 
 	for (const auto& idx : indexes) {
-		reload(idx, size, unattended);
+		reload(idx, true, unattended);
 	}
 
-	const auto unread_feeds2 =
-		ctrl->get_feedcontainer()->unread_feed_count();
-	const auto unread_articles2 =
-		ctrl->get_feedcontainer()->unread_item_count();
-	bool notify_always = cfg->get_configvalue_as_bool("notify-always");
-	if (notify_always || unread_feeds2 != unread_feeds ||
-		unread_articles2 != unread_articles) {
-		FmtStrFormatter fmt;
-		fmt.register_fmt('f', std::to_string(unread_feeds2));
-		fmt.register_fmt('n', std::to_string(unread_articles2));
-		fmt.register_fmt('d',
-			std::to_string(unread_articles2 - unread_articles));
-		fmt.register_fmt(
-			'D', std::to_string(unread_feeds2 - unread_feeds));
-		notify(fmt.do_format(cfg->get_configvalue("notify-format")));
-	}
-	if (!unattended) {
-		ctrl->get_view()->set_status("");
-	}
+	notify_reload_finished(unread_feeds, unread_articles);
 }
 
 void Reloader::reload_range(unsigned int start,
 	unsigned int end,
-	unsigned int size,
 	bool unattended)
 {
 	std::vector<unsigned int> v;
@@ -259,10 +223,12 @@ void Reloader::reload_range(unsigned int start,
 		s = suff.substr(0, p);
 	};
 
+	const auto feeds = ctrl->get_feedcontainer()->get_all_feeds();
+
 	std::sort(v.begin(), v.end(), [&](unsigned int a, unsigned int b) {
 		std::string domain1, domain2;
-		extract(domain1, ctrl->get_feedcontainer()->feeds[a]->rssurl());
-		extract(domain2, ctrl->get_feedcontainer()->feeds[b]->rssurl());
+		extract(domain1, feeds[a]->rssurl());
+		extract(domain2, feeds[b]->rssurl());
 		std::reverse(domain1.begin(), domain1.end());
 		std::reverse(domain2.begin(), domain2.end());
 		return domain1 < domain2;
@@ -274,7 +240,7 @@ void Reloader::reload_range(unsigned int start,
 		LOG(Level::DEBUG,
 			"Reloader::reload_range: reloading feed #%u",
 			i);
-		reload(i, size, unattended, &easyhandle);
+		reload(i, true, unattended, &easyhandle);
 	}
 }
 
@@ -300,6 +266,37 @@ void Reloader::notify(const std::string& msg)
 			"reloader:notify: notifying external program `%s'",
 			prog);
 		utils::run_command(prog, msg);
+	}
+}
+
+void Reloader::notify_reload_finished(unsigned int unread_feeds_before,
+	unsigned int unread_articles_before)
+{
+	const auto unread_feeds =
+		ctrl->get_feedcontainer()->unread_feed_count();
+	const auto unread_articles =
+		ctrl->get_feedcontainer()->unread_item_count();
+	const bool notify_always = cfg->get_configvalue_as_bool("notify-always");
+
+	if (notify_always || unread_feeds > unread_feeds_before ||
+		unread_articles > unread_articles_before) {
+		// TODO: Determine what should be done if `unread_articles < unread_articles_before`.
+		// It is expected this can happen if the user marks an article as read
+		// while a reload is in progress.
+		const int article_count = unread_articles - unread_articles_before;
+		const int feed_count = unread_feeds - unread_feeds_before;
+
+		LOG(Level::DEBUG, "unread article count: %d", article_count);
+		LOG(Level::DEBUG, "unread feed count: %d", feed_count);
+
+		FmtStrFormatter fmt;
+		fmt.register_fmt('f', std::to_string(unread_feeds));
+		fmt.register_fmt('n', std::to_string(unread_articles));
+		fmt.register_fmt('d',
+			std::to_string(article_count >= 0 ? article_count : 0));
+		fmt.register_fmt(
+			'D', std::to_string(feed_count >= 0 ? feed_count : 0));
+		notify(fmt.do_format(cfg->get_configvalue("notify-format")));
 	}
 }
 

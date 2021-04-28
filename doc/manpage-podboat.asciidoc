@@ -1,0 +1,86 @@
+= Podboat(1)
+Alexander Batischev <eual.jp@gmail.com>
+
+
+== NAME
+
+podboat - a podcast download manager for text terminals
+
+
+== SYNOPSIS
+
+*podboat* [-C configfile] [-q queuefile] [-a] [-h]
+
+
+== DESCRIPTION
+
+_Podboat_ is a podcast manager for text terminals. It is a helper program to
+_Newsboat_ which queues podcast downloads into a file. These queued downloads
+can then be download with _Podboat_.
+
+
+== OPTIONS
+
+-h, --help::
+        Display help
+
+-C configfile, --config-file=configfile::
+       Use an alternative configuration file
+
+-q queuefile, --queue-file=queuefile::
+       Use an alternative queue file
+
+-a, --autodownload::
+       Start automatic download of all queued files on startup
+
+-l loglevel, --log-level=loglevel::
+       Generate a logfile with a certain loglevel. Valid loglevels are 1 to 6. An
+       actual logfile will only be written when you provide a logfile name.
+
+-d logfile, --log-file=logfile::
+       Use this logfile as output when logging debug messages. Please note that this
+       only works when providing a loglevel.
+
+
+== PODCAST SUPPORT
+
+include::chapter-podcasts.asciidoc[]
+
+
+== MANAGING AUDIO FILES WITH PODBOAT
+
+include::chapter-podboat.asciidoc[]
+
+
+== CONFIGURATION COMMANDS
+
+include::podboat-cfgcmds.asciidoc[]
+
+
+== FILES
+
+include::chapter-files.asciidoc[]
+
+dotfiles::
+        _~/.newsboat/config_
++
+_~/.newsboat/queue_
+
+XDG::
+        _$XDG_CONFIG_HOME/newsboat/config_
++
+_$XDG_DATA_HOME/newsboat/queue_
++
+Note: if the `XDG_CONFIG_HOME` environment variable is not set, Podboat behaves as
+if it was set to _~/.config_. Similarly, `XDG_DATA_HOME` defaults to
+_~/.local/share_.
+
+
+== ENVIRONMENT
+
+include::chapter-environment-variables.asciidoc[]
+
+
+== SEE ALSO
+
+newsboat(1)

@@ -3,6 +3,8 @@
 
 #include <assert.h>
 
+#include "3rd-party/optional.hpp"
+
 #include "history.h"
 #include "listformaction.h"
 #include "listformatter.h"
@@ -13,26 +15,19 @@ namespace newsboat {
 
 typedef std::pair<std::shared_ptr<RssItem>, unsigned int> ItemPtrPosPair;
 
-enum class InvalidationMode { PARTIAL, COMPLETE };
+enum class InvalidationMode { NONE, PARTIAL, COMPLETE };
 
 class ItemListFormAction : public ListFormAction {
 public:
 	ItemListFormAction(View*,
 		std::string formstr,
 		Cache* cc,
-		FilterContainer* f,
-		ConfigContainer* cfg);
+		FilterContainer& f,
+		ConfigContainer* cfg,
+		RegexManager& r);
 	~ItemListFormAction() override;
 	void prepare() override;
 	void init() override;
-
-	void set_redraw(bool b) override
-	{
-		FormAction::set_redraw(b);
-		apply_filter = !(v->get_cfg()->get_configvalue_as_bool(
-			"show-read-articles"));
-		invalidate(InvalidationMode::COMPLETE);
-	}
 
 	void set_feed(std::shared_ptr<RssFeed> fd);
 
@@ -61,8 +56,6 @@ public:
 
 	void handle_cmdline(const std::string& cmd) override;
 
-	void do_update_visible_items();
-
 	void finished_qna(Operation op) override;
 
 	void set_show_searchresult(bool b)
@@ -71,17 +64,29 @@ public:
 	}
 	void set_searchphrase(const std::string& s)
 	{
-		searchphrase = s;
+		search_phrase = s;
 	}
 
-	void recalculate_form() override;
+	void invalidate_list()
+	{
+		invalidation_mode = InvalidationMode::COMPLETE;
+	}
 
-	void set_regexmanager(RegexManager* r);
+	void restore_selected_position();
 
 private:
-	void process_operation(Operation op,
+	void register_format_styles();
+
+	void do_update_visible_items();
+	void draw_items();
+
+	bool process_operation(Operation op,
 		bool automatic = false,
 		std::vector<std::string>* args = nullptr) override;
+
+	bool open_position_in_browser(unsigned int pos,
+		bool interactive) const;
+
 	void set_head(const std::string& s,
 		unsigned int unread,
 		unsigned int total,
@@ -100,27 +105,17 @@ private:
 	void handle_cmdline_num(unsigned int idx);
 
 	std::string gen_flags(std::shared_ptr<RssItem> item);
-	std::string gen_datestr(time_t t, const std::string& datetimeformat);
 
 	void prepare_set_filterpos();
 
-	void invalidate(InvalidationMode m)
+	void invalidate(const unsigned int invalidated_pos)
 	{
-		assert(m == InvalidationMode::COMPLETE);
-
-		invalidated = true;
-		invalidation_mode = InvalidationMode::COMPLETE;
-	}
-
-	void invalidate(const unsigned int pos)
-	{
-		if (invalidated == true &&
-			invalidation_mode == InvalidationMode::COMPLETE)
+		if (invalidation_mode == InvalidationMode::COMPLETE) {
 			return;
+		}
 
-		invalidated = true;
 		invalidation_mode = InvalidationMode::PARTIAL;
-		invalidated_itempos.push_back(pos);
+		invalidated_itempos.push_back(invalidated_pos);
 	}
 
 	std::string item2formatted_line(const ItemPtrPosPair& item,
@@ -128,37 +123,37 @@ private:
 		const std::string& itemlist_format,
 		const std::string& datetime_format);
 
+	void goto_item(const std::string& title);
+
 	unsigned int pos;
 	std::shared_ptr<RssFeed> feed;
 	bool apply_filter;
-	Matcher m;
+	Matcher matcher;
 	std::vector<ItemPtrPosPair> visible_items;
 	bool show_searchresult;
-	std::string searchphrase;
+	std::string search_phrase;
 
 	History filterhistory;
-
-	std::shared_ptr<RssFeed> search_dummy_feed;
 
 	std::mutex redraw_mtx;
 
 	bool set_filterpos;
 	unsigned int filterpos;
 
-	RegexManager* rxman;
+	RegexManager& rxman;
 
 	unsigned int old_width;
 	int old_itempos;
-	ArticleSortStrategy old_sort_strategy;
+	nonstd::optional<ArticleSortStrategy> old_sort_strategy;
 
-	bool invalidated;
 	InvalidationMode invalidation_mode;
 	std::vector<unsigned int> invalidated_itempos;
 
 	ListFormatter listfmt;
 	Cache* rsscache;
-	FilterContainer* filters;
-	ConfigContainer* cfg;
+	FilterContainer& filters;
+
+	void handle_op_saveall();
 };
 
 } // namespace newsboat

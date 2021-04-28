@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "configparser.h"
+#include "configactionhandler.h"
 
 // in configuration: bind-key <key> <operation>
 
@@ -19,13 +19,15 @@ enum { KM_FEEDLIST = 1 << 0,
 	KM_FILTERSELECT = 1 << 6,
 	KM_URLVIEW = 1 << 7,
 	KM_PODBOAT = 1 << 8,
-	KM_SYSKEYS = 1 << 9,
-	KM_INTERNAL = 1 << 10,
-	KM_DIALOGS = 1 << 11,
+	KM_DIALOGS = 1 << 9,
+	KM_DIRBROWSER = 1 << 10,
+	KM_SYSKEYS = 1 << 11,
+	KM_INTERNAL = 1 << 12,
 	KM_NEWSBOAT = KM_FEEDLIST | KM_FILEBROWSER | KM_HELP | KM_ARTICLELIST |
 		KM_ARTICLE | KM_TAGSELECT | KM_FILTERSELECT | KM_URLVIEW |
-		KM_DIALOGS,
-	KM_BOTH = KM_NEWSBOAT | KM_PODBOAT };
+		KM_DIALOGS | KM_DIRBROWSER,
+	KM_BOTH = KM_NEWSBOAT | KM_PODBOAT
+};
 
 namespace newsboat {
 
@@ -41,12 +43,15 @@ enum Operation {
 	OP_MARKALLFEEDSREAD,
 	OP_MARKALLABOVEASREAD,
 	OP_OPEN,
+	OP_SWITCH_FOCUS,
 	OP_SAVE,
+	OP_SAVEALL,
 	OP_NEXTUNREAD,
 	OP_PREVUNREAD,
 	OP_NEXT,
 	OP_PREV,
 	OP_OPENINBROWSER,
+	OP_OPENINBROWSER_NONINTERACTIVE,
 	OP_OPENBROWSER_AND_MARK,
 	OP_OPENALLUNREADINBROWSER,
 	OP_OPENALLUNREADINBROWSER_AND_MARK,
@@ -59,6 +64,7 @@ enum Operation {
 	OP_SETTAG,
 	OP_SEARCH,
 	OP_GOTO_URL,
+	OP_GOTO_TITLE,
 	OP_ENQUEUE,
 	OP_REDRAW,
 	OP_CMDLINE,
@@ -118,6 +124,7 @@ enum Operation {
 	OP_INT_BM_END,
 	OP_INT_EDITFLAGS_END,
 	OP_INT_START_SEARCH,
+	OP_INT_GOTO_TITLE,
 
 	OP_INT_GOTO_URL,
 
@@ -126,20 +133,29 @@ enum Operation {
 	OP_INT_QNA_NEXTHIST,
 	OP_INT_QNA_PREVHIST,
 
-	OP_INT_RESIZE,
 	OP_INT_SET,
 
 	OP_INT_MAX,
-	OP_1 = 3001,
-	OP_2,
-	OP_3,
-	OP_4,
-	OP_5,
-	OP_6,
-	OP_7,
-	OP_8,
-	OP_9,
-	OP_0
+	OP_OPEN_URL_1 = 3001,
+	OP_OPEN_URL_2,
+	OP_OPEN_URL_3,
+	OP_OPEN_URL_4,
+	OP_OPEN_URL_5,
+	OP_OPEN_URL_6,
+	OP_OPEN_URL_7,
+	OP_OPEN_URL_8,
+	OP_OPEN_URL_9,
+	OP_OPEN_URL_10,
+
+	OP_CMD_START_1,
+	OP_CMD_START_2,
+	OP_CMD_START_3,
+	OP_CMD_START_4,
+	OP_CMD_START_5,
+	OP_CMD_START_6,
+	OP_CMD_START_7,
+	OP_CMD_START_8,
+	OP_CMD_START_9,
 };
 
 struct KeyMapDesc {
@@ -153,6 +169,16 @@ struct KeyMapDesc {
 struct MacroCmd {
 	Operation op;
 	std::vector<std::string> args;
+};
+
+struct MacroBinding {
+	std::vector<MacroCmd> cmds;
+	std::string description;
+};
+
+struct ParsedOperations {
+	std::vector<MacroCmd> operations;
+	std::string description;
 };
 
 class KeyMap : public ConfigActionHandler {
@@ -169,19 +195,25 @@ public:
 		const std::string& context);
 	std::vector<MacroCmd> get_macro(const std::string& key);
 	char get_key(const std::string& keycode);
-	std::string getkey(Operation op, const std::string& context);
+	std::vector<std::string> get_keys(Operation op, const std::string& context);
 	void handle_action(const std::string& action,
-		const std::vector<std::string>& params) override;
-	void dump_config(std::vector<std::string>& config_output) override;
-	void get_keymap_descriptions(std::vector<KeyMapDesc>& descs,
-		unsigned short flags);
-	unsigned short get_flag_from_context(const std::string& context);
+		const std::string& params) override;
+	void dump_config(std::vector<std::string>& config_output) const override;
+	std::vector<KeyMapDesc> get_keymap_descriptions(std::string context);
+	const std::map<std::string, MacroBinding>& get_macro_descriptions();
+
+	ParsedOperations parse_operation_sequence(const std::string& line,
+		const std::string& command_name, bool allow_description = true);
+	std::vector<MacroCmd> get_startup_operation_sequence();
 
 private:
 	bool is_valid_context(const std::string& context);
-	std::string getopname(Operation op);
+	unsigned short get_flag_from_context(const std::string& context);
+	std::map<std::string, Operation> get_internal_operations() const;
+	std::string getopname(Operation op) const;
 	std::map<std::string, std::map<std::string, Operation>> keymap_;
-	std::map<std::string, std::vector<MacroCmd>> macros_;
+	std::map<std::string, MacroBinding> macros_;
+	std::vector<MacroCmd> startup_operations_sequence;
 };
 
 } // namespace newsboat

@@ -10,10 +10,15 @@
 
 namespace newsboat {
 
-enum class LinkType { HREF, IMG, EMBED };
+class TagSoupPullParser;
+
+// This enum has to be kept in sync with enum LinkType in rust/libnewsboat/src/htmlrenderer.rs
+enum class LinkType { HREF, IMG, EMBED, IFRAME, VIDEO, AUDIO };
+
 enum class HtmlTag {
 	A = 1,
 	EMBED,
+	IFRAME,
 	BR,
 	PRE,
 	ITUNESHACK,
@@ -26,6 +31,7 @@ enum class HtmlTag {
 	H5,
 	H6,
 	P,
+	DIV,
 	OL,
 	UL,
 	LI,
@@ -43,7 +49,10 @@ enum class HtmlTag {
 	TABLE,
 	TH,
 	TR,
-	TD
+	TD,
+	VIDEO,
+	AUDIO,
+	SOURCE
 };
 
 typedef std::pair<std::string, LinkType> LinkPair;
@@ -110,7 +119,6 @@ private:
 	unsigned int add_link(std::vector<LinkPair>& links,
 		const std::string& link,
 		LinkType type);
-	std::string quote_for_stfl(std::string str);
 	std::string absolute_url(const std::string& url,
 		const std::string& link);
 	std::string type2str(LinkType type);
@@ -130,6 +138,11 @@ private:
 	void add_hr(std::vector<std::pair<LineType, std::string>>& lines);
 	std::string get_char_numbering(unsigned int count);
 	std::string get_roman_numbering(unsigned int count);
+	void add_media_link(std::string& line, std::vector<LinkPair>& links,
+		const std::string& url, const std::string& media_url,
+		const std::string& media_title, unsigned int media_count,
+		LinkType type);
+	HtmlTag extract_tag(TagSoupPullParser& parser);
 	bool raw_;
 };
 

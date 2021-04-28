@@ -1,5 +1,6 @@
 #include "configparser.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -7,7 +8,8 @@
 #include <sys/types.h>
 
 #include "config.h"
-#include "exceptions.h"
+#include "configexception.h"
+#include "confighandlerexception.h"
 #include "logger.h"
 #include "strprintf.h"
 #include "tagsouppullparser.h"
@@ -17,7 +19,7 @@ namespace newsboat {
 
 ConfigParser::ConfigParser()
 {
-	register_handler("include", this);
+	register_handler("include", *this);
 }
 
 ConfigParser::~ConfigParser() {}
@@ -31,19 +33,20 @@ void ConfigParser::handle_action(const std::string& action,
 	 */
 	if (action == "include") {
 		if (params.size() < 1) {
-			throw ConfigHandlerException(
-				ActionHandlerStatus::TOO_FEW_PARAMS);
+			throw ConfigHandlerException(ActionHandlerStatus::TOO_FEW_PARAMS);
 		}
 
-		if (!this->parse(utils::resolve_tilde(params[0])))
-			throw ConfigHandlerException(
-				ActionHandlerStatus::FILENOTFOUND);
-	} else
-		throw ConfigHandlerException(
-			ActionHandlerStatus::INVALID_COMMAND);
+		const std::string tilde_expanded = utils::resolve_tilde(params[0]);
+		const std::string current_fpath = included_files.back();
+		if (!this->parse_file(utils::resolve_relative(current_fpath, tilde_expanded))) {
+			throw ConfigHandlerException(ActionHandlerStatus::FILENOTFOUND);
+		}
+	} else {
+		throw ConfigHandlerException(ActionHandlerStatus::INVALID_COMMAND);
+	}
 }
 
-bool ConfigParser::parse(const std::string& filename, bool double_include)
+bool ConfigParser::parse_file(const std::string& tmp_filename)
 {
 	/*
 	 * this function parses a config file.
@@ -59,74 +62,85 @@ bool ConfigParser::parse(const std::string& filename, bool double_include)
 	 *   - hand over the tokenize results to the ConfigActionHandler
 	 *   - if an error happens, react accordingly.
 	 */
-	if (!double_include &&
-		included_files.find(filename) != included_files.end()) {
+
+	// It would be nice if this function was only give absolute paths, but the
+	// tests are easier as relative paths
+	const std::string filename = (tmp_filename.front() == NEWSBEUTER_PATH_SEP) ?
+		tmp_filename :
+		utils::getcwd() + NEWSBEUTER_PATH_SEP + tmp_filename;
+
+	if (std::find(included_files.begin(), included_files.end(),
+			filename) != included_files.end()) {
 		LOG(Level::WARN,
-			"ConfigParser::parse: file %s has already been "
+			"ConfigParser::parse_file: file %s has already been "
 			"included",
 			filename);
 		return true;
 	}
-	included_files.insert(included_files.begin(), filename);
+	included_files.push_back(filename);
 
-	unsigned int linecounter = 0;
-	std::ifstream f(filename.c_str());
-	std::string line;
-	if (!f.is_open()) {
-		LOG(Level::WARN,
-			"ConfigParser::parse: file %s couldn't be opened",
-			filename);
-		return false;
-	}
-	while (f.is_open() && !f.eof()) {
-		getline(f, line);
-		++linecounter;
-		LOG(Level::DEBUG, "ConfigParser::parse: tokenizing %s", line);
-		std::vector<std::string> tokens = utils::tokenize_quoted(line);
-		if (!tokens.empty()) {
-			std::string cmd = tokens[0];
-			ConfigActionHandler* handler = action_handlers[cmd];
-			if (handler) {
-				tokens.erase(
-					tokens.begin()); // delete first element
-				try {
-					evaluate_backticks(tokens);
-					handler->handle_action(cmd, tokens);
-				} catch (const ConfigHandlerException& e) {
-					throw ConfigException(strprintf::fmt(
-						_("Error while processing "
-						  "command `%s' (%s line %u): "
-						  "%s"),
-						line,
-						filename,
-						linecounter,
-						e.what()));
-				}
-			} else {
-				throw ConfigException(strprintf::fmt(
-					_("unknown command `%s'"), cmd));
-			}
+	const auto lines = utils::read_text_file(filename);
+	if (!lines) {
+		const auto error = lines.error();
+
+		switch (error.kind) {
+		case utils::ReadTextFileErrorKind::CantOpen:
+			LOG(Level::WARN,
+				"ConfigParser::parse_file: file %s couldn't be opened",
+				filename);
+			return false;
+
+		case utils::ReadTextFileErrorKind::LineError:
+			throw ConfigException(error.message);
 		}
 	}
+
+	unsigned int linecounter = 0;
+	for (const auto& line : lines.value()) {
+		++linecounter;
+
+		LOG(Level::DEBUG, "ConfigParser::parse_file: tokenizing %s", line);
+
+		const std::string location = strprintf::fmt(_("%s line %u"), filename,
+				linecounter);
+
+		parse_line(line, location);
+	}
+	included_files.pop_back();
 	return true;
 }
 
-void ConfigParser::register_handler(const std::string& cmd,
-	ConfigActionHandler* handler)
+void ConfigParser::parse_line(const std::string& line,
+	const std::string& location)
 {
-	action_handlers[cmd] = handler;
-}
+	auto stripped = utils::strip_comments(line);
+	auto evaluated = evaluate_backticks(std::move(stripped));
+	const auto token = utils::extract_token_quoted(evaluated);
+	if (token.has_value()) {
+		const std::string cmd = token.value();
+		const std::string params = evaluated;
 
-void ConfigParser::unregister_handler(const std::string& cmd)
-{
-	action_handlers[cmd] = 0;
-}
-
-void ConfigParser::evaluate_backticks(std::vector<std::string>& tokens)
-{
-	for (auto& token : tokens) {
-		token = evaluate_backticks(token);
+		if (action_handlers.count(cmd) < 1) {
+			throw ConfigException(strprintf::fmt(_("unknown command `%s'"), cmd));
+		}
+		ConfigActionHandler& handler = action_handlers.at(cmd);
+		try {
+			handler.handle_action(cmd, params);
+		} catch (const ConfigHandlerException& e) {
+			throw ConfigException(strprintf::fmt(
+					_("Error while processing command `%s' (%s): %s"),
+					line,
+					location,
+					e.what()));
+		}
 	}
+}
+
+void ConfigParser::register_handler(const std::string& cmd,
+	ConfigActionHandler& handler)
+{
+	action_handlers.erase(cmd);
+	action_handlers.insert({cmd, handler});
 }
 
 /* Note that this function not only finds next backtick that isn't prefixed
@@ -135,8 +149,9 @@ void ConfigParser::evaluate_backticks(std::vector<std::string>& tokens)
 std::string::size_type find_non_escaped_backtick(std::string& input,
 	const std::string::size_type startpos)
 {
-	if (startpos == std::string::npos)
+	if (startpos == std::string::npos) {
 		return startpos;
+	}
 
 	std::string::size_type result = startpos;
 	result = input.find_first_of("`", result);
@@ -161,14 +176,14 @@ std::string ConfigParser::evaluate_backticks(std::string token)
 		find_non_escaped_backtick(token, pos1 + 1);
 
 	while (pos1 != std::string::npos && pos2 != std::string::npos) {
-		std::string cmd = token.substr(pos1 + 1, pos2 - pos1 - 1);
+		const std::string cmd = token.substr(pos1 + 1, pos2 - pos1 - 1);
 		token.erase(pos1, pos2 - pos1 + 1);
 		std::string result = utils::get_command_output(cmd);
 		utils::trim_end(result);
 		token.insert(pos1, result);
 
 		pos1 = find_non_escaped_backtick(
-			token, pos1 + result.length() + 1);
+				token, pos1 + result.length() + 1);
 		pos2 = find_non_escaped_backtick(token, pos1 + 1);
 	}
 

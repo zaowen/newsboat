@@ -10,13 +10,21 @@ namespace newsboat {
 class FileUrlReader : public UrlReader {
 public:
 	explicit FileUrlReader(const std::string& file = "");
-	void write_config() override;
-	void reload() override;
-	void load_config(const std::string& file);
+
+	/// \brief Load URLs from the urls file.
+	///
+	/// \return A non-value on success, an error message otherwise.
+	nonstd::optional<std::string> reload() override;
+
 	std::string get_source() override;
 
+	/// \brief Write URLs back to the urls file.
+	///
+	/// \return A non-value on success, an error message otherwise.
+	nonstd::optional<std::string> write_config();
+
 private:
-	std::string filename;
+	const std::string filename;
 };
 
 }

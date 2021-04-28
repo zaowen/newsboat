@@ -1,10 +1,12 @@
 #include "urlviewformaction.h"
 
 #include <sstream>
+#include <string>
 
 #include "config.h"
-#include "formatstring.h"
+#include "fmtstrformatter.h"
 #include "listformatter.h"
+#include "rssfeed.h"
 #include "strprintf.h"
 #include "utils.h"
 #include "view.h"
@@ -24,59 +26,81 @@ UrlViewFormAction::UrlViewFormAction(View* vv,
 	: FormAction(vv, formstr, cfg)
 	, quit(false)
 	, feed(feed)
+	, urls_list("urls", FormAction::f, cfg->get_configvalue_as_int("scrolloff"))
 {
 }
 
 UrlViewFormAction::~UrlViewFormAction() {}
 
-void UrlViewFormAction::process_operation(Operation op,
+bool UrlViewFormAction::process_operation(Operation op,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
 	bool hardquit = false;
 	switch (op) {
+	case OP_PREV:
+	case OP_SK_UP:
+		urls_list.move_up(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
+	case OP_NEXT:
+	case OP_SK_DOWN:
+		urls_list.move_down(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
+	case OP_SK_HOME:
+		urls_list.move_to_first();
+		break;
+	case OP_SK_END:
+		urls_list.move_to_last();
+		break;
+	case OP_SK_PGUP:
+		urls_list.move_page_up(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
+	case OP_SK_PGDOWN:
+		urls_list.move_page_down(cfg->get_configvalue_as_bool("wrap-scroll"));
+		break;
 	case OP_OPENINBROWSER:
+	case OP_OPENBROWSER_AND_MARK:
 	case OP_OPEN: {
-		std::string posstr = f->get("feedpos");
-		if (posstr.length() > 0) {
-			unsigned int idx = utils::to_u(posstr, 0);
-			v->set_status(_("Starting browser..."));
-			v->open_in_browser(links[idx].first);
-			v->set_status("");
-		} else {
-			v->show_error(_("No link selected!"));
-		}
-	} break;
+		const bool interactive = true;
+		open_current_position_in_browser(interactive);
+	}
+	break;
+	case OP_OPENINBROWSER_NONINTERACTIVE: {
+		const bool interactive = false;
+		open_current_position_in_browser(interactive);
+	}
+	break;
 	case OP_BOOKMARK: {
-		std::string posstr = f->get("feedpos");
-		if (posstr.length() > 0) {
-			unsigned int idx = utils::to_u(posstr, 0);
-
-			this->start_bookmark_qna(
-				"", links[idx].first, "", feed->title());
-
+		if (!links.empty()) {
+			const unsigned int pos = urls_list.get_position();
+			this->start_bookmark_qna("", links[pos].first, "", feed->title());
 		} else {
-			v->show_error(_("No link selected!"));
+			v->get_statusline().show_error(_("No links available!"));
 		}
-	} break;
-	case OP_1:
-	case OP_2:
-	case OP_3:
-	case OP_4:
-	case OP_5:
-	case OP_6:
-	case OP_7:
-	case OP_8:
-	case OP_9:
-	case OP_0: {
-		unsigned int idx = op - OP_1;
+	}
+	break;
+	case OP_OPEN_URL_1:
+	case OP_OPEN_URL_2:
+	case OP_OPEN_URL_3:
+	case OP_OPEN_URL_4:
+	case OP_OPEN_URL_5:
+	case OP_OPEN_URL_6:
+	case OP_OPEN_URL_7:
+	case OP_OPEN_URL_8:
+	case OP_OPEN_URL_9:
+	case OP_OPEN_URL_10: {
+		unsigned int idx = op - OP_OPEN_URL_1;
 
 		if (idx < links.size()) {
-			v->set_status(_("Starting browser..."));
-			v->open_in_browser(links[idx].first);
-			v->set_status("");
+			const std::string feedurl = (feed != nullptr ?  feed->rssurl() : "");
+			const bool interactive = true;
+			v->open_in_browser(links[idx].first, feedurl, interactive);
 		}
-	} break;
+	}
+	break;
+	case OP_HELP:
+		v->push_help();
+		break;
 	case OP_QUIT:
 		quit = true;
 		break;
@@ -93,40 +117,56 @@ void UrlViewFormAction::process_operation(Operation op,
 	} else if (quit) {
 		v->pop_current_formaction();
 	}
+	return true;
+}
+
+void UrlViewFormAction::open_current_position_in_browser(bool interactive)
+{
+	if (!links.empty()) {
+		const unsigned int pos = urls_list.get_position();
+		const std::string feedurl = (feed != nullptr ?  feed->rssurl() : "");
+		v->open_in_browser(links[pos].first, feedurl, interactive);
+	} else {
+		v->get_statusline().show_error(_("No links available!"));
+	}
 }
 
 void UrlViewFormAction::prepare()
 {
 	if (do_redraw) {
+		update_heading();
+
 		ListFormatter listfmt;
 		unsigned int i = 0;
 		for (const auto& link : links) {
-			listfmt.add_line(
-				strprintf::fmt("%2u  %s", i + 1, link.first),
-				i);
+			listfmt.add_line(utils::quote_for_stfl(strprintf::fmt("%2u  %s", i + 1,
+						link.first)));
 			i++;
 		}
-		f->modify("urls", "replace_inner", listfmt.format_list());
+		urls_list.stfl_replace_lines(listfmt);
 	}
 }
 
 void UrlViewFormAction::init()
 {
-	v->set_status("");
+	recalculate_widget_dimensions();
 
-	std::string viewwidth = f->get("urls:w");
-	unsigned int width = utils::to_u(viewwidth, 80);
-
-	FmtStrFormatter fmt;
-	fmt.register_fmt('N', PROGRAM_NAME);
-	fmt.register_fmt('V', PROGRAM_VERSION);
-
-	f->set("head",
-		fmt.do_format(
-			cfg->get_configvalue("urlview-title-format"), width));
 	do_redraw = true;
 	quit = false;
 	set_keymap_hints();
+}
+
+void UrlViewFormAction::update_heading()
+{
+	const unsigned int width = urls_list.get_width();
+
+	FmtStrFormatter fmt;
+	fmt.register_fmt('N', PROGRAM_NAME);
+	fmt.register_fmt('V', utils::program_version());
+
+	set_value("head",
+		fmt.do_format(
+			cfg->get_configvalue("urlview-title-format"), width));
 }
 
 KeyMapHintEntry* UrlViewFormAction::get_keymap_hint()
@@ -134,7 +174,9 @@ KeyMapHintEntry* UrlViewFormAction::get_keymap_hint()
 	static KeyMapHintEntry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_OPEN, _("Open in Browser")},
 		{OP_BOOKMARK, _("Save Bookmark")},
-		{OP_NIL, nullptr}};
+		{OP_HELP, _("Help")},
+		{OP_NIL, nullptr}
+	};
 	return hints;
 }
 
@@ -143,9 +185,9 @@ void UrlViewFormAction::handle_cmdline(const std::string& cmd)
 	unsigned int idx = 0;
 	if (1 == sscanf(cmd.c_str(), "%u", &idx)) {
 		if (idx < 1 || idx > links.size()) {
-			v->show_error(_("Invalid position!"));
+			v->get_statusline().show_error(_("Invalid position!"));
 		} else {
-			f->set("feedpos", std::to_string(idx - 1));
+			urls_list.set_position(idx - 1);
 		}
 	} else {
 		FormAction::handle_cmdline(cmd);

@@ -1,13 +1,14 @@
 #include "colormanager.h"
 
 #include "config.h"
-#include "exceptions.h"
+#include "confighandlerexception.h"
 #include "feedlistformaction.h"
 #include "filebrowserformaction.h"
 #include "helpformaction.h"
 #include "itemlistformaction.h"
 #include "itemviewformaction.h"
 #include "logger.h"
+#include "matcherexception.h"
 #include "pbview.h"
 #include "selectformaction.h"
 #include "strprintf.h"
@@ -19,7 +20,6 @@ using namespace podboat;
 namespace newsboat {
 
 ColorManager::ColorManager()
-	: colors_loaded_(false)
 {
 }
 
@@ -27,7 +27,7 @@ ColorManager::~ColorManager() {}
 
 void ColorManager::register_commands(ConfigParser& cfgparser)
 {
-	cfgparser.register_handler("color", this);
+	cfgparser.register_handler("color", *this);
 }
 
 void ColorManager::handle_action(const std::string& action,
@@ -38,8 +38,7 @@ void ColorManager::handle_action(const std::string& action,
 		action);
 	if (action == "color") {
 		if (params.size() < 3) {
-			throw ConfigHandlerException(
-				ActionHandlerStatus::TOO_FEW_PARAMS);
+			throw ConfigHandlerException(ActionHandlerStatus::TOO_FEW_PARAMS);
 		}
 
 		/*
@@ -50,19 +49,22 @@ void ColorManager::handle_action(const std::string& action,
 		std::string fgcolor = params[1];
 		std::string bgcolor = params[2];
 
-		if (!utils::is_valid_color(fgcolor))
+		if (!utils::is_valid_color(fgcolor)) {
 			throw ConfigHandlerException(strprintf::fmt(
-				_("`%s' is not a valid color"), fgcolor));
-		if (!utils::is_valid_color(bgcolor))
+					_("`%s' is not a valid color"), fgcolor));
+		}
+		if (!utils::is_valid_color(bgcolor)) {
 			throw ConfigHandlerException(strprintf::fmt(
-				_("`%s' is not a valid color"), bgcolor));
+					_("`%s' is not a valid color"), bgcolor));
+		}
 
 		std::vector<std::string> attribs;
 		for (unsigned int i = 3; i < params.size(); ++i) {
-			if (!utils::is_valid_attribute(params[i]))
+			if (!utils::is_valid_attribute(params[i])) {
 				throw ConfigHandlerException(strprintf::fmt(
-					_("`%s' is not a valid attribute"),
-					params[i]));
+						_("`%s' is not a valid attribute"),
+						params[i]));
+			}
 			attribs.push_back(params[i]);
 		}
 
@@ -71,29 +73,30 @@ void ColorManager::handle_action(const std::string& action,
 		if (element == "listnormal" || element == "listfocus" ||
 			element == "listnormal_unread" ||
 			element == "listfocus_unread" || element == "info" ||
-			element == "background" || element == "article") {
-			fg_colors[element] = fgcolor;
-			bg_colors[element] = bgcolor;
-			attributes[element] = attribs;
-			colors_loaded_ = true;
-		} else
+			element == "background" || element == "article" ||
+			element == "end-of-text-marker") {
+			element_styles[element] = {fgcolor, bgcolor, attribs};
+		} else {
 			throw ConfigHandlerException(strprintf::fmt(
-				_("`%s' is not a valid configuration element"),
-				element));
+					_("`%s' is not a valid configuration element"),
+					element));
+		}
 
-	} else
-		throw ConfigHandlerException(
-			ActionHandlerStatus::INVALID_COMMAND);
+	} else {
+		throw ConfigHandlerException(ActionHandlerStatus::INVALID_COMMAND);
+	}
 }
 
-void ColorManager::dump_config(std::vector<std::string>& config_output)
+void ColorManager::dump_config(std::vector<std::string>& config_output) const
 {
-	for (const auto& color : fg_colors) {
+	for (const auto& element_style : element_styles) {
+		const std::string& element = element_style.first;
+		const TextStyle& style = element_style.second;
 		std::string configline = strprintf::fmt("color %s %s %s",
-			color.first,
-			color.second,
-			bg_colors[color.first]);
-		for (const auto& attrib : attributes[color.first]) {
+				element,
+				style.fg_color,
+				style.bg_color);
+		for (const auto& attrib : style.attributes) {
 			configline.append(" ");
 			configline.append(attrib);
 		}
@@ -101,55 +104,55 @@ void ColorManager::dump_config(std::vector<std::string>& config_output)
 	}
 }
 
-/*
- * this is podboat-specific color management
- * TODO: refactor this
- */
-void ColorManager::set_pb_colors(podboat::PbView* v)
+void ColorManager::apply_colors(
+	std::function<void(const std::string&, const std::string&)> stfl_value_setter)
+const
 {
-	auto fgcit = fg_colors.begin();
-	auto bgcit = bg_colors.begin();
-	auto attit = attributes.begin();
-
-	for (; fgcit != fg_colors.end(); ++fgcit, ++bgcit, ++attit) {
+	for (const auto& element_style : element_styles) {
+		const std::string& element = element_style.first;
+		const TextStyle& style = element_style.second;
 		std::string colorattr;
-		if (fgcit->second != "default") {
+		if (style.fg_color != "default") {
 			colorattr.append("fg=");
-			colorattr.append(fgcit->second);
+			colorattr.append(style.fg_color);
 		}
-		if (bgcit->second != "default") {
-			if (colorattr.length() > 0)
+		if (style.bg_color != "default") {
+			if (colorattr.length() > 0) {
 				colorattr.append(",");
+			}
 			colorattr.append("bg=");
-			colorattr.append(bgcit->second);
+			colorattr.append(style.bg_color);
 		}
-		for (const auto& attr : attit->second) {
-			if (colorattr.length() > 0)
+		for (const auto& attr : style.attributes) {
+			if (colorattr.length() > 0) {
 				colorattr.append(",");
+			}
 			colorattr.append("attr=");
 			colorattr.append(attr);
 		}
 
 		LOG(Level::DEBUG,
 			"ColorManager::set_pb_colors: %s %s\n",
-			fgcit->first,
+			element,
 			colorattr);
 
-		v->dllist_form.set(fgcit->first, colorattr);
-		v->help_form.set(fgcit->first, colorattr);
+		stfl_value_setter(element, colorattr);
 
-		if (fgcit->first == "article") {
-			std::string styleend_str;
-
-			if (bgcit->second != "default") {
-				styleend_str.append("bg=");
-				styleend_str.append(bgcit->second);
+		if (element == "article") {
+			std::string bold = colorattr;
+			std::string ul = colorattr;
+			if (bold.length() > 0) {
+				bold.append(",");
 			}
-			if (styleend_str.length() > 0)
-				styleend_str.append(",");
-			styleend_str.append("attr=bold");
-
-			v->help_form.set("styleend", styleend_str.c_str());
+			if (ul.length() > 0) {
+				ul.append(",");
+			}
+			bold.append("attr=bold");
+			ul.append("attr=underline");
+			// STFL will just ignore those in forms which don't have the
+			// `color_bold` and `color_underline` variables.
+			stfl_value_setter("color_bold", bold);
+			stfl_value_setter("color_underline", ul);
 		}
 	}
 }

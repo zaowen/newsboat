@@ -9,6 +9,17 @@
 
 namespace newsboat {
 
+bool RemoteApi::mark_articles_read(const std::vector<std::string>& guids)
+{
+	bool success = true;
+	for (const auto& guid : guids) {
+		if (!this->mark_article_read(guid, true)) {
+			success = false;
+		}
+	}
+	return success;
+}
+
 const std::string RemoteApi::read_password(const std::string& file)
 {
 	glob_t exp;
@@ -29,11 +40,14 @@ const std::string RemoteApi::read_password(const std::string& file)
 
 const std::string RemoteApi::eval_password(const std::string& cmd)
 {
+	LOG(Level::DEBUG, "RemoteApi::eval_password: running `%s`", cmd);
 	std::string pass = utils::get_command_output(cmd);
-	std::string::size_type pos = pass.find_first_of("\n\r");
+	LOG(Level::DEBUG, "RemoteApi::eval_password: command printed out `%s'", pass);
+	const auto pos = pass.find_first_of("\n\r");
 
 	if (pos != std::string::npos) {
 		pass.resize(pos);
+		LOG(Level::DEBUG, "RemoteApi::eval_password: ...clipping that to `%s'", pass);
 	}
 
 	return pass;

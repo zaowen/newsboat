@@ -1,7 +1,8 @@
-#include "ocnewsapi.h"
+#include "ocnewsurlreader.h"
 
 #include "fileurlreader.h"
 #include "logger.h"
+#include "remoteapi.h"
 #include "utils.h"
 
 namespace newsboat {
@@ -14,19 +15,18 @@ OcNewsUrlReader::OcNewsUrlReader(const std::string& url_file, RemoteApi* a)
 
 OcNewsUrlReader::~OcNewsUrlReader() {}
 
-void OcNewsUrlReader::write_config()
-{
-	// NOTHING
-}
-
-void OcNewsUrlReader::reload()
+nonstd::optional<std::string> OcNewsUrlReader::reload()
 {
 	urls.clear();
 	tags.clear();
 	alltags.clear();
 
 	FileUrlReader ur(file);
-	ur.reload();
+	const auto error_message = ur.reload();
+	if (error_message.has_value()) {
+		LOG(Level::DEBUG, "Reloading failed: %s", error_message.value());
+		// Ignore errors for now: https://github.com/newsboat/newsboat/issues/1273
+	}
 
 	std::vector<std::string>& file_urls(ur.get_urls());
 	for (const auto& url : file_urls) {
@@ -46,6 +46,8 @@ void OcNewsUrlReader::reload()
 			alltags.insert(tag);
 		}
 	}
+
+	return {};
 }
 
 std::string OcNewsUrlReader::get_source()

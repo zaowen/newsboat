@@ -1,16 +1,17 @@
 #ifndef NEWSBOAT_FEEDHQAPI_H_
 #define NEWSBOAT_FEEDHQAPI_H_
 
+#include <libxml/tree.h>
+
 #include "cache.h"
 #include "remoteapi.h"
-#include "urlreader.h"
 
 namespace newsboat {
 
 class FeedHqApi : public RemoteApi {
 public:
 	explicit FeedHqApi(ConfigContainer* c);
-	~FeedHqApi() override;
+	~FeedHqApi() override = default;
 	bool authenticate() override;
 	std::vector<TaggedFeedUrl> get_subscribed_urls() override;
 	void add_custom_headers(curl_slist** custom_headers) override;
@@ -33,22 +34,6 @@ private:
 		const std::string& token);
 	std::string auth;
 	std::string auth_header;
-};
-
-class FeedHqUrlReader : public UrlReader {
-public:
-	FeedHqUrlReader(ConfigContainer* c,
-		const std::string& url_file,
-		RemoteApi* a);
-	~FeedHqUrlReader() override;
-	void write_config() override;
-	void reload() override;
-	std::string get_source() override;
-
-private:
-	ConfigContainer* cfg;
-	std::string file;
-	RemoteApi* api;
 };
 
 } // namespace newsboat

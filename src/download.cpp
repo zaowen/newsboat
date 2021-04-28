@@ -12,13 +12,13 @@ namespace podboat {
  * It manages the filename, the URL, the current state, the progress, etc.
  */
 
-Download::Download(PbController* c)
+Download::Download(std::function<void()> cb_require_view_update_)
 	: download_status(DlStatus::QUEUED)
 	, cursize(0.0)
 	, totalsize(0.0)
 	, curkbps(0.0)
 	, offs(0)
-	, ctrl(c)
+	, cb_require_view_update(cb_require_view_update_)
 {
 }
 
@@ -26,6 +26,16 @@ Download::~Download() {}
 
 const std::string Download::filename() const
 {
+	return fn;
+}
+
+const std::string Download::basename() const
+{
+	std::string::size_type start = fn.rfind(NEWSBEUTER_PATH_SEP);
+
+	if (start != std::string::npos) {
+		return fn.substr(start+1);
+	}
 	return fn;
 }
 
@@ -81,17 +91,19 @@ void Download::set_url(const std::string& u)
 
 void Download::set_progress(double downloaded, double total)
 {
-	if (downloaded > cursize)
-		ctrl->set_view_update_necessary(true);
+	if (downloaded > cursize) {
+		cb_require_view_update();
+	}
 	cursize = downloaded;
 	totalsize = total;
 }
 
-void Download::set_status(DlStatus dls)
+void Download::set_status(DlStatus dls, const std::string& msg_)
 {
 	if (download_status != dls) {
-		ctrl->set_view_update_necessary(true);
+		cb_require_view_update();
 	}
+	msg = msg_;
 	download_status = dls;
 }
 

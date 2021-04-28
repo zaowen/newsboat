@@ -1,10 +1,11 @@
 #include "helpformaction.h"
 
+#include <algorithm>
 #include <cstring>
 #include <sstream>
 
 #include "config.h"
-#include "formatstring.h"
+#include "fmtstrformatter.h"
 #include "keymap.h"
 #include "listformatter.h"
 #include "strprintf.h"
@@ -15,22 +16,42 @@ namespace newsboat {
 
 HelpFormAction::HelpFormAction(View* vv,
 	std::string formstr,
-	ConfigContainer* cfg)
+	ConfigContainer* cfg,
+	const std::string& ctx)
 	: FormAction(vv, formstr, cfg)
 	, quit(false)
 	, apply_search(false)
-	, cfg(cfg)
+	, context(ctx)
+	, textview("helptext", FormAction::f)
 {
 }
 
 HelpFormAction::~HelpFormAction() {}
 
-void HelpFormAction::process_operation(Operation op,
+bool HelpFormAction::process_operation(Operation op,
 	bool /* automatic */,
 	std::vector<std::string>* /* args */)
 {
 	bool hardquit = false;
 	switch (op) {
+	case OP_SK_UP:
+		textview.scroll_up();
+		break;
+	case OP_SK_DOWN:
+		textview.scroll_down();
+		break;
+	case OP_SK_HOME:
+		textview.scroll_to_top();
+		break;
+	case OP_SK_END:
+		textview.scroll_to_bottom();
+		break;
+	case OP_SK_PGUP:
+		textview.scroll_page_up();
+		break;
+	case OP_SK_PGDOWN:
+		textview.scroll_page_down();
+		break;
 	case OP_QUIT:
 		quit = true;
 		break;
@@ -41,7 +62,8 @@ void HelpFormAction::process_operation(Operation op,
 		std::vector<QnaPair> qna;
 		qna.push_back(QnaPair(_("Search for: "), ""));
 		this->start_qna(qna, OP_INT_START_SEARCH, &searchhistory);
-	} break;
+	}
+	break;
 	case OP_CLEARFILTER:
 		apply_search = false;
 		do_redraw = true;
@@ -56,151 +78,121 @@ void HelpFormAction::process_operation(Operation op,
 	} else if (quit) {
 		v->pop_current_formaction();
 	}
+	return true;
 }
 
 void HelpFormAction::prepare()
 {
 	if (do_redraw) {
-		std::string listwidth = f->get("helptext:w");
-		unsigned int width = utils::to_u(listwidth);
+		recalculate_widget_dimensions();
+
+		const unsigned int width = textview.get_width();
 
 		FmtStrFormatter fmt;
 		fmt.register_fmt('N', PROGRAM_NAME);
-		fmt.register_fmt('V', PROGRAM_VERSION);
-		f->set("head",
-			fmt.do_format(cfg->get_configvalue("help-title-format"),
-				width));
+		fmt.register_fmt('V', utils::program_version());
+		set_value("head",
+			fmt.do_format(cfg->get_configvalue("help-title-format"), width));
 
-		std::vector<KeyMapDesc> descs;
-		v->get_keys()->get_keymap_descriptions(
-			descs, v->get_keys()->get_flag_from_context(context));
+		const auto descs = v->get_keymap()->get_keymap_descriptions(context);
 
 		std::string highlighted_searchphrase =
 			strprintf::fmt("<hl>%s</>", searchphrase);
 		std::vector<std::string> colors = utils::tokenize(
-			cfg->get_configvalue("search-highlight-colors"), " ");
-		f->set("highlight", make_colorstring(colors));
+				cfg->get_configvalue("search-highlight-colors"), " ");
+		set_value("highlight", make_colorstring(colors));
 		ListFormatter listfmt;
 
-		unsigned int unbound_count = 0;
-		unsigned int syskey_count = 0;
+		const unsigned int unbound_count = std::count_if(descs.begin(),
+		descs.end(), [](const KeyMapDesc& desc) {
+			return desc.key.length() == 0;
+		});
+		const unsigned int syskey_count = std::count_if(descs.begin(),
+		descs.end(), [](const KeyMapDesc& desc) {
+			return desc.flags & KM_SYSKEYS;
+		});
 
-		for (unsigned int i = 0; i < 3; i++) {
-			for (const auto& desc : descs) {
-				bool condition;
-				switch (i) {
-				case 0:
-					condition = (desc.key.length() == 0 ||
-						desc.flags & KM_SYSKEYS);
-					if (desc.key.length() == 0)
-						unbound_count++;
-					if (desc.flags & KM_SYSKEYS)
-						syskey_count++;
-					break;
-				case 1:
-					condition = !(desc.flags & KM_SYSKEYS);
-					break;
-				case 2:
-					condition = (desc.key.length() > 0 ||
-						desc.flags & KM_SYSKEYS);
-					break;
-				default:
-					condition = true;
-					break;
-				}
-				if (context.length() > 0 &&
-					(desc.ctx != context || condition))
-					continue;
-				if (!apply_search ||
-					strcasestr(desc.key.c_str(),
-						searchphrase.c_str()) !=
-						nullptr ||
-					strcasestr(desc.cmd.c_str(),
-						searchphrase.c_str()) !=
-						nullptr ||
-					strcasestr(desc.desc.c_str(),
-						searchphrase.c_str()) !=
-						nullptr) {
-					char tabs_1[] = "                ";
-					char tabs_2[] =
-						"                        ";
-					int how_often_1 = strlen(tabs_1) -
-						desc.key.length();
-					int how_often_2 = strlen(tabs_2) -
-						desc.cmd.length();
-					if (how_often_1 <= 0)
-						how_often_1 = 1;
-					if (how_often_2 <= 0)
-						how_often_2 = 1;
-					tabs_1[how_often_1] = '\0';
-					tabs_2[how_often_2] = '\0';
-					std::string line;
-					switch (i) {
-					case 0:
-					case 1:
-						line = strprintf::fmt(
-							"%s%s%s%s%s",
-							desc.key,
-							tabs_1,
-							desc.cmd,
-							tabs_2,
-							desc.desc);
-						break;
-					case 2:
-						line = strprintf::fmt(
-							"%s%s%s%s",
-							desc.cmd,
-							tabs_1,
-							tabs_2,
-							desc.desc);
-						break;
-					}
-					LOG(Level::DEBUG,
-						"HelpFormAction::prepare: "
-						"step 1 "
-						"- line = %s",
-						line);
-					line = utils::quote_for_stfl(line);
-					LOG(Level::DEBUG,
-						"HelpFormAction::prepare: "
-						"step 2 "
-						"- line = %s",
-						line);
-					if (apply_search &&
-						searchphrase.length() > 0) {
-						line = utils::replace_all(line,
-							searchphrase,
-							highlighted_searchphrase);
-						LOG(Level::DEBUG,
-							"HelpFormAction::"
-							"prepare: "
-							"step 3 - line = %s",
-							line);
-					}
-					listfmt.add_line(line);
-				}
+		const auto should_be_visible = [&](const KeyMapDesc& desc) {
+			return !apply_search
+				|| strcasestr(desc.key.c_str(), searchphrase.c_str()) != nullptr
+				|| strcasestr(desc.cmd.c_str(), searchphrase.c_str()) != nullptr
+				|| strcasestr(desc.desc.c_str(), searchphrase.c_str()) != nullptr;
+		};
+
+		const auto apply_highlights = [&](const std::string& line) {
+			if (apply_search && searchphrase.length() > 0) {
+				return utils::replace_all(line, searchphrase, highlighted_searchphrase);
 			}
-			switch (i) {
-			case 0:
-				if (syskey_count > 0) {
-					listfmt.add_line("");
-					listfmt.add_line(
-						_("Generic bindings:"));
-					listfmt.add_line("");
-				}
-				break;
-			case 1:
-				if (unbound_count > 0) {
-					listfmt.add_line("");
-					listfmt.add_line(
-						_("Unbound functions:"));
-					listfmt.add_line("");
-				}
-				break;
+			return line;
+		};
+
+		for (const auto& desc : descs) {
+			if (desc.key.length() == 0 || desc.flags & KM_SYSKEYS) {
+				continue;
+			}
+			if (should_be_visible(desc)) {
+				auto line = strprintf::fmt("%-15s %-23s %s", desc.key, desc.cmd, desc.desc);
+				line = utils::quote_for_stfl(line);
+				line = apply_highlights(line);
+				listfmt.add_line(line);
 			}
 		}
 
-		f->modify("helptext", "replace_inner", listfmt.format_list());
+		if (syskey_count > 0) {
+			listfmt.add_line("");
+			listfmt.add_line(_("Generic bindings:"));
+			listfmt.add_line("");
+
+			for (const auto& desc : descs) {
+				if (!(desc.flags & KM_SYSKEYS)) {
+					continue;
+				}
+				if (should_be_visible(desc)) {
+					auto line = strprintf::fmt("%-15s %-23s %s", desc.key, desc.cmd, desc.desc);
+					line = utils::quote_for_stfl(line);
+					line = apply_highlights(line);
+					listfmt.add_line(line);
+				}
+			}
+		}
+
+		if (unbound_count > 0) {
+			listfmt.add_line("");
+			listfmt.add_line(_("Unbound functions:"));
+			listfmt.add_line("");
+
+			for (const auto& desc : descs) {
+				if (desc.key.length() > 0 || desc.flags & KM_SYSKEYS) {
+					continue;
+				}
+				if (should_be_visible(desc)) {
+					std::string line = strprintf::fmt("%-39s %s", desc.cmd, desc.desc);
+					line = utils::quote_for_stfl(line);
+					line = apply_highlights(line);
+					listfmt.add_line(line);
+				}
+			}
+		}
+
+		const auto macros = v->get_keymap()->get_macro_descriptions();
+		if (!macros.empty()) {
+			listfmt.add_line("");
+			listfmt.add_line(_("Macros:"));
+			listfmt.add_line("");
+
+			for (const auto& macro : macros) {
+				const std::string key = macro.first;
+				const std::string description = macro.second.description;
+
+				// "macro-prefix" is not translated because it refers to an operation name
+				std::string line = strprintf::fmt("<macro-prefix>%s  %s", key, description);
+				line = utils::quote_for_stfl(line);
+				line = apply_highlights(line);
+				listfmt.add_line(line);
+			}
+		}
+
+		textview.stfl_replace_lines(listfmt.get_lines_count(), listfmt.format_list());
 
 		do_redraw = false;
 	}
@@ -217,7 +209,8 @@ KeyMapHintEntry* HelpFormAction::get_keymap_hint()
 	static KeyMapHintEntry hints[] = {{OP_QUIT, _("Quit")},
 		{OP_SEARCH, _("Search")},
 		{OP_CLEARFILTER, _("Clear")},
-		{OP_NIL, nullptr}};
+		{OP_NIL, nullptr}
+	};
 	return hints;
 }
 
@@ -231,15 +224,8 @@ void HelpFormAction::finished_qna(Operation op)
 		do_redraw = true;
 		break;
 	default:
+		FormAction::finished_qna(op);
 		break;
-	}
-}
-
-void HelpFormAction::set_context(const std::string& ctx)
-{
-	if (context != ctx) {
-		do_redraw = true;
-		context = ctx;
 	}
 }
 
@@ -259,15 +245,17 @@ std::string HelpFormAction::make_colorstring(
 		}
 		if (colors.size() > 1) {
 			if (colors[1] != "default") {
-				if (result.length() > 0)
+				if (result.length() > 0) {
 					result.append(",");
+				}
 				result.append("bg=");
 				result.append(colors[1]);
 			}
 		}
 		for (unsigned int i = 2; i < colors.size(); i++) {
-			if (result.length() > 0)
+			if (result.length() > 0) {
 				result.append(",");
+			}
 			result.append("attr=");
 			result.append(colors[i]);
 		}

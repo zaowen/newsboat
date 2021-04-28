@@ -1,7 +1,11 @@
 #include "opml.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cinttypes>
 #include <cstring>
+
+#include "rssfeed.h"
 
 namespace newsboat {
 
@@ -14,24 +18,24 @@ xmlDocPtr opml::generate(const FeedContainer& feedcontainer)
 	xmlDocSetRootElement(root, opml_node);
 
 	xmlNodePtr head = xmlNewTextChild(
-		opml_node, nullptr, (const xmlChar*)"head", nullptr);
+			opml_node, nullptr, (const xmlChar*)"head", nullptr);
 	xmlNewTextChild(head,
 		nullptr,
 		(const xmlChar*)"title",
 		(const xmlChar*)PROGRAM_NAME " - Exported Feeds");
 	xmlNodePtr body = xmlNewTextChild(
-		opml_node, nullptr, (const xmlChar*)"body", nullptr);
+			opml_node, nullptr, (const xmlChar*)"body", nullptr);
 
-	for (const auto& feed : feedcontainer.feeds) {
+	for (const auto& feed : feedcontainer.get_all_feeds()) {
 		if (!utils::is_special_url(feed->rssurl())) {
 			std::string rssurl = feed->rssurl();
 			std::string link = feed->link();
 			std::string title = feed->title();
 
 			xmlNodePtr outline = xmlNewTextChild(body,
-				nullptr,
-				(const xmlChar*)"outline",
-				nullptr);
+					nullptr,
+					(const xmlChar*)"outline",
+					nullptr);
 			xmlSetProp(outline,
 				(const xmlChar*)"type",
 				(const xmlChar*)"rss");
@@ -51,22 +55,25 @@ xmlDocPtr opml::generate(const FeedContainer& feedcontainer)
 }
 
 void rec_find_rss_outlines(
-		UrlReader* urlcfg,
-		xmlNode* node,
-		std::string tag)
+	FileUrlReader& urlcfg,
+	xmlNode* node,
+	std::string tag)
 {
 	while (node) {
 		std::string newtag = tag;
 
 		if (strcmp((const char*)node->name, "outline") == 0) {
-			char* url = (char*)xmlGetProp(
-				node, (const xmlChar*)"xmlUrl");
-			if (!url) {
-				url = (char*)xmlGetProp(
-					node, (const xmlChar*)"url");
+			char* url_p = (char*)xmlGetProp(
+					node, (const xmlChar*)"xmlUrl");
+			if (!url_p) {
+				url_p = (char*)xmlGetProp(
+						node, (const xmlChar*)"url");
 			}
 
-			if (url) {
+			if (url_p) {
+				const std::string url(url_p);
+				xmlFree(url_p);
+
 				LOG(Level::DEBUG,
 					"opml::import: found RSS outline with "
 					"url = "
@@ -78,20 +85,19 @@ void rec_find_rss_outlines(
 				// Liferea uses a pipe to signal feeds read from
 				// the output of a program in its OPMLs. Convert
 				// them to our syntax.
-				if (*url == '|') {
+				if (url.length() >= 1 && url[0] == '|') {
 					nurl = strprintf::fmt(
-						"exec:%s", url + 1);
+							"exec:%s", url.substr(1));
 					LOG(Level::DEBUG,
 						"opml::import: liferea-style "
-						"url %s "
-						"converted to %s",
+						"url %s converted to %s",
 						url,
 						nurl);
 				}
 
 				// Handle OPML filters.
 				char* filtercmd = (char*)xmlGetProp(
-					node, (const xmlChar*)"filtercmd");
+						node, (const xmlChar*)"filtercmd");
 				if (filtercmd) {
 					LOG(Level::DEBUG,
 						"opml::import: adding filter "
@@ -104,61 +110,36 @@ void rec_find_rss_outlines(
 					xmlFree(filtercmd);
 				}
 
-				xmlFree(url);
 				// Filters and scripts may have arguments, so,
 				// quote them when needed.
-				// TODO: get rid of xmlStrdup, it's useless
-				url = (char*)xmlStrdup(
-					(const xmlChar*)
-						utils::quote_if_necessary(nurl)
-							.c_str());
-				assert(url);
-
-				bool found = false;
+				const std::string quoted_url = utils::quote_if_necessary(nurl);
 
 				LOG(Level::DEBUG,
-					"opml::import: size = %u",
-					urlcfg->get_urls().size());
-				// TODO: replace with algorithm::any or something
-				if (urlcfg->get_urls().size() > 0) {
-					for (const auto& u :
-						urlcfg->get_urls()) {
-						if (u == url) {
-							found = true;
-						}
-					}
-				}
+					"opml::import: size = %" PRIu64,
+					static_cast<uint64_t>(urlcfg.get_urls().size()));
 
-				if (!found) {
-					LOG(Level::DEBUG,
-						"opml::import: added url = %s",
-						url);
-					urlcfg->get_urls().push_back(
-						std::string(url));
+				auto& urls = urlcfg.get_urls();
+				if (std::find(urls.begin(), urls.end(), quoted_url) == urls.end()) {
+					LOG(Level::DEBUG, "opml::import: added url = %s", quoted_url);
+					urls.push_back(quoted_url);
 					if (tag.length() > 0) {
 						LOG(Level::DEBUG,
-							"opml::import: "
-							"appending "
-							"tag %s to url %s",
+							"opml::import: appending tag %s to url %s",
 							tag,
-							url);
-						urlcfg->get_tags(url).push_back(
-							tag);
+							quoted_url);
+						urlcfg.get_tags(quoted_url).push_back(tag);
 					}
 				} else {
 					LOG(Level::DEBUG,
-						"opml::import: url = %s is "
-						"already "
-						"in list",
-						url);
+						"opml::import: url = %s is already in list",
+						quoted_url);
 				}
-				xmlFree(url);
 			} else {
 				char* text = (char*)xmlGetProp(
-					node, (const xmlChar*)"text");
+						node, (const xmlChar*)"text");
 				if (!text) {
 					text = (char*)xmlGetProp(
-						node, (const xmlChar*)"title");
+							node, (const xmlChar*)"title");
 				}
 				if (text) {
 					if (newtag.length() > 0) {
@@ -175,29 +156,34 @@ void rec_find_rss_outlines(
 	}
 }
 
-bool opml::import(
-		const std::string& filename,
-		UrlReader* urlcfg)
+nonstd::optional<std::string> opml::import(
+	const std::string& filename,
+	FileUrlReader& urlcfg)
 {
 	xmlDoc* doc = xmlReadFile(filename.c_str(), nullptr, 0);
 	if (doc == nullptr) {
-		return false;
+		return strprintf::fmt(_("Error: failed to parse OPML file \"%s\""), filename);
 	}
 
-	xmlNode* root = xmlDocGetRootElement(doc);
+	nonstd::optional<std::string> error_message;
 
+	xmlNode* root = xmlDocGetRootElement(doc);
 	for (xmlNode* node = root->children; node != nullptr;
 		node = node->next) {
 		if (strcmp((const char*)node->name, "body") == 0) {
 			LOG(Level::DEBUG, "opml::import: found body");
 			rec_find_rss_outlines(urlcfg, node->children, "");
-			urlcfg->write_config();
+
+			error_message = urlcfg.write_config();
+			if (error_message.has_value()) {
+				break;
+			}
 		}
 	}
 
 	xmlFreeDoc(doc);
 
-	return true;
+	return error_message;
 }
 
 } // namespace newsboat

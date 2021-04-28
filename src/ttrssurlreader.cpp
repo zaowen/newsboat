@@ -1,7 +1,9 @@
-#include "ttrssapi.h"
+#include "ttrssurlreader.h"
 
 #include "fileurlreader.h"
 #include "logger.h"
+#include "remoteapi.h"
+#include "utils.h"
 
 namespace newsboat {
 
@@ -13,21 +15,19 @@ TtRssUrlReader::TtRssUrlReader(const std::string& url_file, RemoteApi* a)
 
 TtRssUrlReader::~TtRssUrlReader() {}
 
-void TtRssUrlReader::write_config()
-{
-	// NOTHING
-}
-
-void TtRssUrlReader::reload()
+nonstd::optional<std::string> TtRssUrlReader::reload()
 {
 	urls.clear();
 	tags.clear();
 	alltags.clear();
 
 	FileUrlReader ur(file);
-	ur.reload();
+	const auto error_message = ur.reload();
+	if (error_message.has_value()) {
+		LOG(Level::DEBUG, "Reloading failed: %s", error_message.value());
+		// Ignore errors for now: https://github.com/newsboat/newsboat/issues/1273
+	}
 
-	// std::vector<std::string>& file_urls(ur.get_urls());
 	auto& file_urls(ur.get_urls());
 	for (const auto& url : file_urls) {
 		if (utils::is_query_url(url)) {
@@ -51,12 +51,13 @@ void TtRssUrlReader::reload()
 			alltags.insert(tag);
 		}
 	}
+
+	return {};
 }
 
 std::string TtRssUrlReader::get_source()
 {
 	return "Tiny Tiny RSS";
 }
-// TODO
 
 } // namespace newsboat

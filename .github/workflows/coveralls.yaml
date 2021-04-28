@@ -1,0 +1,87 @@
+name: Coveralls
+
+on: [push, pull_request]
+
+jobs:
+  gen_coverage:
+    name: Calculate test coverage
+    runs-on: ubuntu-20.04
+
+    env:
+      # We use Rust Nightly, which builds upon LLVM 12. To ensure best
+      # compatibility, we use a matching C++ compiler.
+      CC: clang-12
+      CXX: clang++-12
+      # Enable test coverage.
+      PROFILE: 1
+      # These flags are necessary for grcov to correctly calculate coverage.
+      CARGO_INCREMENTAL: 0
+      # We add `-A warnings` because we aren't interested in warnings from Rust
+      # Nightly -- GitHub turns them into annotations, which is annoying.
+      RUSTFLAGS: '-A warnings -Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort'
+      RUSTDOCFLAGS: '-Cpanic=abort'
+      # Some of our tests use ncurses, which require a terminal of some sort.
+      # We pretend ours is a simple one.
+      TERM: 'dumb'
+      # This prevents our tests from hogging too much of the CPU and failing
+      # due to races.
+      RUST_TEST_THREADS: 2
+
+    steps:
+      - name: Add Clang 12 repo
+        run: |
+          echo "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" | sudo tee -a /etc/apt/sources.list.d/llvm-toolchain-focal-12.list
+          curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-get update
+
+      - name: Install dependencies
+        run: sudo apt-get install --assume-yes --no-install-suggests clang-12 libsqlite3-dev libcurl4-openssl-dev libxml2-dev libstfl-dev libjson-c-dev libncursesw5-dev
+
+      - name: Generate locales
+        run: |
+          sudo apt-get install --assume-yes locales
+          echo 'en_US.UTF-8 UTF-8' | sudo tee --append /etc/locale.gen
+          echo 'ru_RU.KOI8-R KOI8-R' | sudo tee --append /etc/locale.gen
+          echo 'ru_RU.CP1251 CP1251' | sudo tee --append /etc/locale.gen
+          sudo locale-gen
+
+      - name: Install Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: nightly
+
+      - uses: actions/checkout@v2
+
+      - name: Cache ~/.cargo
+        uses: actions/cache@v2.1.5
+        id: cargo_cache
+        with:
+          key: cargo2-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/git
+            ~/.cargo/registry
+
+      - name: Install grcov
+        if: steps.cargo_cache.outputs.cache-hit != 'true'
+        run: cargo install grcov
+
+      - name: Run tests
+        run: make --jobs=3 NEWSBOAT_RUN_IGNORED_TESTS=1 ci-check
+
+        # gcov tool from gcc doesn't understand profiling info that LLVM
+        # produces, so we trick grcov into using llvm-cov instead. We can't
+        # simply point grcov at llvm-cov, because the latter only behaves like
+        # gcc's gcov when invoked by that name.
+      - name: Prepare to use llvm-cov-12 as gcov
+        run: ln -s $(which llvm-cov-12) gcov
+
+      - name: Calculate test coverage
+        # Note that we override the path to gcov tool.
+        run: GCOV=$(pwd)/gcov grcov . --ignore-not-existing --ignore='/*' --ignore='3rd-party/*' --ignore='doc/*' --ignore='test/*' --ignore='target/*' --ignore='newsboat.cpp' --ignore='podboat.cpp' -t lcov -o coverage.lcov
+
+      - name: Submit coverage to Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: coverage.lcov

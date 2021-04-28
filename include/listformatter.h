@@ -11,34 +11,26 @@
 namespace newsboat {
 
 class ListFormatter {
-	typedef std::pair<std::string, unsigned int> LineIdPair;
-
 public:
-	ListFormatter();
+	ListFormatter(RegexManager* r = nullptr, const std::string& loc = "");
 	~ListFormatter();
-	void add_line(const std::string& text,
-		unsigned int id = UINT_MAX,
-		unsigned int width = 0);
-	void add_lines(const std::vector<std::string>& lines,
-		unsigned int width = 0);
+	void add_line(const std::string& text);
 	void set_line(const unsigned int itempos,
-		const std::string& text,
-		unsigned int id = UINT_MAX,
-		unsigned int width = 0);
+		const std::string& text);
 	void clear()
 	{
 		lines.clear();
 	}
-	std::string format_list(RegexManager* r = nullptr,
-		const std::string& location = "");
-	unsigned int get_lines_count()
+	std::string format_list() const;
+	unsigned int get_lines_count() const
 	{
 		return lines.size();
 	}
 
 private:
-	std::vector<LineIdPair> lines;
-	std::string format_cache;
+	std::vector<std::string> lines;
+	RegexManager* rxman;
+	std::string location;
 };
 
 } // namespace newsboat

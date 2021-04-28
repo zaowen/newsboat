@@ -1,10 +1,10 @@
 name: newsboat
 version: git
+base: core18
 summary: An RSS/Atom feed reader for text terminals
 description: |
-  Newsboat is a fork of Newsbeuter, an RSS/Atom feed reader for the text 
-  console. The only difference is that Newsboat is actively maintained 
-  while Newsbeuter isn't.
+  Newsboat is an RSS/Atom feed reader for the text console. It's an actively
+  maintained fork of Newsbeuter.
 grade: stable
 confinement: strict
 
@@ -16,17 +16,26 @@ apps:
     plugs:
       - network
       - home
+      - desktop
   podboat:
     command: usr/local/bin/podboat
-    aliases: [podboat]
     environment:
       LOCPATH: "$SNAP/usr/lib/locale"
     plugs:
       - network
       - home
+      - desktop
 
 parts:
+  rust:
+    plugin: nil
+    build-snaps:
+      - rustup
+    override-build: |
+      rustup install stable
   newsboat:
+    after:
+      - rust
     plugin: make
     source: .
     build-packages: 
@@ -37,15 +46,13 @@ parts:
       - libstfl-dev
       - libjson-c-dev
       - libncursesw5-dev
-      - asciidoc
-      - libxml2-utils
-      - xsltproc
-      - docbook-xml
-      - docbook-xsl
+      - asciidoctor
       - libssl-dev
       - gettext
+      - g++
     stage-packages:
       - libxml2
       - librtmp1
       - locales-all
-      - libcurl3
+      - libcurl4
+      - libstfl0

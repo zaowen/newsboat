@@ -1,7 +1,10 @@
-#include "inoreaderapi.h"
+#include "inoreaderurlreader.h"
 
+#include "configcontainer.h"
 #include "fileurlreader.h"
 #include "logger.h"
+#include "remoteapi.h"
+#include "utils.h"
 
 namespace newsboat {
 
@@ -15,11 +18,6 @@ InoreaderUrlReader::InoreaderUrlReader(ConfigContainer* c,
 }
 
 InoreaderUrlReader::~InoreaderUrlReader() {}
-
-void InoreaderUrlReader::write_config()
-{
-	// NOTHING
-}
 
 #define STARRED_ITEMS_URL \
 	"http://inoreader.com/reader/atom/user/-/state/com.google/starred"
@@ -39,7 +37,7 @@ void InoreaderUrlReader::write_config()
 		tags[(url)] = tmptags;        \
 	} while (0)
 
-void InoreaderUrlReader::reload()
+nonstd::optional<std::string> InoreaderUrlReader::reload()
 {
 	urls.clear();
 	tags.clear();
@@ -57,7 +55,11 @@ void InoreaderUrlReader::reload()
 	}
 
 	FileUrlReader ur(file);
-	ur.reload();
+	const auto error_message = ur.reload();
+	if (error_message.has_value()) {
+		LOG(Level::DEBUG, "Reloading failed: %s", error_message.value());
+		// Ignore errors for now: https://github.com/newsboat/newsboat/issues/1273
+	}
 
 	std::vector<std::string>& file_urls(ur.get_urls());
 	for (const auto& url : file_urls) {
@@ -81,6 +83,8 @@ void InoreaderUrlReader::reload()
 			alltags.insert(tag);
 		}
 	}
+
+	return {};
 }
 
 std::string InoreaderUrlReader::get_source()

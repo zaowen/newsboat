@@ -1,183 +1,187 @@
 #include "cliargsparser.h"
 
 #include <getopt.h>
+#include <cstdlib>
 
 #include "globals.h"
+#include "ruststring.h"
 #include "strprintf.h"
 
 namespace newsboat {
 
-CliArgsParser::CliArgsParser(int argc, char* argv[])
+
+rust::Vec<rust::String> argv_to_rust_args(int argc, char* argv[])
 {
-	int c;
+	rust::Vec<rust::String> args;
+	for (int i = 0; i < argc; ++i) {
+		args.push_back(argv[i]);
+	}
+	return args;
+}
 
-	program_name = argv[0];
+CliArgsParser::CliArgsParser(int argc, char* argv[])
+	: rs_object(cliargsparser::bridged::create(argv_to_rust_args(argc, argv)))
+{
+}
 
-	static const char getopt_str[] = "i:erhqu:c:C:d:l:vVx:XI:E:";
-	static const struct option longopts[] = {
-		{"cache-file", required_argument, 0, 'c'},
-		{"config-file", required_argument, 0, 'C'},
-		{"execute", required_argument, 0, 'x'},
-		{"export-to-file", required_argument, 0, 'E'},
-		{"export-to-opml", no_argument, 0, 'e'},
-		{"help", no_argument, 0, 'h'},
-		{"import-from-file", required_argument, 0, 'I'},
-		{"import-from-opml", required_argument, 0, 'i'},
-		{"log-file", required_argument, 0, 'd'},
-		{"log-level", required_argument, 0, 'l'},
-		{"quiet", no_argument, 0, 'q'},
-		{"refresh-on-start", no_argument, 0, 'r'},
-		{"url-file", required_argument, 0, 'u'},
-		{"vacuum", no_argument, 0, 'X'},
-		{"version", no_argument, 0, 'v'},
-		{0, 0, 0, 0}};
+bool CliArgsParser::do_import() const
+{
+	return newsboat::cliargsparser::bridged::do_import(*rs_object);
+}
 
-	// Ask getopt to re-initialize itself.
-	//
-	// This isn't necessary for real-world use, because we parse arguments
-	// only once; but this is *very* important in tests, where CliArgsParser
-	// is ran dozens of times.
-	//
-	// Note we use 0, not 1. getopt(3) says that the value of 0 forces
-	// getopt() to re-initialize some more internal stuff. This shouldn't
-	// make a difference in our case, but somehow it does - if we use 1,
-	// tests start to fail.
-	optind = 0;
+bool CliArgsParser::do_export() const
+{
+	return newsboat::cliargsparser::bridged::do_export(*rs_object);
+}
 
-	while ((c = ::getopt_long(argc, argv, getopt_str, longopts, nullptr)) !=
-		-1) {
-		switch (c) {
-		case ':': /* fall-through */
-		case '?': /* missing option */
-			should_print_usage = true;
+bool CliArgsParser::do_vacuum() const
+{
+	return newsboat::cliargsparser::bridged::do_vacuum(*rs_object);
+}
 
-			should_return = true;
-			return_code = EXIT_FAILURE;
+bool CliArgsParser::do_cleanup() const
+{
+	return newsboat::cliargsparser::bridged::do_cleanup(*rs_object);
+}
 
-			break;
-		case 'i':
-			if (do_export) {
-				should_print_usage = true;
+std::string CliArgsParser::importfile() const
+{
+	return std::string(newsboat::cliargsparser::bridged::importfile(*rs_object));
+}
 
-				should_return = true;
-				return_code = EXIT_FAILURE;
+nonstd::optional<std::string> CliArgsParser::readinfo_import_file() const
+{
+	rust::String path;
+	if (newsboat::cliargsparser::bridged::readinfo_import_file(*rs_object, path)) {
+		return std::string(path);
+	}
+	return nonstd::nullopt;
+}
 
-				break;
-			}
-			do_import = true;
-			importfile = optarg;
-			break;
-		case 'r':
-			refresh_on_start = true;
-			break;
-		case 'e':
-			// disable logging of newsboat's startup progress to
-			// stdout, because the OPML export will be printed to
-			// stdout.
-			silent = true;
-			if (do_import) {
-				should_print_usage = true;
+nonstd::optional<std::string> CliArgsParser::readinfo_export_file() const
+{
+	rust::String path;
+	if (newsboat::cliargsparser::bridged::readinfo_export_file(*rs_object, path)) {
+		return std::string(path);
+	}
+	return nonstd::nullopt;
+}
 
-				should_return = true;
-				return_code = EXIT_FAILURE;
+std::string CliArgsParser::program_name() const
+{
+	return std::string(newsboat::cliargsparser::bridged::program_name(*rs_object));
+}
 
-				break;
-			}
-			do_export = true;
-			break;
-		case 'h':
-			should_print_usage = true;
-			should_return = true;
-			return_code = EXIT_SUCCESS;
-			break;
-		case 'u':
-			set_url_file = true;
-			url_file = optarg;
-			using_nonstandard_configs = true;
-			break;
-		case 'c':
-			set_cache_file = true;
-			cache_file = optarg;
-			set_lock_file = true;
-			lock_file = std::string(cache_file) + LOCK_SUFFIX;
-			using_nonstandard_configs = true;
-			break;
-		case 'C':
-			set_config_file = true;
-			config_file = optarg;
-			using_nonstandard_configs = true;
-			break;
-		case 'X':
-			do_vacuum = true;
-			break;
-		case 'v':
-		case 'V':
-			show_version++;
-			break;
-		case 'x':
-			// disable logging of newsboat's startup progress to
-			// stdout, because the command execution result will be
-			// printed to stdout
-			silent = true;
+unsigned int CliArgsParser::show_version() const
+{
+	return newsboat::cliargsparser::bridged::do_show_version(*rs_object);
+}
 
-			execute_cmds = true;
-			cmds_to_execute.push_back(optarg);
-			while (optind < argc && *argv[optind] != '-') {
-				cmds_to_execute.push_back(argv[optind]);
-				optind++;
-			}
-			break;
-		case 'q':
-			silent = true;
-			break;
-		case 'd':
-			set_log_file = true;
-			log_file = optarg;
-			break;
-		case 'l': {
-			Level l = static_cast<Level>(atoi(optarg));
-			if (l > Level::NONE && l <= Level::DEBUG) {
-				set_log_level = true;
-				log_level = l;
-			} else {
-				display_msg =
-					strprintf::fmt(_("%s: %d: invalid "
-							 "loglevel value"),
-						argv[0],
-						static_cast<int>(l));
+bool CliArgsParser::silent() const
+{
+	return newsboat::cliargsparser::bridged::silent(*rs_object);
+}
 
-				should_return = true;
-				return_code = EXIT_FAILURE;
+bool CliArgsParser::using_nonstandard_configs() const
+{
+	return newsboat::cliargsparser::bridged::using_nonstandard_configs(*rs_object);
+}
 
-				break;
-			}
-		} break;
-		case 'I':
-			if (do_read_export) {
-				should_print_usage = true;
+nonstd::optional<int> CliArgsParser::return_code() const
+{
+	rust::isize code = 0;
+	if (newsboat::cliargsparser::bridged::return_code(*rs_object, code)) {
+		return static_cast<int>(code);
+	}
+	return nonstd::nullopt;
+}
 
-				should_return = true;
-				return_code = EXIT_FAILURE;
+std::string CliArgsParser::display_msg() const
+{
+	return std::string(newsboat::cliargsparser::bridged::display_msg(*rs_object));
+}
 
-				break;
-			}
-			do_read_import = true;
-			readinfofile = optarg;
-			break;
-		case 'E':
-			if (do_read_import) {
-				should_print_usage = true;
+bool CliArgsParser::should_print_usage() const
+{
+	return newsboat::cliargsparser::bridged::should_print_usage(*rs_object);
+}
 
-				should_return = true;
-				return_code = EXIT_FAILURE;
+bool CliArgsParser::refresh_on_start() const
+{
+	return newsboat::cliargsparser::bridged::refresh_on_start(*rs_object);
+}
 
-				break;
-			}
-			do_read_export = true;
-			readinfofile = optarg;
-			break;
-		}
-	};
+nonstd::optional<std::string> CliArgsParser::url_file() const
+{
+	rust::String path;
+	if (newsboat::cliargsparser::bridged::url_file(*rs_object, path)) {
+		return std::string(path);
+	}
+	return nonstd::nullopt;
+}
+
+nonstd::optional<std::string> CliArgsParser::lock_file() const
+{
+	rust::String path;
+	if (newsboat::cliargsparser::bridged::lock_file(*rs_object, path)) {
+		return std::string(path);
+	}
+	return nonstd::nullopt;
+}
+
+nonstd::optional<std::string> CliArgsParser::cache_file() const
+{
+	rust::String path;
+	if (newsboat::cliargsparser::bridged::cache_file(*rs_object, path)) {
+		return std::string(path);
+	}
+	return nonstd::nullopt;
+}
+
+nonstd::optional<std::string> CliArgsParser::config_file() const
+{
+	rust::String path;
+	if (newsboat::cliargsparser::bridged::config_file(*rs_object, path)) {
+		return std::string(path);
+	}
+	return nonstd::nullopt;
+}
+
+std::vector<std::string> CliArgsParser::cmds_to_execute()
+const
+{
+	const auto rs_cmds = newsboat::cliargsparser::bridged::cmds_to_execute(
+			*rs_object);
+
+	std::vector<std::string> cmds;
+	for (const auto& cmd : rs_cmds) {
+		cmds.push_back(std::string(cmd));
+	}
+	return cmds;
+}
+
+nonstd::optional<std::string> CliArgsParser::log_file() const
+{
+	rust::String path;
+	if (newsboat::cliargsparser::bridged::log_file(*rs_object, path)) {
+		return std::string(path);
+	}
+	return nonstd::nullopt;
+}
+
+nonstd::optional<Level> CliArgsParser::log_level() const
+{
+	std::int8_t level;
+	if (newsboat::cliargsparser::bridged::log_level(*rs_object, level)) {
+		return static_cast<Level>(level);
+	}
+	return nonstd::nullopt;
+}
+
+void* CliArgsParser::get_rust_pointer() const
+{
+	return (void*)&*rs_object;
 }
 
 } // namespace newsboat
+

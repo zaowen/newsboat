@@ -14,13 +14,6 @@ class CurlHandle;
 
 /// \brief Updates feeds (fetches, parses, puts results into Controller).
 class Reloader {
-	Controller* ctrl;
-	Cache* rsscache;
-	ConfigContainer* cfg;
-	std::mutex reload_mutex;
-
-	std::string prepare_message(unsigned int pos, unsigned int max);
-
 public:
 	Reloader(Controller* c, Cache* cc, ConfigContainer* cfg);
 
@@ -30,8 +23,8 @@ public:
 	/// \brief Starts a thread that will reload feeds with specified
 	/// indexes.
 	///
-	/// If \a indexes is nullptr, all feeds will be reloaded.
-	void start_reload_all_thread(std::vector<int>* indexes = nullptr);
+	/// If \a indexes is empty, all feeds will be reloaded.
+	void start_reload_all_thread(const std::vector<int>& indexes = {});
 
 	void unlock_reload_mutex()
 	{
@@ -42,17 +35,14 @@ public:
 	/// \brief Reloads given feed.
 	///
 	/// Reloads the feed at position \a pos in the feeds list (as kept by
-	/// feedscontainer). \a max is a total amount of feeds (used when
-	/// preparing messages to the user). Only updates status (at the bottom
-	/// of the screen) if \a unattended is false. All network requests are
-	/// made through \a easyhandle, unless it's nullptr, in which case
-	/// method creates a temporary handle that is destroyed when method
-	/// completes.
-	// TODO: check that the value passed via "max" is always obtained from
-	// feedcontainer, then move that request into the method and drop the
-	// parameter.
+	/// feedscontainer). \a show_progress specifies if a progress indicator
+	/// (`[<pos>/<total_feeds>]`) should be included when updating the status
+	/// message (at the bottom of the screen). Status messages are only shown
+	/// if \a unattended is false. All network requests are made through
+	/// \a easyhandle, unless it is a nullptr, in which case this method creates
+	/// a temporary handle which is destroyed before returning from it.
 	void reload(unsigned int pos,
-		unsigned int max = 0,
+		bool show_progress = false,
 		bool unattended = false,
 		CurlHandle* easyhandle = nullptr);
 
@@ -75,9 +65,9 @@ public:
 	/// Only updates status bar if \a unattended is false.
 	void reload_range(unsigned int start,
 		unsigned int end,
-		unsigned int size,
 		bool unattended = false);
 
+private:
 	/// \brief Notify in various ways that there are new unread feeds or
 	/// articles.
 	///
@@ -89,6 +79,13 @@ public:
 	/// notification will contain \a msg passed.
 	void notify(const std::string& msg);
 
+	void notify_reload_finished(unsigned int unread_feeds_before,
+		unsigned int unread_articles_before);
+
+	Controller* ctrl;
+	Cache* rsscache;
+	ConfigContainer* cfg;
+	std::mutex reload_mutex;
 };
 
 } // namespace newsboat

@@ -60,12 +60,9 @@ check_custom() {
 fail() {
 	pkgname=$1
 	rm -f config.mk
-	dlurl=`grep -i "$pkgname" README.md | awk '{ print $NF }'`
 	echo ""
 	echo "You need package ${pkgname} in order to compile this program."
 	echo "Please make sure it is installed."
-	echo ""
-	echo "You can download ${pkgname} from here: ${dlurl}"
 	FAILSTATUS="1"
 }
 
@@ -89,6 +86,7 @@ all_aboard_the_fail_boat() {
 check_ssl_implementation() {
 	if curl-config --static-libs | egrep -- "-lssl( |^)" > /dev/null 2>&1 ; then
 		check_pkg "libcrypto" || fail "libcrypto"
+		check_pkg "libssl" || fail "libssl"
 		echo "DEFINES+=-DHAVE_OPENSSL=1" >> config.mk
 	elif curl-config --static-libs | grep -- -lgcrypt > /dev/null 2>&1 ; then
 		check_pkg "gnutls" || fail "gnutls"
@@ -110,6 +108,9 @@ if [ `uname -s` = "Darwin" ]; then
     # rand crate needs Security framework, and rustc doesn't (can't) link it
     # into libnewsboat.a
     echo 'LDFLAGS+=-framework Security' >> config.mk
+    # gettext-sys crate needs CoreFoundation framework, and rustc doesn't
+    # (can't) link it into libnewsboat.a
+    echo 'LDFLAGS+=-framework CoreFoundation' >> config.mk
 elif [ `uname -s` != "OpenBSD" ]; then
 	check_pkg "ncursesw" || \
 	check_custom "ncursesw5" "ncursesw5-config" || \

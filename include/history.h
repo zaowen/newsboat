@@ -1,24 +1,24 @@
 #ifndef NEWSBOAT_HISTORY_H_
 #define NEWSBOAT_HISTORY_H_
 
+#include "history.rs.h"
+
 #include <string>
-#include <vector>
 
 namespace newsboat {
 
 class History {
 public:
 	History();
-	~History();
+	~History() = default;
 	void add_line(const std::string& line);
-	std::string prev();
-	std::string next();
+	std::string previous_line();
+	std::string next_line();
 	void load_from_file(const std::string& file);
 	void save_to_file(const std::string& file, unsigned int limit);
 
 private:
-	std::vector<std::string> lines;
-	unsigned int idx;
+	rust::Box<history::bridged::History> rs_object;
 };
 
 } // namespace newsboat

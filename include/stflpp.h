@@ -16,6 +16,15 @@ public:
 		explicit Form(const std::string& text);
 		~Form();
 
+		// Make sure this class cannot accidentally get copied.
+		// Copying this class would be bad because the `f` and `ipool` member
+		// variables are managed manually.
+		Form(const Form&) = delete;
+		Form& operator=(const Form&) = delete;
+		// The move operations are not needed at the moment but can be added when necessary.
+		Form(Form&&) = delete;
+		Form& operator=(Form&&) = delete;
+
 		const char* run(int timeout);
 
 		std::string get(const std::string& name);
@@ -30,16 +39,11 @@ public:
 		void modify(const std::string& name,
 			const std::string& mode,
 			const std::string& text);
-		// std::string lookup(const std::string& path, const
-		// std::string& newname);
 
 	private:
 		stfl_form* f;
 		stfl_ipool* ipool;
 	};
-
-	// static std::string error();
-	// static void error_action(const std::string& mode);
 
 	static void reset();
 	static std::string quote(const std::string& text);

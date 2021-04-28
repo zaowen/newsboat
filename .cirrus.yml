@@ -1,0 +1,445 @@
+freebsd_resource_settings: &freebsd_resource_settings
+  cpu: 4
+  memory: 8GB
+
+freebsd_task:
+    matrix:
+        - name: FreeBSD 11.4
+          freebsd_instance:
+            image: freebsd-11-4-release-amd64
+            << : *freebsd_resource_settings
+        - name: FreeBSD 12.2
+          freebsd_instance:
+            image: freebsd-12-2-release-amd64
+            << : *freebsd_resource_settings
+
+    cargo_cache: &cargo_cache
+        # This works in conjunction with after_cache_script and
+        # before_cache_script defined below.
+        folder: $HOME/cargo-cache
+        fingerprint_script:
+          # We include the cache name in the fingerprint to avoid re-using old
+          # caches that contained ~/.cargo
+          - echo cargo-cache
+          - cat Cargo.lock
+
+    env:
+        HOME: /home/testuser
+        RUSTFLAGS: '-D warnings'
+
+    after_cache_script: &after_cache_script
+      - mkdir $HOME/.cargo || true
+      - mv $HOME/cargo-cache/registry/ $HOME/cargo-cache/git/ $HOME/.cargo/ || true
+    install_script:
+        # Make sure we use the same package repository for all images. Snapshots
+        # (like 11.3-STABLE) default to latest, while releases default to quarterly.
+        - sed -i.bak -e 's,pkg+http://pkg.FreeBSD.org/\${ABI}/quarterly,pkg+http://pkg.FreeBSD.org/\${ABI}/latest,' /etc/pkg/FreeBSD.conf        
+        - pkg update -f
+        - pkg upgrade -y
+        - pkg install -y rust gmake rubygem-asciidoctor pkgconf stfl curl json-c ncurses openssl sqlite3 gettext-tools libxml2
+    setup_script:
+        - pw groupadd testgroup
+        - pw useradd testuser -g testgroup -w none -m
+        - cp -R . $HOME
+        - chown -R testuser:testgroup $HOME
+    # CI builds take a while to provision, install dependencies and compile our
+    # stuff. To maximize the benefits, we ask Make to process as many rules as
+    # possible before failing. This enables developers to fix more errors before
+    # re-submitting the code to CI, which should increase throughput.
+    build_script: su testuser -c 'cd ~ && gmake --jobs=5 --keep-going all test'
+    test_script: su testuser -c 'cd ~ && RUST_TEST_THREADS=5 RUST_BACKTRACE=1 gmake -j5 NEWSBOAT_RUN_IGNORED_TESTS=1 ci-check'
+    # This installs everything into a "fake filesystem root", then uninstalls
+    # everything and checks that there are no files left over. The purpose of
+    # this check is to ensure that: 1) `make install` doesn't fail; 2) `make
+    # uninstall` cleans up everything that `make install` installed.
+    #
+    # We run this *before* Clippy because Clippy rebuilds crates in debug mode,
+    # which causes some C++ classes to be re-compiled as they depend on cxx
+    # bridges.
+    fake_install_script: su testuser -c 'cd ~ && mkdir fakeroot && gmake DESTDIR=fakeroot install && gmake DESTDIR=fakeroot uninstall && [ $(find fakeroot -type f -print | wc -l) -eq 0 ]'
+    clippy_script: su testuser -c 'cd ~ && cargo clippy --all-targets --all-features -- -D warnings -A clippy::unknown-clippy-lints -A unknown-lints'
+    before_cache_script: &before_cache_script
+        # Cirrus CI sometimes fails to unpack the cache. In that case, it
+        # removes the "cache folder" and tries again.
+        #
+        # We used to use ~/.cargo as a "cache folder", but Cirrus then
+        # sometimes removed ~/.cargo/bin and broke the build. To work around
+        # that, we're storing the cacheble stuff in a separate directory which
+        # we move in/out of ~/.cargo before/after the build.
+        - mkdir -p $HOME/cargo-cache/git/
+        - mv $HOME/.cargo/registry/ $HOME/cargo-cache/ || true
+        - mv $HOME/.cargo/git/db/ $HOME/cargo-cache/git/ || true
+
+32bit_ubuntu_task:
+    name: Linux i686 (Ubuntu 18.04)
+    container:
+        dockerfile: docker/ubuntu_18.04-i686.dockerfile
+    cargo_cache: *cargo_cache
+    env:
+        RUSTFLAGS: '-D warnings'
+        JOBS: 3
+    after_cache_script: *after_cache_script
+    build_script: &build_script
+        - make -j${JOBS} --keep-going all test
+    test_script: &test_script
+        - RUST_TEST_THREADS=${JOBS} RUST_BACKTRACE=1 make -j${JOBS} NEWSBOAT_RUN_IGNORED_TESTS=1 ci-check
+    # For explanation of what this script does, please see the FreeBSD job
+    # above.
+    fake_install_script: &fake_install_script
+        - mkdir fakeroot
+        - make DESTDIR=fakeroot install
+        - make DESTDIR=fakeroot uninstall
+        - test $(find fakeroot -type f -print | wc -l) -eq 0
+    clippy_script: &clippy_script
+        - cargo clippy --all-targets --all-features -- -D warnings -A clippy::unknown-clippy-lints -A unknown-lints
+    before_cache_script: *before_cache_script
+
+macos_task:
+    cargo_cache: *cargo_cache
+
+    after_cache_script: *after_cache_script
+    install_script:
+        # Fix https://cirrus-ci.com/task/5763464897495040?command=install#L5.
+        # This only applies to macOS Catalina, and will fail on Big Sur because
+        # the clone there is *not* shallow. To prevent that failure from
+        # failing our build, we ignore the failure using `|| true`.
+        - git -C /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core fetch --unshallow || true
+        - brew update
+        - brew install rustup-init
+        - brew install gcc || brew link --overwrite gcc
+        - brew install python
+        - export PATH=/usr/local/opt/python/libexec/bin:$PATH
+        - brew uninstall rbenv ruby-build # ...so that it won't be upgraded when pkg-config is upgraded, because upgrading ruby-build fails; see https://github.com/newsboat/newsboat/issues/866
+        - brew outdated "pkg-config" || brew upgrade "pkg-config"
+        - brew install "gettext" && brew link --force "gettext"
+        - brew outdated "sqlite" || brew upgrade "sqlite"
+        - brew outdated "curl" || brew upgrade "curl"
+        - brew install "libstfl"
+        - brew install "json-c"
+        - brew install "asciidoctor"
+        - brew install "libxml2"
+        - brew install "pyenv" || brew upgrade "pyenv"
+        - rustup-init -y --default-toolchain $RUST
+        - rustc --version && cargo --version
+
+    env:
+        GCOV: /usr/bin/gcov
+        PKG_CONFIG_PATH: /usr/local/opt/libxml2/lib/pkgconfig:$PKG_CONFIG_PATH
+        PATH: $HOME/.cargo/bin:/usr/local/opt/gettext/bin:$PATH
+        LDFLAGS: -L/usr/local/opt/gettext/lib
+        CFLAGS: -I/usr/local/opt/gettext/include
+        CXXFLAGS: -I/usr/local/opt/gettext/include
+        GETTEXT_DIR: /usr/local/opt/gettext
+        RUSTFLAGS: '-D warnings'
+        JOBS: 13
+
+    build_script: *build_script
+    test_script: *test_script
+    fake_install_script: *fake_install_script
+    clippy_script: *clippy_script
+    before_cache_script: *before_cache_script
+
+    matrix:
+        - name: macOS Big Sur, Clang, Rust 1.51.0
+          osx_instance:
+              image: big-sur-base
+          env:
+              CC: clang
+              CXX: clang++
+              RUST: 1.51.0
+        # This job tests our minimum supported Rust version, so only bump on
+        # Newsboat release day
+        - name: macOS Catalina, GCC, Rust 1.48.0
+          osx_instance:
+              image: catalina-base
+          env:
+              CC: gcc
+              CXX: g++
+              RUST: 1.48.0
+
+formatting_task:
+    name: Code formatting
+    container:
+        dockerfile: docker/code-formatting-tools.dockerfile
+        cpu: 1
+        memory: 512MB
+    script:
+        - make fmt
+          # --exit-code forces git-diff to exit with code 1 if there were
+          # changes; that'll fail the build, which is exactly what we need
+        - git diff --exit-code
+
+linux_task:
+    env:
+        RUSTFLAGS: '-D warnings'
+        JOBS: 3
+
+    matrix:
+        # These two jobs test our minimum supported Rust version, so only bump on
+        # Newsboat release day
+        - name: Rust 1.48.0, GCC 5 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: g++-5
+                cc: gcc-5
+                cxx: g++-5
+                rust_version: 1.48.0
+        - name: Rust 1.48.0, GCC 10 (Ubuntu 20.04)
+          container:
+            dockerfile: docker/ubuntu_20.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: g++-10
+                cc: gcc-10
+                cxx: g++-10
+                rust_version: 1.48.0
+
+        - name: GCC 10, more warnings and checks (Ubuntu 20.04)
+          container:
+            dockerfile: docker/ubuntu_20.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: g++-10
+                cc: gcc-10
+                cxx: g++-10
+          env: &extra_warnings_and_checks_env
+            CXXFLAGS: "-D_GLIBCXX_ASSERTIONS -Wformat -Wformat-security -fstack-protector-strong --param=ssp-buffer-size=4 -D_FORTIFY_SOURCE=2 -Wnull-dereference -Wdouble-promotion -O3"
+        - name: Clang 11, more warnings and checks (Ubuntu 20.10)
+          container:
+            dockerfile: docker/ubuntu_20.10-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: clang-11
+                cc: clang-11
+                cxx: clang++-11
+          env: *extra_warnings_and_checks_env
+
+        - name: Rust 1.51.0, GCC 5 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: g++-5
+                cc: gcc-5
+                cxx: g++-5
+        - name: Rust 1.51.0, GCC 6 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: g++-6
+                cc: gcc-6
+                cxx: g++-6
+        - name: Rust 1.51.0, GCC 7 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: g++-7
+                cc: gcc-7
+                cxx: g++-7
+        - name: Rust 1.51.0, GCC 8 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: g++-8
+                cc: gcc-8
+                cxx: g++-8
+        - name: Rust 1.51.0, GCC 9 (Ubuntu 20.04)
+          container:
+            dockerfile: docker/ubuntu_20.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: g++-9
+                cc: gcc-9
+                cxx: g++-9
+        - name: Rust 1.51.0, GCC 10 (Ubuntu 20.04)
+          container:
+            dockerfile: docker/ubuntu_20.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: g++-10
+                cc: gcc-10
+                cxx: g++-10
+        - name: Rust 1.51.0, Clang 4.0 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: clang-4.0
+                cc: clang-4.0
+                cxx: clang++-4.0
+        - name: Rust 1.51.0, Clang 5.0 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: clang-5.0
+                cc: clang-5.0
+                cxx: clang++-5.0
+        - name: Rust 1.51.0, Clang 6.0 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: clang-6.0
+                cc: clang-6.0
+                cxx: clang++-6.0
+        - name: Rust 1.51.0, Clang 7 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: clang-7
+                cc: clang-7
+                cxx: clang++-7
+        - name: Rust 1.51.0, Clang 8 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: clang-8
+                cc: clang-8
+                cxx: clang++-8
+        - name: Rust 1.51.0, Clang 9 (Ubuntu 18.04)
+          container:
+            dockerfile: docker/ubuntu_18.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: clang-9
+                cc: clang-9
+                cxx: clang++-9
+        - name: Rust 1.51.0, Clang 10 (Ubuntu 20.04)
+          container:
+            dockerfile: docker/ubuntu_20.04-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: clang-10
+                cc: clang-10
+                cxx: clang++-10
+        - name: Rust 1.51.0, Clang 11 (Ubuntu 20.10)
+          container:
+            dockerfile: docker/ubuntu_20.10-build-tools.dockerfile
+            docker_arguments:
+                cxx_package: clang-11
+                cc: clang-11
+                cxx: clang++-11
+
+    cargo_cache: *cargo_cache
+
+    after_cache_script: *after_cache_script
+    build_script: *build_script
+    test_script: *test_script
+    fake_install_script: *fake_install_script
+    clippy_script: *clippy_script
+    before_cache_script: *before_cache_script
+
+address_sanitizer_task:
+    name: AddressSanitizer (Clang 11, Ubuntu 20.10)
+
+    container:
+      dockerfile: docker/ubuntu_20.10-build-tools.dockerfile
+      docker_arguments:
+          # We need llvm-symbolizer from llvm-10-tools to demangle symbols in
+          # sanitizer's reports
+          cxx_package: "clang-11 llvm-11"
+          cc: clang-11
+          cxx: clang++-11
+
+    env:
+      CXXFLAGS: "-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fno-optimize-sibling-calls -g"
+      ASAN_OPTIONS: "check_initialization_order=1:detect_stack_use_after_return=1"
+      JOBS: 3
+
+    cargo_cache: *cargo_cache
+
+    # Sanitizers only apply to C++, so we only build and run C++ tests. Also,
+    # we don't pass --keep-going to the build: failures can be debugged with
+    # logs of other jobs.
+    after_cache_script: *after_cache_script
+    build_script: make -j${JOBS} test/test
+    test_script: cd test && ./test --order=rand --rng-seed=time
+    before_cache_script: *before_cache_script
+
+depslist_task:
+    name: Dependencies list is up to date
+
+    container:
+      dockerfile: docker/ubuntu_20.04-build-tools.dockerfile
+      docker_arguments:
+          cxx_package: g++-9
+          cc: gcc-9
+          cxx: g++-9
+
+    env:
+      JOBS: 3
+
+    script:
+          # Build in debug mode to speed things up
+        - make -j${JOBS} PROFILE=1 depslist
+          # --exit-code forces git-diff to exit with code 1 if there were
+          # changes. If it does, we print a warning, and propagate the error.
+          # Otherwise this whole script exits with 0
+        - git diff --exit-code || (echo 'WARNING: the above diff is produced by GCC. Copy it if you only have Clang installed; otherwise just run `make depslist` and commit the result'; false)
+
+undefined_behavior_sanitizer_task:
+    name: UB Sanitizer (Clang 11, Ubuntu 20.10)
+
+    container:
+      dockerfile: docker/ubuntu_20.10-build-tools.dockerfile
+      docker_arguments:
+          # We need llvm-symbolizer from llvm-10-tools to demangle symbols in
+          # sanitizer's reports
+          cxx_package: "clang-11 llvm-11"
+          cc: clang-11
+          cxx: clang++-11
+
+    env:
+      CXXFLAGS: "-fsanitize=undefined -g -fno-omit-frame-pointer"
+      UBSAN_OPTIONS: "suppressions=.undefined-sanitizer-suppressions:print_stacktrace=1:halt_on_error=1"
+      JOBS: 3
+
+    cargo_cache: *cargo_cache
+
+    # Sanitizers only apply to C++, so we only build and run C++ tests. Also,
+    # we don't pass --keep-going to the build: failures can be debugged with
+    # logs of other jobs.
+    after_cache_script: *after_cache_script
+    build_script: make -j${JOBS} test/test
+    test_script: cd test && ./test --order=rand --rng-seed=time
+    before_cache_script: *before_cache_script
+
+asciidoctor_warnings_task:
+    name: Asciidoctor with warnings-as-errors
+
+    container:
+      cpu: 1
+      memory: 512MB
+      dockerfile: docker/ubuntu_20.04-build-tools.dockerfile
+
+    env:
+        ASCIIDOCTOR_OPTS: '--failure-level WARN'
+
+    script: make doc
+
+i18nspector_task:
+    name: .po files
+
+    container:
+      cpu: 1
+      memory: 512MB
+      dockerfile: docker/i18nspector.dockerfile
+
+    # `tee` displays the output of `i18nspector`, but also store it in the file
+    # for later analysis. `egrep` returns exit code 0 if it finds something,
+    # and 1 otherwise. We need the opposite, so we negate the exit code using
+    # an exclamation mark. This fails the build if the log contains errors or
+    # warnings.
+    script: make run-i18nspector | tee i18nspector.log && ! egrep --silent "^(E|W):" i18nspector.log
+
+no_dbg_macros_task:
+    name: "No dbg! macros in Rust code"
+
+    container:
+      cpu: 1
+      memory: 512MB
+      image: alpine:3.10.2
+
+    script:
+      # Alpine uses BusyBox, so grep there doesn't support long options.
+      #
+      # -E -- extended regex, which supports beginning-of-word marker
+      # -r -- recursive
+      # -n -- show line numbers
+      #
+      # `!` in front of the command negates its exit code: this script will now
+      # exit with 0 if no matches were found, and with 1 if there are matches.
+      # We need parentheses to prevent YAML parser from eating up the
+      # exclamation mark.
+      - ( ! grep -Ern '\<dbg!' * )

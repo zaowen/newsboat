@@ -1,51 +1,53 @@
 #include <itemlistformaction.h>
 
 #include <cassert>
+#include <cinttypes>
 #include <cstdio>
 #include <langinfo.h>
 #include <sstream>
+#include <string>
+#include <sys/stat.h>
 
 #include "config.h"
 #include "controller.h"
-#include "exceptions.h"
-#include "formatstring.h"
+#include "dbexception.h"
+#include "fmtstrformatter.h"
 #include "logger.h"
+#include "matcherexception.h"
+#include "rssfeed.h"
+#include "scopemeasure.h"
 #include "strprintf.h"
 #include "utils.h"
 #include "view.h"
-
-#define FILTER_UNREAD_ITEMS "unread != \"no\""
 
 namespace newsboat {
 
 ItemListFormAction::ItemListFormAction(View* vv,
 	std::string formstr,
 	Cache* cc,
-	FilterContainer* f,
-	ConfigContainer* cfg)
-	: ListFormAction(vv, formstr, cfg)
+	FilterContainer& f,
+	ConfigContainer* cfg,
+	RegexManager& r)
+	: ListFormAction(vv, formstr, "items", cfg)
 	, pos(0)
 	, apply_filter(false)
 	, show_searchresult(false)
-	, search_dummy_feed(new RssFeed(cc))
 	, set_filterpos(false)
 	, filterpos(0)
-	, rxman(0)
+	, rxman(r)
 	, old_width(0)
 	, old_itempos(-1)
-	, old_sort_strategy({ArtSortMethod::TITLE, SortDirection::DESC})
-	, invalidated(false)
-	, invalidation_mode(InvalidationMode::COMPLETE)
+	, invalidation_mode(InvalidationMode::NONE)
+	, listfmt(&rxman, "articlelist")
 	, rsscache(cc)
 	, filters(f)
-	, cfg(cfg)
 {
-	assert(true == m.parse(FILTER_UNREAD_ITEMS));
+	register_format_styles();
 }
 
 ItemListFormAction::~ItemListFormAction() {}
 
-void ItemListFormAction::process_operation(Operation op,
+bool ItemListFormAction::process_operation(Operation op,
 	bool automatic,
 	std::vector<std::string>* args)
 {
@@ -58,30 +60,28 @@ void ItemListFormAction::process_operation(Operation op,
 	 *   - if an item was selected, then fetch it and do something with it
 	 */
 
-	std::string itemposname = f->get("itempos");
-	unsigned int itempos = utils::to_u(itemposname);
+	const unsigned int itempos = list.get_position();
 
 	switch (op) {
 	case OP_OPEN: {
-		LOG(Level::INFO,
-			"ItemListFormAction: opening item at pos `%s'",
-			itemposname);
-		if (itemposname.length() > 0 && visible_items.size() != 0) {
+		LOG(Level::INFO, "ItemListFormAction: opening item at pos `%u'", itempos);
+		if (!visible_items.empty()) {
 			// no need to mark item as read, the itemview already do
 			// that
 			old_itempos = itempos;
 			v->push_itemview(feed,
 				visible_items[itempos].first->guid(),
-				show_searchresult ? searchphrase : "");
+				show_searchresult ? search_phrase : "");
 			invalidate(itempos);
 		} else {
-			v->show_error(
+			v->get_statusline().show_error(
 				_("No item selected!")); // should not happen
 		}
-	} break;
+	}
+	break;
 	case OP_DELETE: {
 		ScopeMeasure m1("OP_DELETE");
-		if (itemposname.length() > 0 && visible_items.size() != 0) {
+		if (!visible_items.empty()) {
 			// mark as read
 			v->get_ctrl()->mark_article_read(
 				visible_items[itempos].first->guid(), true);
@@ -92,188 +92,214 @@ void ItemListFormAction::process_operation(Operation op,
 			rsscache->mark_item_deleted(
 				visible_items[itempos].first->guid(),
 				visible_items[itempos].first->deleted());
-			if (itempos < visible_items.size() - 1)
-				f->set("itempos",
-					strprintf::fmt("%u", itempos + 1));
+			if (itempos < visible_items.size() - 1) {
+				list.set_position(itempos + 1);
+			}
 			invalidate(itempos);
 		} else {
-			v->show_error(
+			v->get_statusline().show_error(
 				_("No item selected!")); // should not happen
 		}
-	} break;
+	}
+	break;
 	case OP_DELETE_ALL: {
-		ScopeMeasure m1("OP_DELETE_ALL");
-		if (visible_items.size() > 0) {
-			v->get_ctrl()->mark_all_read(pos);
+		if (!cfg->get_configvalue_as_bool("confirm-delete-all-articles") ||
+			v->confirm(_("Do you really want to delete all articles (y:Yes n:No)? "),
+				_("yn")) == *_("y")) {
+			ScopeMeasure m1("OP_DELETE_ALL");
+
+			std::vector<std::string> item_guids;
 			for (const auto& pair : visible_items) {
-				pair.first->set_deleted(true);
+				const auto item = pair.first;
+				item_guids.push_back(item->guid());
 			}
-			rsscache->mark_feed_items_deleted(feed->rssurl());
-			invalidate(InvalidationMode::COMPLETE);
+			v->get_ctrl()->mark_all_read(item_guids);
+
+			for (const auto& pair : visible_items) {
+				const auto item = pair.first;
+
+				// mark as read
+				item->set_unread(false);
+				// mark as deleted
+				item->set_deleted(true);
+				rsscache->mark_item_deleted(item->guid(), true);
+			}
+			invalidate_list();
 		}
-	} break;
+	}
+	break;
 	case OP_PURGE_DELETED: {
 		ScopeMeasure m1("OP_PURGE_DELETED");
 		feed->purge_deleted_items();
-		invalidate(InvalidationMode::COMPLETE);
-	} break;
+		invalidate_list();
+	}
+	break;
 	case OP_OPENBROWSER_AND_MARK: {
-		LOG(Level::INFO,
-			"ItemListFormAction: opening item at pos `%s'",
-			itemposname);
-		if (itemposname.length() > 0 && visible_items.size() != 0) {
-			if (itempos < visible_items.size()) {
-				visible_items[itempos].first->set_unread(false);
-				v->get_ctrl()->mark_article_read(
-					visible_items[itempos].first->guid(),
-					true);
-				v->open_in_browser(
-					visible_items[itempos].first->link());
-				if (!cfg->get_configvalue_as_bool(
-					    "openbrowser-and-mark-jumps-to-"
-					    "next-unread")) {
-					if (itempos <
-						visible_items.size() - 1) {
-						f->set("itempos",
-							strprintf::fmt("%u",
-								itempos + 1));
-					}
-				} else {
-					process_operation(OP_NEXTUNREAD);
-				}
-				invalidate(itempos);
-			}
-		} else {
-			v->show_error(
-				_("No item selected!")); // should not happen
+		const bool interactive = true;
+		invalidate(itempos);
+		if (!open_position_in_browser(itempos, interactive)) {
+			return false;
 		}
-	} break;
+
+		auto item = visible_items[itempos].first;
+		item->set_unread(false);
+		v->get_ctrl()->mark_article_read(item->guid(), true);
+		if (cfg->get_configvalue_as_bool("openbrowser-and-mark-jumps-to-next-unread")) {
+			process_operation(OP_NEXTUNREAD);
+		} else {
+			if (itempos < visible_items.size() - 1) {
+				list.set_position(itempos + 1);
+			}
+		}
+	}
+	break;
 	case OP_OPENINBROWSER: {
-		LOG(Level::INFO,
-			"ItemListFormAction: opening item at pos `%s'",
-			itemposname);
-		if (itemposname.length() > 0 && visible_items.size() != 0) {
-			if (itempos < visible_items.size()) {
-				v->open_in_browser(
-					visible_items[itempos].first->link());
-				invalidate(itempos);
-			}
-		} else {
-			v->show_error(
-				_("No item selected!")); // should not happen
-		}
-	} break;
+		const bool interactive = true;
+		invalidate(itempos);
+		return open_position_in_browser(itempos, interactive);
+	}
+	break;
+	case OP_OPENINBROWSER_NONINTERACTIVE: {
+		const bool interactive = false;
+		invalidate(itempos);
+		return open_position_in_browser(itempos, interactive);
+	}
+	break;
 	case OP_OPENALLUNREADINBROWSER: {
 		if (feed) {
 			LOG(Level::INFO,
 				"ItemListFormAction: opening all unread items "
 				"in "
 				"browser");
-			open_unread_items_in_browser(feed, false);
+
+			// We can't just `const auto exit_code = ...` here because this
+			// triggers -Wmaybe-initialized in GCC 9 with -O2.
+			nonstd::optional<std::uint8_t> exit_code;
+			exit_code = open_unread_items_in_browser(feed, false);
+
+			if (!exit_code.has_value()) {
+				v->get_statusline().show_error(_("Failed to spawn browser"));
+				return false;
+			} else if (*exit_code != 0) {
+				v->get_statusline().show_error(strprintf::fmt(_("Browser returned error code %i"),
+						*exit_code));
+				return false;
+			}
 		}
-	} break;
+	}
+	break;
 	case OP_OPENALLUNREADINBROWSER_AND_MARK: {
 		if (feed) {
 			LOG(Level::INFO,
 				"ItemListFormAction: opening all unread items "
 				"in "
 				"browser and marking read");
-			open_unread_items_in_browser(feed, true);
-			invalidate(InvalidationMode::COMPLETE);
+
+			// We can't just `const auto exit_code = ...` here because this
+			// triggers -Wmaybe-initialized in GCC 9 with -O2.
+			nonstd::optional<std::uint8_t> exit_code;
+			exit_code = open_unread_items_in_browser(feed, true);
+
+			if (!exit_code.has_value()) {
+				v->get_statusline().show_error(_("Failed to spawn browser"));
+				return false;
+			} else if (*exit_code != 0) {
+				v->get_statusline().show_error(strprintf::fmt(_("Browser returned error code %i"),
+						*exit_code));
+				return false;
+			}
+			invalidate_list();
 		}
-	} break;
+	}
+	break;
 	case OP_TOGGLEITEMREAD: {
-		LOG(Level::INFO,
-			"ItemListFormAction: toggling item read at pos `%s'",
-			itemposname);
-		if (itemposname.length() > 0) {
-			v->set_status(_("Toggling read flag for article..."));
+		LOG(Level::INFO, "ItemListFormAction: toggling item read at pos `%u'", itempos);
+		if (!visible_items.empty()) {
 			try {
+				const auto message_lifetime = v->get_statusline().show_message_until_finished(
+						_("Toggling read flag for article..."));
 				if (automatic && args->size() > 0) {
 					if ((*args)[0] == "read") {
 						visible_items[itempos]
-							.first->set_unread(
-								false);
+						.first->set_unread(
+							false);
 						v->get_ctrl()->mark_article_read(
 							visible_items[itempos]
-								.first->guid(),
+							.first->guid(),
 							true);
 					} else if ((*args)[0] == "unread") {
 						visible_items[itempos]
-							.first->set_unread(
-								true);
+						.first->set_unread(
+							true);
 						v->get_ctrl()->mark_article_read(
 							visible_items[itempos]
-								.first->guid(),
+							.first->guid(),
 							false);
 					}
-					v->set_status("");
 				} else {
 					// mark as undeleted
 					visible_items[itempos]
-						.first->set_deleted(false);
+					.first->set_deleted(false);
 					rsscache->mark_item_deleted(
 						visible_items[itempos]
-							.first->guid(),
+						.first->guid(),
 						false);
 					// toggle read
 					bool unread = visible_items[itempos]
-							      .first->unread();
+						.first->unread();
 					visible_items[itempos]
-						.first->set_unread(!unread);
+					.first->set_unread(!unread);
 					v->get_ctrl()->mark_article_read(
 						visible_items[itempos]
-							.first->guid(),
+						.first->guid(),
 						unread);
-					v->set_status("");
 				}
 			} catch (const DbException& e) {
-				v->set_status(strprintf::fmt(
-					_("Error while toggling read flag: %s"),
-					e.what()));
+				v->get_statusline().show_error(strprintf::fmt(
+						_("Error while toggling read flag: %s"),
+						e.what()));
 			}
 			if (!cfg->get_configvalue_as_bool(
-				    "toggleitemread-jumps-to-next-unread")) {
-				if (itempos < visible_items.size() - 1)
-					f->set("itempos",
-						strprintf::fmt(
-							"%u", itempos + 1));
+					"toggleitemread-jumps-to-next-unread")) {
+				if (itempos < visible_items.size() - 1) {
+					list.set_position(itempos + 1);
+				}
 			} else {
 				process_operation(OP_NEXTUNREAD);
 			}
 			invalidate(itempos);
 		}
-	} break;
+	}
+	break;
 	case OP_SHOWURLS:
-		if (itemposname.length() > 0 && visible_items.size() != 0) {
+		if (!visible_items.empty()) {
 			if (itempos < visible_items.size()) {
 				std::string urlviewer = cfg->get_configvalue(
-					"external-url-viewer");
+						"external-url-viewer");
 				if (urlviewer == "") {
 					std::vector<LinkPair> links;
 					std::vector<std::pair<LineType,
-						std::string>>
-						lines;
+					    std::string>>
+					    lines;
 					HtmlRenderer rnd;
 					std::string baseurl =
 						visible_items[itempos]
-								.first
-								->get_base() !=
-							""
+						.first
+						->get_base() !=
+						""
 						? visible_items[itempos]
-							  .first->get_base()
+						.first->get_base()
 						: visible_items[itempos]
-							  .first->feedurl();
+						.first->feedurl();
 					rnd.render(
-						visible_items[itempos]
-							.first->description(),
+						utils::utf8_to_locale(visible_items[itempos].first->description().text),
 						lines,
 						links,
 						baseurl);
 					if (!links.empty()) {
 						v->push_urlview(links, feed);
 					} else {
-						v->show_error(
+						v->get_statusline().show_error(
 							_("URL list empty."));
 					}
 				} else {
@@ -283,46 +309,42 @@ void ItemListFormAction::process_operation(Operation op,
 				}
 			}
 		} else {
-			v->show_error(
+			v->get_statusline().show_error(
 				_("No item selected!")); // should not happen
 		}
 		break;
 	case OP_BOOKMARK: {
-		LOG(Level::INFO,
-			"ItemListFormAction: bookmarking item at pos `%s'",
-			itemposname);
-		if (itemposname.length() > 0 && visible_items.size() != 0) {
+		LOG(Level::INFO, "ItemListFormAction: bookmarking item at pos `%u'", itempos);
+		if (!visible_items.empty()) {
 			if (itempos < visible_items.size()) {
 				if (automatic) {
 					qna_responses.clear();
 					qna_responses.push_back(
 						visible_items[itempos]
-							.first->link());
-					qna_responses.push_back(
-						visible_items[itempos]
-							.first->title());
+						.first->link());
+					qna_responses.push_back(utils::utf8_to_locale(
+							visible_items[itempos].first->title()));
 					qna_responses.push_back(args->size() > 0
-							? (*args)[0]
-							: "");
+						? (*args)[0]
+						: "");
 					qna_responses.push_back(feed->title());
 					this->finished_qna(OP_INT_BM_END);
 				} else {
 					this->start_bookmark_qna(
-						visible_items[itempos]
-							.first->title(),
-						visible_items[itempos]
-							.first->link(),
+						visible_items[itempos].first->title(),
+						visible_items[itempos].first->link(),
 						"",
 						feed->title());
 				}
 			}
 		} else {
-			v->show_error(
+			v->get_statusline().show_error(
 				_("No item selected!")); // should not happen
 		}
-	} break;
+	}
+	break;
 	case OP_EDITFLAGS: {
-		if (itemposname.length() > 0 && visible_items.size() != 0) {
+		if (!visible_items.empty()) {
 			if (itempos < visible_items.size()) {
 				if (automatic) {
 					if (args->size() > 0) {
@@ -335,38 +357,41 @@ void ItemListFormAction::process_operation(Operation op,
 				} else {
 					std::vector<QnaPair> qna;
 					qna.push_back(QnaPair(_("Flags: "),
-						visible_items[itempos]
+							visible_items[itempos]
 							.first->flags()));
 					this->start_qna(
 						qna, OP_INT_EDITFLAGS_END);
 				}
 			}
 		} else {
-			v->show_error(
+			v->get_statusline().show_error(
 				_("No item selected!")); // should not happen
 		}
-	} break;
+	}
+	break;
 	case OP_SAVE: {
-		LOG(Level::INFO,
-			"ItemListFormAction: saving item at pos `%s'",
-			itemposname);
-		if (itemposname.length() > 0 && visible_items.size() != 0) {
+		LOG(Level::INFO, "ItemListFormAction: saving item at pos `%u'", itempos);
+		if (!visible_items.empty()) {
+			std::shared_ptr<RssItem> item = visible_items[itempos].first;
 			std::string filename;
 			if (automatic) {
 				if (args->size() > 0) {
 					filename = (*args)[0];
 				}
 			} else {
-				filename = v->run_filebrowser(
-					v->get_filename_suggestion(
-						visible_items[itempos]
-							.first->title()));
+				const auto title = utils::utf8_to_locale(item->title());
+				const auto suggestion = v->get_filename_suggestion(title);
+				filename = v->run_filebrowser(suggestion);
 			}
-			save_article(filename, visible_items[itempos].first);
+			save_article(filename, item);
 		} else {
-			v->show_error(_("Error: no item selected!"));
+			v->get_statusline().show_error(_("Error: no item selected!"));
 		}
-	} break;
+	}
+	break;
+	case OP_SAVEALL:
+		handle_op_saveall();
+		break;
 	case OP_HELP:
 		v->push_help();
 		break;
@@ -375,9 +400,9 @@ void ItemListFormAction::process_operation(Operation op,
 			LOG(Level::INFO,
 				"ItemListFormAction: reloading current feed");
 			v->get_ctrl()->get_reloader()->reload(pos);
-			invalidate(InvalidationMode::COMPLETE);
+			invalidate_list();
 		} else {
-			v->show_error(
+			v->get_statusline().show_error(
 				_("Error: you can't reload search results."));
 		}
 		break;
@@ -398,8 +423,8 @@ void ItemListFormAction::process_operation(Operation op,
 		LOG(Level::INFO,
 			"ItemListFormAction: jumping to next unread item");
 		if (!jump_to_next_unread_item(false)) {
-			if (!v->get_next_unread(this)) {
-				v->show_error(_("No unread items."));
+			if (!v->get_next_unread(*this)) {
+				v->get_statusline().show_error(_("No unread items."));
 			}
 		}
 		break;
@@ -407,16 +432,16 @@ void ItemListFormAction::process_operation(Operation op,
 		LOG(Level::INFO,
 			"ItemListFormAction: jumping to previous unread item");
 		if (!jump_to_previous_unread_item(false)) {
-			if (!v->get_previous_unread(this)) {
-				v->show_error(_("No unread items."));
+			if (!v->get_previous_unread(*this)) {
+				v->get_statusline().show_error(_("No unread items."));
 			}
 		}
 		break;
 	case OP_NEXT:
 		LOG(Level::INFO, "ItemListFormAction: jumping to next item");
 		if (!jump_to_next_item(false)) {
-			if (!v->get_next(this)) {
-				v->show_error(_("Already on last item."));
+			if (!v->get_next(*this)) {
+				v->get_statusline().show_error(_("Already on last item."));
 			}
 		}
 		break;
@@ -424,82 +449,90 @@ void ItemListFormAction::process_operation(Operation op,
 		LOG(Level::INFO,
 			"ItemListFormAction: jumping to previous item");
 		if (!jump_to_previous_item(false)) {
-			if (!v->get_previous(this)) {
-				v->show_error(_("Already on first item."));
+			if (!v->get_previous(*this)) {
+				v->get_statusline().show_error(_("Already on first item."));
 			}
 		}
 		break;
 	case OP_RANDOMUNREAD:
 		if (!jump_to_random_unread_item()) {
-			if (!v->get_random_unread(this)) {
-				v->show_error(_("No unread items."));
+			if (!v->get_random_unread(*this)) {
+				v->get_statusline().show_error(_("No unread items."));
 			}
 		}
 		break;
 	case OP_NEXTUNREADFEED:
-		if (!v->get_next_unread_feed(this)) {
-			v->show_error(_("No unread feeds."));
+		if (!v->get_next_unread_feed(*this)) {
+			v->get_statusline().show_error(_("No unread feeds."));
 		}
 		break;
 	case OP_PREVUNREADFEED:
-		if (!v->get_prev_unread_feed(this)) {
-			v->show_error(_("No unread feeds."));
+		if (!v->get_prev_unread_feed(*this)) {
+			v->get_statusline().show_error(_("No unread feeds."));
 		}
 		break;
 	case OP_NEXTFEED:
-		if (!v->get_next_feed(this)) {
-			v->show_error(_("Already on last feed."));
+		if (!v->get_next_feed(*this)) {
+			v->get_statusline().show_error(_("Already on last feed."));
 		}
 		break;
 	case OP_PREVFEED:
-		if (!v->get_prev_feed(this)) {
-			v->show_error(_("Already on first feed."));
+		if (!v->get_prev_feed(*this)) {
+			v->get_statusline().show_error(_("Already on first feed."));
 		}
 		break;
 	case OP_MARKFEEDREAD:
 		LOG(Level::INFO, "ItemListFormAction: marking feed read");
-		v->set_status(_("Marking feed read..."));
 		try {
-			if (feed->rssurl() != "") {
-				v->get_ctrl()->mark_all_read(pos);
-			} else {
-				{
-					std::lock_guard<std::mutex> lock(
-						feed->item_mutex);
-					LOG(Level::DEBUG,
-						"ItemListFormAction: oh, it "
-						"looks "
-						"like I'm in a pseudo-feed "
-						"(search "
-						"result, query feed)");
-					for (const auto& item : feed->items()) {
-						item->set_unread_nowrite_notify(
-							false,
-							true); // TODO: do we
-							       // need to call
-							       // mark_article_read
-							       // here, too?
-					}
-				}
-				v->get_ctrl()->mark_all_read(feed);
+			const auto message_lifetime = v->get_statusline().show_message_until_finished(
+					_("Marking feed read..."));
+			std::vector<std::string> guids;
+			for (const auto& item : visible_items) {
+				const std::string guid = item.first->guid();
+				guids.push_back(guid);
 			}
-			if (cfg->get_configvalue_as_bool(
-				    "markfeedread-jumps-to-next-unread"))
+			rsscache->mark_items_read_by_guid(guids);
+			v->get_ctrl()->mark_all_read(guids);
+
+			if (visible_items.size() > 0) {
+				std::lock_guard<std::mutex> lock(feed->item_mutex);
+				bool notify = visible_items[0].first->feedurl() != feed->rssurl();
+				for (const auto& item : visible_items) {
+					item.first->set_unread_nowrite_notify(false, notify);
+				}
+			}
+			if (cfg->get_configvalue_as_bool("markfeedread-jumps-to-next-unread")) {
 				process_operation(OP_NEXTUNREAD);
-			invalidate(InvalidationMode::COMPLETE);
-			v->set_status("");
+			} else { // reposition to first/last item
+				std::string sortorder =
+					cfg->get_configvalue("article-sort-order");
+
+				if (sortorder == "date-desc") {
+					LOG(Level::DEBUG,
+						"ItemListFormAction:: "
+						"reset itempos to last");
+					list.set_position(visible_items.size() - 1);
+				}
+				if (sortorder == "date-asc") {
+					LOG(Level::DEBUG,
+						"ItemListFormAction:: "
+						"reset itempos to first");
+					list.set_position(0);
+				}
+			}
+			invalidate_list();
 		} catch (const DbException& e) {
-			v->show_error(strprintf::fmt(
-				_("Error: couldn't mark feed read: %s"),
-				e.what()));
+			v->get_statusline().show_error(strprintf::fmt(
+					_("Error: couldn't mark feed read: %s"),
+					e.what()));
 		}
 		break;
-	case OP_MARKALLABOVEASREAD:
+	case OP_MARKALLABOVEASREAD: {
 		LOG(Level::INFO,
 			"ItemListFormAction: marking all above as read");
-		v->set_status(_("Marking all above as read..."));
-		if (itemposname.length() > 0 &&
-			itempos < visible_items.size()) {
+		const auto message_lifetime = v->get_statusline().show_message_until_finished(
+				_("Marking all above as read..."));
+		if (itempos < visible_items.size()) {
 			for (unsigned int i = 0; i < itempos; ++i) {
 				if (visible_items[i].first->unread()) {
 					visible_items[i].first->set_unread(
@@ -510,26 +543,23 @@ void ItemListFormAction::process_operation(Operation op,
 				}
 			}
 			if (!cfg->get_configvalue_as_bool(
-				    "show-read-articles")) {
-				f->set("itempos", "0");
+					"show-read-articles")) {
+				list.set_position(0);
 			}
-			invalidate(InvalidationMode::COMPLETE);
+			invalidate_list();
 		}
-		v->set_status("");
 		break;
+	}
 	case OP_TOGGLESHOWREAD:
-		m.parse(FILTER_UNREAD_ITEMS);
 		LOG(Level::DEBUG,
 			"ItemListFormAction: toggling show-read-articles");
 		if (cfg->get_configvalue_as_bool("show-read-articles")) {
 			cfg->set_configvalue("show-read-articles", "no");
-			apply_filter = true;
 		} else {
 			cfg->set_configvalue("show-read-articles", "yes");
-			apply_filter = false;
 		}
 		save_filterpos();
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate_list();
 		break;
 	case OP_PIPE_TO:
 		if (visible_items.size() != 0) {
@@ -542,12 +572,12 @@ void ItemListFormAction::process_operation(Operation op,
 				}
 			} else {
 				qna.push_back(QnaPair(
-					_("Pipe article to command: "), ""));
+						_("Pipe article to command: "), ""));
 				this->start_qna(
 					qna, OP_PIPE_TO, &cmdlinehistory);
 			}
 		} else {
-			v->show_error(_("No item selected!"));
+			v->get_statusline().show_error(_("No item selected!"));
 		}
 		break;
 	case OP_SEARCH: {
@@ -563,19 +593,33 @@ void ItemListFormAction::process_operation(Operation op,
 			this->start_qna(
 				qna, OP_INT_START_SEARCH, &searchhistory);
 		}
-	} break;
+	}
+	break;
+	case OP_GOTO_TITLE:
+		if (automatic) {
+			if (args->size() >= 1) {
+				qna_responses = {args[0]};
+				finished_qna(OP_INT_GOTO_TITLE);
+			}
+		} else {
+			std::vector<QnaPair> qna;
+			qna.push_back(QnaPair(_("Title: "), ""));
+			this->start_qna(qna, OP_INT_GOTO_TITLE);
+		}
+		break;
 	case OP_EDIT_URLS:
 		v->get_ctrl()->edit_urls_file();
 		break;
 	case OP_SELECTFILTER:
-		if (filters->size() > 0) {
+		if (filters.size() > 0) {
 			std::string newfilter;
 			if (automatic) {
-				if (args->size() > 0)
+				if (args->size() > 0) {
 					newfilter = (*args)[0];
+				}
 			} else {
 				newfilter = v->select_filter(
-					filters->get_filters());
+						filters.get_filters());
 				LOG(Level::DEBUG,
 					"ItemListFormAction::run: newfilters "
 					"= %s",
@@ -584,24 +628,22 @@ void ItemListFormAction::process_operation(Operation op,
 			if (newfilter != "") {
 				filterhistory.add_line(newfilter);
 				if (newfilter.length() > 0) {
-					if (!m.parse(newfilter)) {
-						v->show_error(strprintf::fmt(
-							_("Error: couldn't "
-							  "parse filter "
-							  "command `%s': %s"),
-							newfilter,
-							m.get_parse_error()));
-						m.parse(FILTER_UNREAD_ITEMS);
+					if (!matcher.parse(newfilter)) {
+						v->get_statusline().show_error(strprintf::fmt(
+								_("Error: couldn't "
+									"parse filter "
+									"command `%s': %s"),
+								newfilter,
+								matcher.get_parse_error()));
 					} else {
 						apply_filter = true;
-						invalidate(InvalidationMode::
-								COMPLETE);
+						invalidate_list();
 						save_filterpos();
 					}
 				}
 			}
 		} else {
-			v->show_error(_("No filters defined."));
+			v->get_statusline().show_error(_("No filters defined."));
 		}
 
 		break;
@@ -621,23 +663,32 @@ void ItemListFormAction::process_operation(Operation op,
 		break;
 	case OP_CLEARFILTER:
 		apply_filter = false;
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate_list();
 		save_filterpos();
 		break;
 	case OP_SORT: {
 		/// This string is related to the letters in parentheses in the
 		/// "Sort by (d)ate/..." and "Reverse Sort by (d)ate/..."
 		/// messages
-		std::string input_options = _("dtfalg");
+		std::string input_options = _("dtfalgr");
 		char c = v->confirm(
-			_("Sort by "
-			  "(d)ate/(t)itle/(f)lags/(a)uthor/(l)ink/(g)uid?"),
-			input_options);
-		if (!c)
+				_("Sort by "
+					"(d)ate/(t)itle/(f)lags/(a)uthor/(l)ink/(g)uid/(r)andom?"),
+				input_options);
+		if (!c) {
 			break;
-		unsigned int n_options = ((std::string) "dtfalg").length();
-		if (input_options.length() < n_options)
+		}
+
+		// Check that the number of translated answers is the same as the
+		// number of answers we expect to handle. If it doesn't, just give up.
+		// That'll prevent this function from sorting anything, so users will
+		// complain, and we'll ask them to update the translation. A bit lame,
+		// but it's better than mishandling the answer.
+		const auto n_options = ((std::string) "dtfalgr").length();
+		if (input_options.length() < n_options) {
 			break;
+		}
+
 		if (c == input_options.at(0)) {
 			cfg->set_configvalue("article-sort-order", "date-asc");
 		} else if (c == input_options.at(1)) {
@@ -651,19 +702,31 @@ void ItemListFormAction::process_operation(Operation op,
 			cfg->set_configvalue("article-sort-order", "link-asc");
 		} else if (c == input_options.at(5)) {
 			cfg->set_configvalue("article-sort-order", "guid-asc");
+		} else if (c == input_options.at(6)) {
+			cfg->set_configvalue("article-sort-order", "random");
 		}
-	} break;
+	}
+	break;
 	case OP_REVSORT: {
-		std::string input_options = _("dtfalg");
+		std::string input_options = _("dtfalgr");
 		char c = v->confirm(
-			_("Reverse Sort by "
-			  "(d)ate/(t)itle/(f)lags/(a)uthor/(l)ink/(g)uid?"),
-			input_options);
-		if (!c)
+				_("Reverse Sort by "
+					"(d)ate/(t)itle/(f)lags/(a)uthor/(l)ink/(g)uid/(r)andom?"),
+				input_options);
+		if (!c) {
 			break;
-		unsigned int n_options = ((std::string) "dtfalg").length();
-		if (input_options.length() < n_options)
+		}
+
+		// Check that the number of translated answers is the same as the
+		// number of answers we expect to handle. If it doesn't, just give up.
+		// That'll prevent this function from sorting anything, so users will
+		// complain, and we'll ask them to update the translation. A bit lame,
+		// but it's better than mishandling the answer.
+		const auto n_options = ((std::string) "dtfalgr").length();
+		if (input_options.length() < n_options) {
 			break;
+		}
+
 		if (c == input_options.at(0)) {
 			cfg->set_configvalue("article-sort-order", "date-desc");
 		} else if (c == input_options.at(1)) {
@@ -679,11 +742,11 @@ void ItemListFormAction::process_operation(Operation op,
 			cfg->set_configvalue("article-sort-order", "link-desc");
 		} else if (c == input_options.at(5)) {
 			cfg->set_configvalue("article-sort-order", "guid-desc");
+		} else if (c == input_options.at(6)) {
+			cfg->set_configvalue("article-sort-order", "random");
 		}
-	} break;
-	case OP_INT_RESIZE:
-		invalidate(InvalidationMode::COMPLETE);
-		break;
+	}
+	break;
 	default:
 		ListFormAction::process_operation(op, automatic, args);
 		break;
@@ -694,6 +757,34 @@ void ItemListFormAction::process_operation(Operation op,
 		}
 	} else if (quit) {
 		v->pop_current_formaction();
+	}
+	return true;
+}
+
+bool ItemListFormAction::open_position_in_browser(
+	unsigned int pos, bool interactive) const
+{
+	LOG(Level::INFO,
+		"ItemListFormAction: opening item at pos `%u', interactive: %s",
+		pos,
+		interactive ? "true" : "false");
+	if (!visible_items.empty() && pos < visible_items.size()) {
+		const auto item = visible_items[pos].first;
+		const auto link = item->link();
+		const auto feedurl = item->feedurl();
+		const auto exit_code = v->open_in_browser(link, feedurl, interactive);
+		if (!exit_code.has_value()) {
+			v->get_statusline().show_error(_("Failed to spawn browser"));
+			return false;
+		} else if (*exit_code != 0) {
+			v->get_statusline().show_error(strprintf::fmt(_("Browser returned error code %i"),
+					*exit_code));
+			return false;
+		}
+		return true;
+	} else {
+		v->get_statusline().show_error(_("No item selected!"));
+		return false;
 	}
 }
 
@@ -714,10 +805,13 @@ void ItemListFormAction::finished_qna(Operation op)
 		qna_start_search();
 		break;
 
+	case OP_INT_GOTO_TITLE:
+		goto_item(qna_responses[0]);
+		break;
+
 	case OP_PIPE_TO: {
-		std::string itemposname = f->get("itempos");
-		unsigned int itempos = utils::to_u(itemposname);
-		if (itemposname.length() > 0) {
+		if (!visible_items.empty()) {
+			unsigned int itempos = list.get_position();
 			std::string cmd = qna_responses[0];
 			std::ostringstream ostr;
 			v->get_ctrl()->write_item(
@@ -730,9 +824,11 @@ void ItemListFormAction::finished_qna(Operation op)
 				fwrite(data.c_str(), data.length(), 1, f);
 				pclose(f);
 			}
+			v->drop_queued_input();
 			v->pop_current_formaction();
 		}
-	} break;
+	}
+	break;
 
 	default:
 		break;
@@ -745,31 +841,30 @@ void ItemListFormAction::qna_end_setfilter()
 	filterhistory.add_line(filtertext);
 
 	if (filtertext.length() > 0) {
-		if (!m.parse(filtertext)) {
-			v->show_error(
+		if (!matcher.parse(filtertext)) {
+			v->get_statusline().show_error(
 				_("Error: couldn't parse filter command!"));
 			return;
 		}
 
 		apply_filter = true;
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate_list();
 		save_filterpos();
 	}
 }
 
 void ItemListFormAction::qna_end_editflags()
 {
-	std::string itemposname = f->get("itempos");
-	if (itemposname.length() == 0) {
-		v->show_error(_("No item selected!")); // should not happen
+	if (visible_items.empty()) {
+		v->get_statusline().show_error(_("No item selected!")); // should not happen
 		return;
 	}
 
-	unsigned int itempos = utils::to_u(itemposname);
+	const unsigned int itempos = list.get_position();
 	if (itempos < visible_items.size()) {
 		visible_items[itempos].first->set_flags(qna_responses[0]);
 		v->get_ctrl()->update_flags(visible_items[itempos].first);
-		v->set_status(_("Flags updated."));
+		v->get_statusline().show_message(_("Flags updated."));
 		LOG(Level::DEBUG,
 			"ItemListFormAction::finished_qna: updated flags");
 		invalidate(itempos);
@@ -778,25 +873,21 @@ void ItemListFormAction::qna_end_editflags()
 
 void ItemListFormAction::qna_start_search()
 {
-	searchphrase = qna_responses[0];
-	if (searchphrase.length() == 0)
+	const std::string searchphrase = qna_responses[0];
+	if (searchphrase.length() == 0) {
 		return;
+	}
 
-	v->set_status(_("Searching..."));
 	searchhistory.add_line(searchphrase);
 	std::vector<std::shared_ptr<RssItem>> items;
 	try {
-		std::string utf8searchphrase = utils::convert_text(
-			searchphrase, "utf-8", nl_langinfo(CODESET));
-		if (show_searchresult) {
-			items = v->get_ctrl()->search_for_items(
-				utf8searchphrase, nullptr);
-		} else {
-			items = v->get_ctrl()->search_for_items(
+		const auto message_lifetime = v->get_statusline().show_message_until_finished(
+				_("Searching..."));
+		const auto utf8searchphrase = utils::locale_to_utf8(searchphrase);
+		items = v->get_ctrl()->search_for_items(
 				utf8searchphrase, feed);
-		}
 	} catch (const DbException& e) {
-		v->show_error(
+		v->get_statusline().show_error(
 			strprintf::fmt(_("Error while searching for `%s': %s"),
 				searchphrase,
 				e.what()));
@@ -804,15 +895,13 @@ void ItemListFormAction::qna_start_search()
 	}
 
 	if (items.empty()) {
-		v->show_error(_("No results."));
+		v->get_statusline().show_error(_("No results."));
 		return;
 	}
 
-	{
-		std::lock_guard<std::mutex> lock(search_dummy_feed->item_mutex);
-		search_dummy_feed->clear_items();
-		search_dummy_feed->add_items(items);
-	}
+	std::shared_ptr<RssFeed> search_dummy_feed(new RssFeed(rsscache, ""));
+	search_dummy_feed->set_search_feed(true);
+	search_dummy_feed->add_items(items);
 
 	if (show_searchresult) {
 		v->pop_current_formaction();
@@ -822,8 +911,9 @@ void ItemListFormAction::qna_start_search()
 
 void ItemListFormAction::do_update_visible_items()
 {
-	if (!(invalidated && invalidation_mode == InvalidationMode::COMPLETE))
+	if (invalidation_mode != InvalidationMode::COMPLETE) {
 		return;
+	}
 
 	std::lock_guard<std::mutex> lock(feed->item_mutex);
 	std::vector<std::shared_ptr<RssItem>>& items = feed->items();
@@ -836,20 +926,63 @@ void ItemListFormAction::do_update_visible_items()
 	 * (if applicable) whether an items matches the currently active filter.
 	 */
 
+	bool show_read = cfg->get_configvalue_as_bool("show-read-articles");
+
 	unsigned int i = 0;
 	for (const auto& item : items) {
 		item->set_index(i + 1);
-		if (!apply_filter || m.matches(item.get())) {
+		if ((show_read || item->unread()) &&
+			(!apply_filter || matcher.matches(item.get()))) {
 			new_visible_items.push_back(ItemPtrPosPair(item, i));
 		}
 		i++;
 	}
 
 	LOG(Level::DEBUG,
-		"ItemListFormAction::do_update_visible_items: size = %u",
-		visible_items.size());
+		"ItemListFormAction::do_update_visible_items: size = %" PRIu64,
+		static_cast<uint64_t>(visible_items.size()));
 
 	visible_items = new_visible_items;
+}
+
+void ItemListFormAction::draw_items()
+{
+	const unsigned int width = list.get_width();
+	auto datetime_format = cfg->get_configvalue("datetime-format");
+	auto itemlist_format =
+		cfg->get_configvalue("articlelist-format");
+
+	switch (invalidation_mode) {
+	case InvalidationMode::COMPLETE:
+		listfmt.clear();
+
+		for (const auto& item : visible_items) {
+			auto line = item2formatted_line(item,
+					width,
+					itemlist_format,
+					datetime_format);
+			listfmt.add_line(line);
+		}
+		break;
+
+	case InvalidationMode::PARTIAL:
+		for (const auto& itempos : invalidated_itempos) {
+			auto item = visible_items[itempos];
+			auto line = item2formatted_line(item,
+					width,
+					itemlist_format,
+					datetime_format);
+			listfmt.set_line(itempos, line);
+		}
+		break;
+	case InvalidationMode::NONE:
+		break;
+	}
+
+	list.stfl_replace_lines(listfmt);
+
+	invalidated_itempos.clear();
+	invalidation_mode = InvalidationMode::NONE;
 }
 
 void ItemListFormAction::prepare()
@@ -857,24 +990,23 @@ void ItemListFormAction::prepare()
 	std::lock_guard<std::mutex> mtx(redraw_mtx);
 
 	const auto sort_strategy = cfg->get_article_sort_strategy();
-	if (sort_strategy != old_sort_strategy) {
+	if (!old_sort_strategy || sort_strategy != *old_sort_strategy) {
 		feed->sort(sort_strategy);
 		old_sort_strategy = sort_strategy;
-		invalidate(InvalidationMode::COMPLETE);
+		invalidate_list();
 	}
 
 	try {
 		do_update_visible_items();
 	} catch (MatcherException& e) {
-		v->show_error(strprintf::fmt(
-			_("Error: applying the filter failed: %s"), e.what()));
+		v->get_statusline().show_error(strprintf::fmt(
+				_("Error: applying the filter failed: %s"), e.what()));
 		return;
 	}
 
 	if (cfg->get_configvalue_as_bool("mark-as-read-on-hover")) {
-		std::string itemposname = f->get("itempos");
-		if (itemposname.length() > 0) {
-			unsigned int itempos = utils::to_u(itemposname);
+		if (!visible_items.empty()) {
+			const unsigned int itempos = list.get_position();
 			if (visible_items[itempos].first->unread()) {
 				visible_items[itempos].first->set_unread(false);
 				v->get_ctrl()->mark_article_read(
@@ -885,53 +1017,19 @@ void ItemListFormAction::prepare()
 		}
 	}
 
-	unsigned int width = utils::to_u(f->get("items:w"));
+	const unsigned int width = list.get_width();
 
-	if (old_width != width) {
-		invalidate(InvalidationMode::COMPLETE);
+	if (do_redraw || old_width != width) {
+		invalidate_list();
 		old_width = width;
+		do_redraw = false;
 	}
 
-	if (!invalidated)
+	if (invalidation_mode == InvalidationMode::NONE) {
 		return;
-
-	if (invalidated) {
-		auto datetime_format = cfg->get_configvalue("datetime-format");
-		auto itemlist_format =
-			cfg->get_configvalue("articlelist-format");
-
-		if (invalidation_mode == InvalidationMode::COMPLETE) {
-			listfmt.clear();
-
-			for (const auto& item : visible_items) {
-				auto line = item2formatted_line(item,
-					width,
-					itemlist_format,
-					datetime_format);
-				listfmt.add_line(line, item.second);
-			}
-		} else if (invalidation_mode == InvalidationMode::PARTIAL) {
-			for (const auto& itempos : invalidated_itempos) {
-				auto item = visible_items[itempos];
-				auto line = item2formatted_line(item,
-					width,
-					itemlist_format,
-					datetime_format);
-				listfmt.set_line(itempos, line, item.second);
-			}
-			invalidated_itempos.clear();
-		} else {
-			LOG(Level::ERROR,
-				"invalidation_mode is neither COMPLETE nor "
-				"PARTIAL");
-		}
-
-		f->modify("items",
-			"replace_inner",
-			listfmt.format_list(rxman, "articlelist"));
 	}
 
-	invalidated = false;
+	draw_items();
 
 	set_head(feed->title(),
 		feed->unread_item_count(),
@@ -949,34 +1047,45 @@ std::string ItemListFormAction::item2formatted_line(const ItemPtrPosPair& item,
 	FmtStrFormatter fmt;
 	fmt.register_fmt('i', strprintf::fmt("%u", item.second + 1));
 	fmt.register_fmt('f', gen_flags(item.first));
-	fmt.register_fmt('D',
-		gen_datestr(item.first->pubDate_timestamp(), datetime_format));
+	fmt.register_fmt('n', item.first->unread() ? "N" : " ");
+	fmt.register_fmt('d', item.first->deleted() ? "D" : " ");
+	fmt.register_fmt('F', item.first->flags());
+
+	using namespace std::chrono;
+	const auto article_time_point = system_clock::from_time_t(
+			item.first->pubDate_timestamp());
+	using days = duration<int, std::ratio<86400>>;
+	const auto article_age = duration_cast<days>(
+			system_clock::now() - article_time_point).count();
+	const std::string new_datetime_format = utils::replace_all(
+			datetime_format, "%L", strprintf::fmt(
+				ngettext("1 day ago", "%u days ago", article_age), article_age));
+	fmt.register_fmt('D', utils::mt_strf_localtime(new_datetime_format,
+			item.first->pubDate_timestamp()));
+
 	if (feed->rssurl() != item.first->feedurl() &&
 		item.first->get_feedptr() != nullptr) {
-		auto feedtitle = utils::replace_all(
-			item.first->get_feedptr()->title(), "<", "<>");
+		auto feedtitle = item.first->get_feedptr()->title();
 		utils::remove_soft_hyphens(feedtitle);
 		fmt.register_fmt('T', feedtitle);
 	}
 
-	auto itemtitle = utils::replace_all(item.first->title(), "<", "<>");
+	auto itemtitle = utils::utf8_to_locale(item.first->title());
 	utils::remove_soft_hyphens(itemtitle);
 	fmt.register_fmt('t', itemtitle);
 
-	auto itemauthor = utils::replace_all(item.first->author(), "<", "<>");
+	auto itemauthor = utils::utf8_to_locale(item.first->author());
 	utils::remove_soft_hyphens(itemauthor);
 	fmt.register_fmt('a', itemauthor);
 
 	fmt.register_fmt('L', item.first->length());
 
 	auto formattedLine = fmt.do_format(itemlist_format, width);
+	formattedLine = utils::quote_for_stfl(formattedLine);
 
-	if (rxman) {
-		int id;
-		if ((id = rxman->article_matches(item.first.get())) != -1) {
-			formattedLine =
-				strprintf::fmt("<%d>%s</>", id, formattedLine);
-		}
+	const int id = rxman.article_matches(item.first.get());
+	if (id != -1) {
+		formattedLine = strprintf::fmt("<%d>%s</>", id, formattedLine);
 	}
 
 	if (item.first->unread()) {
@@ -986,18 +1095,47 @@ std::string ItemListFormAction::item2formatted_line(const ItemPtrPosPair& item,
 	return formattedLine;
 }
 
+void ItemListFormAction::goto_item(const std::string& title)
+{
+	if (visible_items.empty()) {
+		return;
+	}
+
+	const unsigned int curpos = list.get_position();
+	for (unsigned int i = curpos + 1; i < visible_items.size(); ++i) {
+		if (strcasestr(visible_items[i].first->title().c_str(),
+				title.c_str()) != nullptr) {
+			list.set_position(i);
+			return;
+		}
+	}
+	for (unsigned int i = 0; i <= curpos; ++i) {
+		if (strcasestr(visible_items[i].first->title().c_str(),
+				title.c_str()) != nullptr) {
+			list.set_position(i);
+			return;
+		}
+	}
+}
+
 void ItemListFormAction::init()
 {
-	f->set("itempos", "0");
-	f->set("msg", "");
+	recalculate_widget_dimensions();
+	list.set_position(0);
+	set_value("msg", "");
 	set_keymap_hints();
-	apply_filter = !(cfg->get_configvalue_as_bool("show-read-articles"));
-	invalidate(InvalidationMode::COMPLETE);
+	invalidate_list();
 	do_update_visible_items();
+	draw_items();
 	if (cfg->get_configvalue_as_bool("goto-first-unread")) {
 		jump_to_next_unread_item(true);
 	}
-	f->run(-3); // FRUN - compute all widget dimensions
+
+	// This is a hack to make `prepare()` do all the work it's required to do
+	// on the first run. Yes, we have a call to `invalidate_list() ` just a few
+	// lines prior, but `draw_items()` above resets the mode back to `NONE`,
+	// leading to https://github.com/newsboat/newsboat/issues/1385
+	invalidate_list();
 }
 
 void ItemListFormAction::set_head(const std::string& s,
@@ -1013,7 +1151,7 @@ void ItemListFormAction::set_head(const std::string& s,
 	FmtStrFormatter fmt;
 
 	fmt.register_fmt('N', PROGRAM_NAME);
-	fmt.register_fmt('V', PROGRAM_VERSION);
+	fmt.register_fmt('V', utils::program_version());
 
 	fmt.register_fmt('u', std::to_string(unread));
 	fmt.register_fmt('t', std::to_string(total));
@@ -1024,21 +1162,24 @@ void ItemListFormAction::set_head(const std::string& s,
 
 	fmt.register_fmt('U', utils::censor_url(url));
 
+	fmt.register_fmt('F', apply_filter ? matcher.get_expression() : "");
+
+	const unsigned int width = utils::to_u(f.get("title:w"));
 	if (!show_searchresult) {
 		title = fmt.do_format(
-			cfg->get_configvalue("articlelist-title-format"));
+				cfg->get_configvalue("articlelist-title-format"),
+				width);
 	} else {
 		title = fmt.do_format(
-			cfg->get_configvalue("searchresult-title-format"));
+				cfg->get_configvalue("searchresult-title-format"),
+				width);
 	}
-	f->set("head", title);
+	set_value("head", title);
 }
 
 bool ItemListFormAction::jump_to_previous_unread_item(bool start_with_last)
 {
-	int itempos;
-	std::istringstream is(f->get("itempos"));
-	is >> itempos;
+	const int itempos =  list.get_position();
 	for (int i = (start_with_last ? itempos : (itempos - 1)); i >= 0; --i) {
 		LOG(Level::DEBUG,
 			"ItemListFormAction::jump_to_previous_unread_item: "
@@ -1046,13 +1187,13 @@ bool ItemListFormAction::jump_to_previous_unread_item(bool start_with_last)
 			i,
 			visible_items[i].first->unread() ? "true" : "false");
 		if (visible_items[i].first->unread()) {
-			f->set("itempos", std::to_string(i));
+			list.set_position(i);
 			return true;
 		}
 	}
 	for (int i = visible_items.size() - 1; i >= itempos; --i) {
 		if (visible_items[i].first->unread()) {
-			f->set("itempos", std::to_string(i));
+			list.set_position(i);
 			return true;
 		}
 	}
@@ -1061,34 +1202,29 @@ bool ItemListFormAction::jump_to_previous_unread_item(bool start_with_last)
 
 bool ItemListFormAction::jump_to_random_unread_item()
 {
-	bool has_unread_available = false;
+	std::vector<unsigned int> unread_indexes;
 	for (unsigned int i = 0; i < visible_items.size(); ++i) {
 		if (visible_items[i].first->unread()) {
-			has_unread_available = true;
-			break;
+			unread_indexes.push_back(i);
 		}
 	}
-	if (has_unread_available) {
-		for (;;) {
-			unsigned int pos =
-				utils::get_random_value(visible_items.size());
-			if (visible_items[pos].first->unread()) {
-				f->set("itempos", std::to_string(pos));
-				break;
-			}
-		}
+	if (!unread_indexes.empty()) {
+		const unsigned int selected = utils::get_random_value(unread_indexes.size());
+		const unsigned int pos = unread_indexes[selected];
+		list.set_position(pos);
+		return true;
 	}
-	return has_unread_available;
+	return false;
 }
 
 bool ItemListFormAction::jump_to_next_unread_item(bool start_with_first)
 {
-	unsigned int itempos = utils::to_u(f->get("itempos"));
+	const unsigned int itempos = list.get_position();
 	LOG(Level::DEBUG,
 		"ItemListFormAction::jump_to_next_unread_item: itempos = %u "
-		"visible_items.size = %u",
+		"visible_items.size = %" PRIu64,
 		itempos,
-		visible_items.size());
+		static_cast<uint64_t>(visible_items.size()));
 	for (unsigned int i = (start_with_first ? itempos : (itempos + 1));
 		i < visible_items.size();
 		++i) {
@@ -1096,7 +1232,7 @@ bool ItemListFormAction::jump_to_next_unread_item(bool start_with_first)
 			"ItemListFormAction::jump_to_next_unread_item: i = %u",
 			i);
 		if (visible_items[i].first->unread()) {
-			f->set("itempos", std::to_string(i));
+			list.set_position(i);
 			return true;
 		}
 	}
@@ -1106,7 +1242,7 @@ bool ItemListFormAction::jump_to_next_unread_item(bool start_with_first)
 			"ItemListFormAction::jump_to_next_unread_item: i = %u",
 			i);
 		if (visible_items[i].first->unread()) {
-			f->set("itempos", std::to_string(i));
+			list.set_position(i);
 			return true;
 		}
 	}
@@ -1115,9 +1251,7 @@ bool ItemListFormAction::jump_to_next_unread_item(bool start_with_first)
 
 bool ItemListFormAction::jump_to_previous_item(bool start_with_last)
 {
-	int itempos;
-	std::istringstream is(f->get("itempos"));
-	is >> itempos;
+	const unsigned int itempos = list.get_position();
 
 	int i = (start_with_last ? itempos : (itempos - 1));
 	if (i >= 0) {
@@ -1125,7 +1259,7 @@ bool ItemListFormAction::jump_to_previous_item(bool start_with_last)
 			"ItemListFormAction::jump_to_previous_item: "
 			"visible_items[%u]",
 			i);
-		f->set("itempos", std::to_string(i));
+		list.set_position(i);
 		return true;
 	}
 	return false;
@@ -1133,18 +1267,18 @@ bool ItemListFormAction::jump_to_previous_item(bool start_with_last)
 
 bool ItemListFormAction::jump_to_next_item(bool start_with_first)
 {
-	unsigned int itempos = utils::to_u(f->get("itempos"));
+	const unsigned int itempos = list.get_position();
 	LOG(Level::DEBUG,
-		"ItemListFormAction::jump_to_next_item: itempos = %u "
-		"visible_items.size = %u",
-		itempos,
-		visible_items.size());
+		"ItemListFormAction::jump_to_next_item: itempos = %" PRIu64
+		" visible_items.size = %" PRIu64,
+		static_cast<uint64_t>(itempos),
+		static_cast<uint64_t>(visible_items.size()));
 	unsigned int i = (start_with_first ? itempos : (itempos + 1));
 	if (i < visible_items.size()) {
 		LOG(Level::DEBUG,
 			"ItemListFormAction::jump_to_next_item: i = %u",
 			i);
-		f->set("itempos", std::to_string(i));
+		list.set_position(i);
 		return true;
 	}
 	return false;
@@ -1152,7 +1286,7 @@ bool ItemListFormAction::jump_to_next_item(bool start_with_first)
 
 std::string ItemListFormAction::get_guid()
 {
-	unsigned int itempos = utils::to_u(f->get("itempos"));
+	const unsigned int itempos = list.get_position();
 	return visible_items[itempos].first->guid();
 }
 
@@ -1166,7 +1300,8 @@ KeyMapHintEntry* ItemListFormAction::get_keymap_hint()
 		{OP_MARKFEEDREAD, _("Mark All Read")},
 		{OP_SEARCH, _("Search")},
 		{OP_HELP, _("Help")},
-		{OP_NIL, nullptr}};
+		{OP_NIL, nullptr}
+	};
 	return hints;
 }
 
@@ -1176,12 +1311,12 @@ void ItemListFormAction::handle_cmdline_num(unsigned int idx)
 		idx <= visible_items[visible_items.size() - 1].second + 1) {
 		int i = get_pos(idx - 1);
 		if (i == -1) {
-			v->show_error(_("Position not visible!"));
+			v->get_statusline().show_error(_("Position not visible!"));
 		} else {
-			f->set("itempos", std::to_string(i));
+			list.set_position(i);
 		}
 	} else {
-		v->show_error(_("Invalid position!"));
+		v->get_statusline().show_error(_("Invalid position!"));
 	}
 }
 
@@ -1192,24 +1327,25 @@ void ItemListFormAction::handle_cmdline(const std::string& cmd)
 		handle_cmdline_num(idx);
 	} else {
 		std::vector<std::string> tokens = utils::tokenize_quoted(cmd);
-		if (tokens.empty())
+		if (tokens.empty()) {
 			return;
-		if (tokens[0] == "save" && tokens.size() >= 2) {
-			std::string filename = utils::resolve_tilde(tokens[1]);
-			std::string itemposname = f->get("itempos");
-			LOG(Level::INFO,
-				"ItemListFormAction::handle_cmdline: saving "
-				"item "
-				"at pos `%s' to `%s'",
-				itemposname,
-				filename);
-			if (itemposname.length() > 0) {
-				unsigned int itempos = utils::to_u(itemposname);
-				save_article(
-					filename, visible_items[itempos].first);
-			} else {
-				v->show_error(_("Error: no item selected!"));
+		}
+		if (tokens[0] == "save") {
+			if (tokens.size() < 2) {
+				v->get_statusline().show_error(_("Error: no filename provided"));
+				return;
 			}
+			if (visible_items.empty()) {
+				v->get_statusline().show_error(_("Error: no item selected!"));
+				return;
+			}
+			const std::string filename = utils::resolve_tilde(tokens[1]);
+			const unsigned int itempos = list.get_position();
+			LOG(Level::INFO,
+				"ItemListFormAction::handle_cmdline: saving item at pos `%u' to `%s'",
+				itempos,
+				filename);
+			save_article(filename, visible_items[itempos].first);
 		} else {
 			FormAction::handle_cmdline(cmd);
 		}
@@ -1219,77 +1355,66 @@ void ItemListFormAction::handle_cmdline(const std::string& cmd)
 int ItemListFormAction::get_pos(unsigned int realidx)
 {
 	for (unsigned int i = 0; i < visible_items.size(); ++i) {
-		if (visible_items[i].second == realidx)
+		if (visible_items[i].second == realidx) {
 			return i;
+		}
 	}
 	return -1;
 }
 
-void ItemListFormAction::recalculate_form()
+void ItemListFormAction::restore_selected_position()
 {
-	FormAction::recalculate_form();
-	invalidate(InvalidationMode::COMPLETE);
-
-	std::string itemposname = f->get("itempos");
-	unsigned int itempos = utils::to_u(itemposname);
-
-	// If the old position was set and it is less than the itempos, use it
-	// for the feed's itempos Correct the problem when you open itemview and
-	// jump to next then exit to itemlist and the itempos is wrong This only
-	// applies when "show-read-articles" is set to false
+	// If the old position was set and it is less than the current itempos, use
+	// it for the feed's itempos.
+	// This corrects a problem which occurs when you open an article, move to
+	// the next article (one or more times), and then exit to the itemlist. If
+	// `"show-read-articles" == false`, the itempos would be "wrong" without
+	// this fix.
+	const unsigned int itempos = list.get_position();
 	if ((old_itempos != -1) && itempos > (unsigned int)old_itempos &&
 		!cfg->get_configvalue_as_bool("show-read-articles")) {
-		f->set("itempos", strprintf::fmt("%u", old_itempos));
+		list.set_position(old_itempos);
 		old_itempos = -1; // Reset
 	}
+
 }
 
 void ItemListFormAction::save_article(const std::string& filename,
 	std::shared_ptr<RssItem> item)
 {
 	if (filename == "") {
-		v->show_error(_("Aborted saving."));
+		v->get_statusline().show_error(_("Aborted saving."));
 	} else {
 		try {
 			v->get_ctrl()->write_item(item, filename);
-			v->show_error(strprintf::fmt(
-				_("Saved article to %s"), filename));
+			v->get_statusline().show_message(strprintf::fmt(
+					_("Saved article to %s"), filename));
 		} catch (...) {
-			v->show_error(strprintf::fmt(
-				_("Error: couldn't save article to %s"),
-				filename));
+			v->get_statusline().show_error(strprintf::fmt(
+					_("Error: couldn't save article to %s"),
+					filename));
 		}
 	}
 }
 
 void ItemListFormAction::save_filterpos()
 {
-	unsigned int i = utils::to_u(f->get("itempos"));
+	const unsigned int i = list.get_position();
 	if (i < visible_items.size()) {
 		filterpos = visible_items[i].second;
 		set_filterpos = true;
 	}
 }
 
-void ItemListFormAction::set_regexmanager(RegexManager* r)
+void ItemListFormAction::register_format_styles()
 {
-	rxman = r;
-	std::vector<std::string>& attrs = r->get_attrs("articlelist");
-	unsigned int i = 0;
-	std::string attrstr;
-	for (const auto& attribute : attrs) {
-		attrstr.append(
-			strprintf::fmt("@style_%u_normal:%s ", i, attribute));
-		attrstr.append(
-			strprintf::fmt("@style_%u_focus:%s ", i, attribute));
-		i++;
-	}
-	std::string textview = strprintf::fmt(
-		"{list[items] .expand:vh style_normal[listnormal]: "
-		"style_focus[listfocus]:fg=yellow,bg=blue,attr=bold "
-		"pos_name[itemposname]: pos[itempos]:0 %s richtext:1}",
-		attrstr);
-	f->modify("items", "replace", textview);
+	const std::string attrstr = rxman.get_attrs_stfl_string("articlelist", true);
+	const std::string textview = strprintf::fmt(
+			"{list[items] .expand:vh style_normal[listnormal]: "
+			"style_focus[listfocus]:fg=yellow,bg=blue,attr=bold "
+			"pos[items_pos]:0 offset[items_offset]:0 %s richtext:1}",
+			attrstr);
+	list.stfl_replace_list(0, textview);
 }
 
 std::string ItemListFormAction::gen_flags(std::shared_ptr<RssItem> item)
@@ -1310,15 +1435,6 @@ std::string ItemListFormAction::gen_flags(std::shared_ptr<RssItem> item)
 	return flags;
 }
 
-std::string ItemListFormAction::gen_datestr(time_t t,
-	const std::string& datetimeformat)
-{
-	char datebuf[64];
-	struct tm* stm = localtime(&t);
-	strftime(datebuf, sizeof(datebuf), datetimeformat.c_str(), stm);
-	return datebuf;
-}
-
 void ItemListFormAction::prepare_set_filterpos()
 {
 	if (set_filterpos) {
@@ -1326,12 +1442,12 @@ void ItemListFormAction::prepare_set_filterpos()
 		unsigned int i = 0;
 		for (const auto& item : visible_items) {
 			if (item.second == filterpos) {
-				f->set("itempos", std::to_string(i));
+				list.set_position(i);
 				return;
 			}
 			i++;
 		}
-		f->set("itempos", "0");
+		list.set_position(0);
 	}
 }
 
@@ -1343,24 +1459,122 @@ void ItemListFormAction::set_feed(std::shared_ptr<RssFeed> fd)
 		fd->title());
 	feed = fd;
 	feed->load();
-	invalidate(InvalidationMode::COMPLETE);
+	invalidate_list();
 	do_update_visible_items();
 }
 
 std::string ItemListFormAction::title()
 {
 	if (feed->rssurl() == "") {
-		return strprintf::fmt(_("Search Result - '%s'"), searchphrase);
+		return strprintf::fmt(_("Search Result - '%s'"), search_phrase);
 	} else {
 		if (feed->is_query_feed()) {
 			return strprintf::fmt(_("Query Feed - %s"),
-				feed->rssurl().substr(
-					6, feed->rssurl().length() - 6));
+					feed->rssurl().substr(
+						6, feed->rssurl().length() - 6));
 		} else {
 			auto feedtitle = feed->title();
 			utils::remove_soft_hyphens(feedtitle);
 			return strprintf::fmt(
-				_("Article List - %s"), feedtitle);
+					_("Article List - %s"), feedtitle);
+		}
+	}
+}
+
+void ItemListFormAction::handle_op_saveall()
+{
+	LOG(Level::INFO,
+		"ItemListFormAction: saving all items");
+
+	if (visible_items.empty()) {
+		return;
+	}
+
+	std::string directory = v->run_dirbrowser();
+
+	if (directory.empty()) {
+		return;
+	}
+
+	if (directory.back() != NEWSBEUTER_PATH_SEP) {
+		directory.push_back(NEWSBEUTER_PATH_SEP);
+	}
+
+	std::vector<std::string> filenames;
+	for (const auto& item : visible_items) {
+		filenames.emplace_back( utils::utf8_to_locale(v->get_filename_suggestion(
+					item.first->title())));
+	}
+
+	const auto unique_filenames = std::set<std::string>(
+			std::begin(filenames),
+			std::end(filenames));
+
+	int nfiles_exist = filenames.size() - unique_filenames.size();
+	for (const auto& filename : unique_filenames) {
+		const auto filepath = directory + filename;
+		struct stat sbuf;
+		if (::stat(filepath.c_str(), &sbuf) != -1) {
+			nfiles_exist++;
+		}
+	}
+
+	// Check that the number of translated answers is the same as the
+	// number of answers we expect to handle. If it doesn't, just give up.
+	// That'll prevent this function from saving anything, so users will
+	// complain, and we'll ask them to update the translation. A bit lame,
+	// but it's better than mishandling the answer.
+	const std::string input_options = _("yanq");
+	const auto n_options = ((std::string) "yanq").length();
+	if (input_options.length() < n_options) {
+		return;
+	}
+
+	bool overwrite_all = false;
+	for (size_t item_idx = 0; item_idx < filenames.size(); ++item_idx) {
+		const auto filename = filenames[item_idx];
+		const auto filepath = directory + filename;
+		auto item = visible_items[item_idx].first;
+
+		struct stat sbuf;
+		if (::stat(filepath.c_str(), &sbuf) != -1) {
+			if (overwrite_all) {
+				save_article(filepath, item);
+				continue;
+			}
+
+			char c;
+			if (nfiles_exist > 1) {
+				c = v->confirm(strprintf::fmt(
+							_("Overwrite `%s' in `%s'? "
+								"There are %d more conflicts like this "
+								"(y:Yes a:Yes to all n:No q:No to all)"),
+							filename, directory, --nfiles_exist),
+						input_options);
+			} else {
+				c = v->confirm(strprintf::fmt(
+							_("Overwrite `%s' in `%s'? "
+								"(y:Yes n:No)"),
+							filename, directory),
+						input_options);
+			}
+			if (!c) {
+				break;
+			}
+
+			if (c == input_options.at(0)) {
+				save_article(filepath, item);
+			} else if (c == input_options.at(1)) {
+				overwrite_all = true;
+				save_article(filepath, item);
+			} else if (c == input_options.at(2)) {
+				continue;
+			} else if (c == input_options.at(3)) {
+				break;
+			}
+		} else {
+			// Create file since it does not exist
+			save_article(filepath, item);
 		}
 	}
 }

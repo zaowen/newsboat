@@ -1,0 +1,1685 @@
+= The Newsboat RSS Feedreader
+:toc: left
+:sectnums:
+:sectanchors:
+:sectlinks:
+:nofooter:
+
+== Introduction
+
+Newsboat is an RSS/Atom feedreader. RSS and Atom are a number of widely-used
+XML formats to transmit, publish and syndicate articles, for example news or
+blog articles.  Newsboat is designed to be used on text terminals on Unix or
+Unix-like systems such as GNU/Linux, FreeBSD or macOS.
+
+=== Platforms
+
+Newsboat has been tested on Linux (with glibc and musl-libc), FreeBSD and macOS.
+
+NetBSD is currently not supported, due to technical limitations in the `iconv()`
+implementation.
+
+=== Why "Newsboat"?
+
+"Newsboat" is a play on the name of its ancestor, "Newsbeuter". They're spelled
+quite differently, but sound similar. ("Newsbeuter" is a pun on German word
+"wildbeuter"; "newsboat" is an English word.)
+
+Newsboats were the vessels that collected and delivered news shuffling between
+boats in the port. Newsboat the program will collect the news for you, just
+like its namesakes did back in the day.
+
+== Installation
+
+=== Pre-built binaries
+
+Newsboat binaries are available in a number of repositories:
+
+// UPDATE README.md IF YOU CHANGE THIS LIST
+
+- various Linux and BSD distributions, Homebrew etc.;
+  https://repology.org/project/newsboat[here's a non-exclusive list];
+
+- distribution-independent https://snapcraft.io/docs/installing-snapd[Snap]
+  store:
+
+        $ sudo snap install newsboat
+
+// UPDATE README.md IF YOU CHANGE THIS LIST
+
+=== From source
+
+==== Download the source code
+
+The most up-to-date source code can always be downloaded from the Git
+repository:
+
+	$ git clone git://github.com/newsboat/newsboat.git
+
+There are also signed release tarballs available from https://newsboat.org/[our
+website].
+
+==== Install dependencies
+
+Newsboat depends on a number of libraries, which need to be installed before
+Newsboat can be compiled. Make sure to install the header files as well (on
+Debian and derivatives, headers are in `-dev` packages, e.g. `libsqlite3-dev`.)
+
+// UPDATE README.md IF YOU CHANGE THIS LIST
+- GCC 5.0 or newer, or Clang 3.6 or newer
+- Stable https://www.rust-lang.org/en-US/[Rust] and Cargo (Rust's package
+  manager) (1.48.0 or newer; might work with older versions, but we don't check
+  that)
+- http://www.clifford.at/stfl/[STFL (version 0.21 or newer)]
+- https://www.sqlite.org/download.html[SQLite3 (version 3.5 or newer)]
+- https://curl.haxx.se/download.html[libcurl (version 7.21.6 or newer)]
+- Header files for the SSL library that libcurl uses. You can find out which
+    library that is from the output of `curl --version`; most often that's
+    OpenSSL, sometimes GnuTLS, or maybe something else.
+- GNU gettext (on systems that don't provide gettext in the libc):
+  ftp://ftp.gnu.org/gnu/gettext/
+- https://pkg-config.freedesktop.org/wiki/[pkg-config]
+- http://xmlsoft.org/downloads.html[libxml2]
+- https://github.com/json-c/json-c/wiki[json-c (version 0.11 or newer)]
+- https://asciidoctor.org/[Asciidoctor] (1.5.3 or newer)
+- Some implementation of AWK like https://www.gnu.org/software/gawk[GNU AWK] or https://github.com/onetrueawk/awk[NAWK].
+
+Developers will also need:
+
+- https://github.com/woboq/tr[`xtr` (version 0.1.4 or newer)] (can be installed
+  with `cargo install xtr`)
+- http://www.ssw.uni-linz.ac.at/coco/[Coco/R for C++], needed to re-generate
+  filter language parser using `regenerate-parser` target.
+// UPDATE README.md IF YOU CHANGE THIS LIST
+
+==== Compile and install
+
+// UPDATE README.md IF YOU CHANGE THIS LIST
+
+There are a few different ways:
+
+- build inside Docker. For that, check out _doc/docker.md_ in the source tree.
+  Note that the resulting binary might not run outside of that same Docker
+  container if your system doesn't have all the necessary libraries, or if
+  their versions are too old;
+
+- build in a chroot: to avoid polluting your system with developer packages, or
+  to avoid upgrading, you might use a tool like
+  https://wiki.debian.org/Debootstrap[`debootstrap`] to create an isolated
+  environment. Once that's done, just build from source as outlined in the next
+  item;
+
+- build from source:
+
+  $ make                   #  pass -jN to use N CPU cores, e.g. -j8
+  $ sudo make install      #  install everything under /usr/local
++
+To install to a different directory, pass `prefix` like so: `sudo make
+prefix=/opt/newsboat install`. If you're cross-compiling, set
+`CARGO_BUILD_TARGET`; see
+https://doc.rust-lang.org/cargo/reference/config.html#environment-variables[cargo
+documentation] for details.
++
+To uninstall, run `sudo make uninstall`.
+
+// UPDATE README.md IF YOU CHANGE THIS LIST
+
+== First Steps
+
+include::chapter-firststeps.asciidoc[]
+
+
+=== Example Configuration
+
+----
+# a comment
+max-items        100 # such comments are possible, too
+browser          links
+show-read-feeds  no
+
+unbind-key       R
+bind-key         ^R    reload-all
+----
+
+=== Using Double Quotes
+
+_**TL;DR**: use double quotes for strings that contain spaces or double quotes.
+Escape double quotes (use `\"`) and backslashes (use `\\`). Don't escape stuff
+outside of double quotes, and don't use single quotes for quoting — Newsboat
+doesn't support that._
+
+Many of Newsboat's options expect strings as arguments, be it commands,
+passwords, dialog titles, URLs etc. Some options even take _multiple_ strings
+at once. These strings can contain spaces, which might confuse Newsboat since
+it already uses spaces to separate option names from option arguments.
+
+To help Newsboat understand your intent, put such strings into double quotes:
+
+    browser "firefox --new-tab %u"
+
+What if you need a double quote inside a string? Escape it with a backslash:
+
+    ocnews-password "UnbalancedQuotes\"AreSoFun!"
+
+And what about the backslash itself? Escape it, too! Suppose you have a program
+called `my favourite pager`, and you want to view articles with it. Newsboat
+ultimately passes commands to the shell, and shell expects spaces to be escaped
+if you want them preserved. But since Newsboat interprets backslashes, you have
+to add _another_ layer of escaping. Thus, you end up with a command like this:
+
+    pager "/usr/bin/my\\ favourite\\ pager"
+
+=== Configuring Colors
+
+It is possible to configure custom color settings in Newsboat. The basic configuration
+syntax is:
+
+	color <element> <foreground color> <background color> [<attribute> ...]
+
+This means that if you configure colors for a certain element, you need to provide
+a foreground color and a background color as a minimum. The following colors are
+supported:
+
+- `black`
+- `red`
+- `green`
+- `yellow`
+- `blue`
+- `magenta`
+- `cyan`
+- `white`
+- `default`
+- `color<n>`, e.g. `color123`
+
+The `default` color means that the terminal's default color will be used. The
+`color<n>` color name (where `<n>` is a decimal number *not* starting with zero)
+can be used if your terminal support 256 colors (e.g. `gnome-terminal`, `xterm`
+with `$TERM` set to `xterm-256color`). Newsboat contains support for 256 color
+terminals since version 2.1. For a complete chart of colors and their
+corresponding numbers, please see
+https://www.calmar.ws/vim/256-xterm-24bit-rgb-color-chart.html[].
+
+Optionally, you can also add one or more attributes. The following attributes are
+supported:
+
+- `standout`
+- `underline`
+- `reverse`
+- `blink`
+- `dim`
+- `bold`
+- `protect`
+- `invis`
+
+Currently, the following elements are supported:
+
+- `listnormal`: a normal list item
+- `listfocus`: the currently selected list item
+- `listnormal_unread`: an unread list item
+- `listfocus_unread`: the currently selected and unread list item
+- `info`: the info bars on top and bottom
+- `background`: the application background
+- `article`: the article text
+- `end-of-text-marker`: filler lines (~) below blocks of text
+
+The default color configuration of Newsboat looks like this:
+
+	color background          white   black
+	color listnormal          white   black
+	color listfocus           yellow  blue   bold
+	color listnormal_unread   magenta black
+	color listfocus_unread    magenta blue   bold
+	color info                yellow  blue   bold
+	color article             white   black
+
+
+=== Files
+
+include::chapter-files.asciidoc[]
+
+
+=== Migrating from other RSS Feed Readers
+
+It is very likely that you have used other RSS feed readers before. In this
+case, it is practical to migrate the previous configuration to Newsboat.
+
+==== Newsbeuter (automatic migration)
+
+Newsboat is a fork of Newsbeuter, so the migration from the latter is partially
+automated. Simple enough configurations will be transferred without any user
+intervention, while more complicated ones might require a little tweaking
+afterwards.
+
+To prevent data loss, please check the results before deleting your old
+configuration. Pay extra attention to files that you <<include,`include`>> in your
+configuration--you'd probably want to manually copy them over to Newsboat
+directories, and possibly update the include paths.
+
+Migration from Newsbeuter is attempted on startup if the following conditions
+are met:
+
+* none of `-u`, `-c`, `-C` options were specified; and
+
+* the urls file doesn't exist (neither _~/.newsboat/urls_ nor
+  _$XDG_CONFIG_HOME/newsboat/urls_).
+
+Newsboat first tries to migrate an XDG configuration, and if that fails, it
+tries the dotdir one. If that fails as well, Newsboat proceeds with the startup
+as usual.
+
+XDG migration checks that:
+
+* _$XDG_CONFIG_HOME/newsbeuter/_ is readable and executable; and
+
+* neither _$XDG_CONFIG_HOME/newsboat/_ nor _$XDG_DATA_HOME/newsboat/_ exist.
+
+If both conditions are met, Newsboat tries to create its XDG dirs (aborting the
+migration if that fails), then copies the following files: _urls_ and _config_ from
+config dir; _cache.db_, _queue_, _history.search_, _history.cmdline_ from data dir.
+
+Dotdir migration checks that _~/.newsbeuter/_ is readable and executable, and
+_~/.newsboat/_ doesn't exist. If those conditions are met, it tries to create
+_~/.newsboat/_ (aborting the migration if that fails), then copies the following
+files: _urls_, _cache.db_, _config_, _queue_, _history.search_, _history.cmdline_.
+
+There's one scenario where the process breaks: if you have an XDG configuration
+for Newsbeuter, _~/.newsboat/_ exists and _~/.newsboat/urls_ doesn't exist, then
+Newsboat will migrate XDG files and proceed, ignoring the dotdir. Please don't
+confuse the poor program like that!
+
+==== Other readers (via OPML)
+
+The vast amount of RSS feed readers allows the export of subscriptions via OPML
+files. OPML is an XML file format that was designed to save outlines, and has
+found its primary use in the import and export of feed subscriptions between
+different RSS feed readers.
+
+The best thing to start with is to export your subscriptions from the old
+reader.  Usually, RSS feed readers have appropriate menu items available to do
+so.
+
+Snownews provides a script to convert your current subscription file into an
+OPML file:
+
+	snow2opml > ~/blogroll.opml
+
+This command creates from your Snownews configuration a file _blogroll.opml_ in
+your home directory. To export the subscription list from raggle, the
+following command is necessary:
+
+	raggle --export-opml ~/blogroll.opml
+
+When you have exported the subscriptions from your old RSS feed reader, you can
+import them into Newsboat:
+
+	newsboat -i ~/blogroll.opml
+
+Don't worry, Newsboat won't destroy your existing configuration, or add
+subscriptions more than once: every URL that is added to the subscription list
+is checked before whether it is already in the list, and is only added if not.
+This makes it possible to merge several OPML files into your subscription list.
+
+If your old RSS feed reader was able to structure your subscriptions in
+hierarchies, and reflected this structure in the exported OPML file, Newsboat
+doesn't throw away this information (although it doesn't support hierarchies), but
+generates tags from it. Tags are Newsboat's way of organizing subscriptions
+in a non-hierarchical way. More information on the use of tags can be found below.
+
+Imagine the following folder hierarchy:
+
+	|- News
+	| |- Europe
+	| `- International
+	|- IT
+	| |- Linux
+	| |- Windows
+	| `- Programming
+	|   |- C++
+	|   |- Ruby
+	|   `- Erlang
+	`- Private
+
+Subscriptions found in the folder "Private" will be tagged with "Private",
+subscriptions in the folder "International" will be tagged with "News" and
+"News/International", subscriptions in the folder "Erlang" will be tagged ith
+"IT", "IT/Programming" and "IT/Programming/Erlang", and so on. This means that
+when you select the tag "Programming" in Newsboat, you will see all
+subscriptions that were in the "Programming" folder or one of its subfolders
+before. This means that you will lose virtually nothing of your previously
+configured structure.
+
+== Newsboat as a Client for Newsreading Services
+
+Newsboat is a perfectly capable feedreader in its own right, but it can’t cover
+_all_ the use-cases. For example, you might want to synchronize your news
+between devices, or you don’t have a computer that’s running 24/7 to fetch your
+feeds. In such cases, you might register with some online feedreader, and use
+Newsboat as a client. The next few sections provide configuration instructions
+for each supported service.
+
+=== The Old Reader
+
+https://theoldreader.com/[The Old Reader] is a successor to Google Reader. In
+order to use it, you first need to configure the proper URL source:
+
+	urls-source "oldreader"
+
+In addition, Newsboat needs to know your The Old Reader username and password so
+that it can authenticate with the service:
+
+	oldreader-login "your-oldreader-account"
+	oldreader-password "your-password"
+
+Note that double quotes and backslashes in your password
+<<_using_double_quotes,should be escaped>>.
+
+See also <<oldreader-passwordfile,`oldreader-passwordfile`>>,
+<<oldreader-passwordeval,`oldreader-passwordeval`>>, and
+<<_passwords_for_external_apis>>.
+
+After setting these configuration values, you can start Newsboat. It will
+authenticate with The Old Reader and download your subscription list.
+
+When you mark single items or complete feeds as read, Newsboat will
+synchronize this information directly to The Old Reader. This, of course,
+includes opening articles. Toggling read articles back to "unread" is also
+communicated to The Old Reader.
+
+In addition, The Old Reader provides the ability to "star" and to "share"
+articles. Starred articles are basically bookmarks, while shared articles are
+shown to people that follow your The Old Reader account. Newsboat allows the
+use of this feature by mapping its powerful "flags" to the "star"/"unstar"
+resp. "share"/"unshare" operations.
+
+In order to use this mapping, all you need to do is to configure the flags
+that shall be used:
+
+	oldreader-flag-share "a"
+	oldreader-flag-star "b"
+
+After that, use these flags when you edit flags for an article, and these
+articles will be starred resp. shared.
+
+By default, Newsboat also shows The Old Reader "special feeds":
+
+- People you follow: articles shared by people that you follow.
+- Starred items: articles that you starred.
+- Shared items: articles that you shared.
+
+You can disable these feeds by setting the following configuration variable:
+
+	oldreader-show-special-feeds no
+
+The Old Reader's folders are converted into Newsboat tags. You can select and
+filter feeds by tags; see <<_tagging>> and <<_filter_language>> for details.
+
+=== NewsBlur
+
+https://newsblur.com/[NewsBlur] is a successor to Google Reader. To use it, set
+your <<urls-source,`urls-source`>>:
+
+	urls-source "newsblur"
+
+Then, configure your NewsBlur credentials:
+
+	newsblur-login "your-newsblur-account"
+	newsblur-password "your-password"
+
+Note that double quotes and backslashes in your password
+<<_using_double_quotes,should be escaped>>.
+
+See also <<newsblur-passwordfile,`newsblur-passwordfile`>>,
+<<newsblur-passwordeval,`newsblur-passwordeval`>>, and
+<<_passwords_for_external_apis>>.
+
+Finally, set a path to the file where Newsboat can store the HTTP cookies:
+
+    cookie-cache "~/.newsboat/cookies.txt"
+
+When you start Newsboat, it will download the feeds that you configured
+in NewsBlur. Please take a closer look at the
+<<newsblur-login,configuration commands>> for what
+you can configure in Newsboat regarding NewsBlur.
+
+NewsBlur's folders are converted into Newsboat tags. You can select and
+filter feeds by tags; see <<_tagging>> and <<_filter_language>> for details.
+
+=== FeedHQ
+
+https://feedhq.org/[FeedHQ] is a successor to Google Reader. Configuration
+basically works the same as with <<_the_old_reader,The Old Reader>>.
+
+First, set your <<urls-source,`urls-source`>>:
+
+	urls-source "feedhq"
+
+Then, configure your FeedHQ credentials:
+
+	feedhq-login "your-feedhq-account"
+	feedhq-password "your-password"
+
+Note that double quotes and backslashes in your password
+<<_using_double_quotes,should be escaped>>.
+
+See also <<feedhq-passwordfile,`feedhq-passwordfile`>>,
+<<feedhq-passwordeval,`feedhq-passwordeval`>>, and
+<<_passwords_for_external_apis>>.
+
+If you're using a standalone instance, you should add one more setting:
+
+    feedhq-url "https://the.url.of/your/feedhq/instance"
+
+When you start Newsboat, it will download the feeds that you configured
+in FeedHQ. Please take a closer look at the
+<<feedhq-flag-share,configuration commands>> for what
+you can configure in Newsboat regarding FeedHQ.
+
+FeedHQ's folders are converted into Newsboat tags. You can select and filter
+feeds by tags; see <<_tagging>> and <<_filter_language>> for details.
+
+=== Bazqux
+
+https://bazqux.com/[Bazqux] uses "Google Reader API", which is also used by
+other readers like FeedHQ. Thus, one can leverage Newsboat's support for FeedHQ
+(described above) to synchronize with Bazqux:
+
+    urls-source "feedhq"
+    feedhq-url "https://bazqux.com/"
+    feedhq-login "username"
+    feedhq-password "password"
+
+See <<_passwords_for_external_apis>> for other, more secure ways to store your
+password.
+
+=== FreshRSS
+
+https://freshrss.org[FreshRSS] is a self-hosted feed reader that also uses a
+"Google Reader API", but is incompatable with the <<_feedhq,FeedHQ>> API. To
+use FreshRSS support, ensure that
+https://freshrss.github.io/FreshRSS/en/users/06_Mobile_access.html#enable-the-api-in-freshrss[API
+access is enabled] in the Authentication settings for your server, and that you
+have set an API password for your user Profile. Then point Newsboat to your
+server:
+
+	urls-source "freshrss"
+	freshrss-url "https://freshrss.example.com/api/greader.php"
+	freshrss-login "myusername"
+	freshrss-password "mypassword"
+
+See <<_passwords_for_external_apis>> for other, more secure ways to store your
+password.
+
+Newsboat will request 20 articles by default. Change this with e.g.
+
+	freshrss-min-items 100
+
+FreshRSS provides the ability to "favourite"/"star" articles. Starred articles
+are basically bookmarks. Newsboat allows the use of these features by mapping
+its flags to the "star" operation.
+
+In order to use this mapping, you need to configure the flag that should be
+used:
+
+	freshrss-flag-star "s"
+
+After that, use this flag when you edit flags for an article, and these
+articles will be starred.
+
+By default a "Starred Items" feed is included in the feed list. This can be
+removed with:
+
+	freshrss-show-special-feeds "false"
+
+FreshRSS categories are converted into Newsboat tags. You can select and filter
+feeds by tags; see <<_tagging>> and <<_filter_language>> for details.
+
+=== Tiny Tiny RSS
+
+Newsboat can be used to synchronize with https://tt-rss.org/[Tiny Tiny RSS]
+installations. Tiny Tiny RSS is a web-based and (optionally) multi-user feed
+reader.
+
+If you want to use Tiny Tiny RSS support, don't forget to activate the external
+API support in your preferences.
+
+To use Tiny Tiny RSS support, you need to configure a few things. First of all,
+Newsboat needs to know that you want to use Tiny Tiny RSS and which
+installation exactly:
+
+	urls-source "ttrss"
+	ttrss-url "https://example.com/ttrss/"
+
+In addition, it requires username and password for authentication:
+
+	ttrss-login "myusername"
+	ttrss-password "mypassword"
+
+Note that double quotes and backslashes in your password
+<<_using_double_quotes,should be escaped>>.
+
+See also <<ttrss-passwordfile,`ttrss-passwordfile`>>,
+<<ttrss-passwordeval,`ttrss-passwordeval`>>, and
+<<_passwords_for_external_apis>>.
+
+Tiny Tiny RSS provides two modes of usage: single-user mode and multi-user
+mode. Newsboat needs to know about this, too: in single-user mode,
+authentication is done via Basic HTTP authentication, while in multi-user mode,
+authentication is done against Tiny Tiny RSS itself.
+
+	ttrss-mode "single"		# "multi" is default
+
+If Tiny Tiny RSS is configured in multi-user mode and still deployed behind an
+additional HTTP-BasicAuth, the required username and password (which may deviate
+from <<ttrss-login,`ttrss-login`>> and <<ttrss-password,`ttrss-password`>>) can
+be specified in the user-part of the url like this:
+
+    ttrss-url "https://htuser:htpasswd@example.com/ttrss/"
+
+With these settings, Newsboat should be able to connect to Tiny Tiny RSS and
+download your subscribed feeds. Articles or even complete feeds that you marked
+as read are synchronized directly to Tiny Tiny RSS.
+
+Tiny Tiny RSS provides the ability to "star" and to "publish" articles. Starred
+articles are basically bookmarks, while published articles can be retrieved via
+a public RSS feed. Newsboat allows the use of these features by mapping its
+flags to the "star" and "publish" operations.
+
+In order to use this mapping, you need to configure the flags that shall be used:
+
+	ttrss-flag-star "s"
+	ttrss-flag-publish "p"
+
+After that, use these flags when you edit flags for an article, and these articles
+will be starred resp. published.
+
+TT-RSS folders are converted into Newsboat tags. You can select and filter
+feeds by tags; see <<_tagging>> and <<_filter_language>> for details.
+
+=== ownCloud News and nextCloud News
+
+https://github.com/owncloudarchive/news[ownCloud News] and
+https://github.com/nextcloud/news[nextCloud News] implement the same protocol,
+so Newsboat treats them as equivalent. Instructions below apply to both.
+
+First, set your <<urls-source,`urls-source`>> to `ocnews` and tell Newsboat
+where to find your ownCloud instance:
+
+	urls-source "ocnews"
+	ocnews-url "https://localhost/owncloud"
+
+Username and password are required:
+
+	ocnews-login "user"
+	ocnews-password "password"
+
+See also <<ocnews-passwordfile,`ocnews-passwordfile`>>,
+<<ocnews-passwordeval,`ocnews-passwordeval`>>, and <<_passwords_for_external_apis>>.
+
+ownCloud News API uses HTTP basic auth, therefore running ownCloud with SSL is
+highly recommended. If for any reason you don't want Newsboat to verify the
+hostname of your instance against the hostname specified in the SSL certificate
+you're using, just say so:
+
+	ocnews-verifyhost "no"
+
+If you see intermittent "Authentication failed" errors, try
+https://docs.nextcloud.com/server/stable/admin_manual/configuration_server/caching_configuration.html[configuring
+memory caching]. That should improve the responsiveness of the API and fix the
+errors.
+
+ownCloud News provides the ability to "star" articles; starred articles are basically
+bookmarks. Newsboat allows the use of this feature by mapping user-specified
+flag to the "star" operation.
+
+In order to use this mapping, you need to configure the flag that shall be used:
+
+	ocnews-flag-star "s"
+
+OwnCloud News' folders are converted into Newsboat tags. You can select and
+filter feeds by tags; see <<_tagging>> and <<_filter_language>> for details.
+
+=== Inoreader
+
+https://inoreader.com/[Inoreader] is a successor to Google Reader.
+
+To use Newsboat with Inoreader, you should first
+https://www.inoreader.com/developers/register-app[register your own
+application]. Inoreader's API doesn't provide efficient access to all the data
+Newsboat needs, so the program has to scrape feeds. That generates a lot of API
+requests, which are rate-limited per application. Thus we ask users to register
+their own apps, to avoid interfering with others. Please also be mindful of
+this when enabling <<auto-reload,`auto-reload`>> or lowering
+<<reload-time,`reload-time`>>.
+
+With app ID and key in hand, tell Newsboat you'd like to use Inoreader:
+
+	urls-source "inoreader"
+	inoreader-app-id "INSERT_ID_HERE"
+	inoreader-app-key "INSERT_KEY_HERE"
+
+In addition, Newsboat needs to know your Inoreader username and password so that
+it can authenticate with Inoreader. Note that this is NOT your login with your
+Google or Facebook account. If you use one of those to login to Inoreader, you
+have to create a username and password in Inoreader _Preferences > Profile_
+
+	inoreader-login "your-inoreader-account"
+	inoreader-password "your-password"
+
+Note that double quotes and backslashes in your password
+<<_using_double_quotes,should be escaped>>.
+
+See also <<inoreader-passwordfile,`inoreader-passwordfile`>>,
+<<inoreader-passwordeval,`inoreader-passwordeval`>>, and <<_passwords_for_external_apis>>.
+
+After setting these configuration values, you can start Newsboat. It will
+authenticate with Inoreader and download your subscription list. If you use
+"folders" in Inoreader to organize your feeds, Newsboat will make them available
+via its "tags" capability: each feed is tagged with the name of the folder in
+which it resides. You can select and filter feeds by tags; see <<_tagging>> and
+<<_filter_language>> sections for details.
+
+When you mark single items or complete feeds as read, Newsboat will
+synchronize this information directly to Inoreader. This, of course,
+includes opening articles. Toggling read articles back to "unread" is also
+communicated to Inoreader.
+
+In addition, Inoreader provides the ability to "star" and to "share"
+articles. Starred articles are basically bookmarks, while shared articles are
+shown to people that follow your Inoreader account. Newsboat allows the
+use of this feature by mapping its powerful "flags" to the "star"/"unstar"
+resp. "share"/"unshare" operations.
+
+In order to use this mapping, all you need to do is to configure the flags
+that shall be used:
+
+	inoreader-flag-share "a"
+	inoreader-flag-star "b"
+
+After that, use these flags when you edit flags for an article, and these
+articles will be starred resp. shared.
+
+By default, Newsboat also shows Inoreader "special feeds":
+
+ - Starred items
+ - Shared items
+ - Liked items
+ - Saved web pages
+
+You can disable these feeds by setting the following configuration variable:
+
+	inoreader-show-special-feeds no
+
+=== Miniflux
+
+https://miniflux.app[Miniflux] is a "minimalist and opinionated feed reader"
+that is self-hostable.
+
+Newsboat can synchronize with Miniflux installations as an alternative to the
+web front-end.
+
+To configure Miniflux support, set the urls-source option and provide the url to
+the Miniflux instance to be used:
+
+	urls-source "miniflux"
+	miniflux-url "https://example.com/miniflux/"
+
+In addition, Miniflux requires username and password for authentication:
+
+	miniflux-login "myusername"
+	miniflux-password "mypassword"
+
+Note that double quotes and backslashes in your password
+<<_using_double_quotes,should be escaped>>.
+
+See also <<miniflux-passwordfile,`miniflux-passwordfile`>>,
+<<miniflux-passwordeval,`miniflux-passwordeval`>>, and
+<<_passwords_for_external_apis>>.
+
+The Miniflux backend will default to using the `basic` HTTP authentication
+method, since Newsboat sends extraneous requests when trying to determine the
+appropriate method automatically. If your Miniflux instance uses a special setup
+that doesn't function with `basic` authentication, it may be necessary to
+explicitly set the `http-auth-method` variable in the configuration.
+
+Unlike with other backends, Miniflux's starring/bookmarking feature is not
+currently supported in Newsboat.
+
+Miniflux categories are converted into Newsboat tags. You can select and filter
+feeds by tags; see <<_tagging>> and <<_filter_language>> for details.
+
+=== OPML Online Subscription Mode
+
+This mode provides one-way synchronization of subscriptions from the online
+service to Newsboat. In other words, Newsboat will know what feeds you've
+subscribed to, but the online service won't know what feeds you're reading in
+Newsboat.
+
+This mode works with any service that publishes your subscriptions in OPML
+format.
+
+To enable this mode, you need to set an appropriate URLs source and then tell
+Newsboat where to get the OPML file(s):
+
+	urls-source "opml"
+	opml-url "https://example.com/feeds.opml" "https://example.com/more.opml"
+
+=== Passwords for external APIs
+
+include::chapter-password.asciidoc[]
+
+
+== Advanced Features
+
+=== Tagging
+
+include::chapter-tagging.asciidoc[]
+
+
+=== Scripts and Filters (Snownews Extensions)
+
+include::chapter-snownews.asciidoc[]
+
+=== Bookmarking
+
+This feature lets you save links from the article list, the article view, and
+the URL view. The actual bookmarking is performed by a program that you specify
+via the <<bookmark-cmd,`bookmark-cmd`>> setting; Newsboat merely supplies the
+data.
+
+To bookmark the currently selected item, press `^B` (invoking the
+<<bookmark,`bookmark`>> operation), and Newsboat will ask you for:
+
+1. the URL to bookmark (already preset with the URL of the current selection);
+2. the bookmark title (in most cases preset with the title of the current
+   selection);
+3. the bookmark description (default empty); and
+4. (since Newsboat 2.10) the title of the feed you're currently in (preset as
+   you'd expect).
+
+(If you find that the above preset values always work for you, enable
+<<bookmark-autopilot,`bookmark-autopilot`>> to avoid being asked anything.)
+
+After that, the program configured via `bookmark-cmd` is executed. It is given
+four arguments, the same ones and in the same order as described above. The
+program then does the actual bookmark saving, e.g. writing the bookmark into an
+external file, or storing it to a del.icio.us account.
+
+If everything goes OK, the program simply exits. In case something goes wrong,
+the program writes out an error message to stdout as a single line. This error
+message is then presented to the user from within Newsboat. At the moment,
+Newsboat doesn't care about the exit code of the program; only its output is
+used to determine success.
+
+Some bookmarking commands are interactive, e.g. they might want you to select
+a category for your bookmark, or a Mastodon account from which to share the
+bookmark. Oftentimes you can specify defaults for these, but if you can't,
+enable <<bookmark-interactive,`bookmark-interactive`>>: it will make Newsboat
+relinquish the terminal to the bookmarking program. You'll be able to make all
+the changes there, and will return to Newsboat once the bookmarking program
+exits.
+
+Newsboat comes with an example plugin,
+_doc/examples/example-bookmark-plugin.sh_, which implements a simple
+tab-separated bookmark file. You can use that as a starting point to write your
+own bookmarking program.
+
+
+=== Command Line
+
+include::chapter-cmdline.asciidoc[]
+
+include::cmdline-commands-linked.asciidoc[]
+
+
+=== Filter Language
+
+Newsboat provides a powerful filter language that enables the user to
+filter the content of many dialogs, such as the feed list or the article
+list. The basic concept is that every feed and every article has a
+number of attributes which can then be compared with user-supplied
+values, and these comparisons and be logically AND'ed, OR'ed and
+grouped.
+
+Examples for simple filter expressions are:
+
+	unread_count > 0
+	rssurl =~ "^https:"
+	age between 0:10
+
+Logically connecting and grouping such expressions looks like in the
+following examples:
+
+	( unread_count > 0 and unread_count < 10 ) or total_count > 100
+	( author =~ "Frank" or author =~ "John" ) and ( title =~ "Linux" or title =~ "FreeBSD" )
+
+The possibilities for combining such queries is endless, sky (actually:
+the available memory) is the limit.
+
+To filter your feeds, press "F" in the feed list, enter your filter expression,
+and press "Enter".  To clear the filter, press "Ctrl-F". To filter the articles in the article list,
+press "F", enter your expression, and press "Enter". Clearing the filter works the same as before.
+Be aware that only certain attributes work in both dialogs. The table below lists all available
+attributes and their context, i.e. an attribute that belongs to a feed can only be matched
+in the feed list, while an attribute that belongs to an article can only be matched in the
+article list.
+
+.[[available-comparison-operators]]<<available-comparison-operators,Available Comparison Operators>>
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Operator:Meaning
++=+ / +==+:test for equality
++!=+:test for inequality; logical negation of the +=+ operator
++=~+:test whether https\://pubs.opengroup.org/onlinepubs/9699919799.2008edition/basedefs/V1_chap09.html[POSIX extended regular expression] matches, case-insensitively
++!~+:logical negation of the +=~+ operator
++<+:less than
++>+:greater than
++<=+:less than or equal
++>=+:greater than or equal
++between+:within a range of integer values, where the two integer values are separated by a colon (see above for an example)
++#+:contains; this operator matches if a word is contained in a list of space-separated words (useful for matching tags, see below)
++!#+:contains not; the negation of the +#+ operator
+|======================================================================
+
+.Available Attributes
+[frame="all", grid="all", format="dsv", options="header", cols="30,30,40"]
+|=========================================================================
+Attribute:Context:Meaning
+[[attr-title]]<<attr-title,+title+>>:article:article title
+[[attr-link]]<<attr-link,+link+>>:article:article link
+[[attr-author]]<<attr-author,+author+>>:article:article author
+[[attr-content]]<<attr-content,+content+>>:article:article body
+[[attr-date]]<<attr-date,+date+>>:article:publication date of the article
+[[attr-guid]]<<attr-guid,+guid+>>:article:a unique identifier of the article
+[[attr-unread]]<<attr-unread,+unread+>>:article:indicates whether the article has been read
+[[attr-enclosure_url]]<<attr-enclosure_url,+enclosure_url+>>:article:the URL of an enclosure (e.g. podcast file), empty if there is no enclosure
+[[attr-enclosure_type]]<<attr-enclosure_type,+enclosure_type+>>:article:the MIME type of the enclosure, empty if there is no enclosure
+[[attr-flags]]<<attr-flags,+flags+>>:article:The set of flags of the article
+[[attr-age]]<<attr-age,+age+>>:article:Age of an article (in days)
+[[attr-articleindex]]<<attr-articleindex,+articleindex+>>:article:Index of an article in an article list
+[[attr-feedtitle]]<<attr-feedtitle,+feedtitle+>>:feed, article:title of the feed
+[[attr-description]]<<attr-description,+description+>>:feed, article:feed description
+[[attr-feedlink]]<<attr-feedlink,+feedlink+>>:feed, article:link to the feed
+[[attr-feeddate]]<<attr-feeddate,+feeddate+>>:feed, article:publication date of the feed
+[[attr-rssurl]]<<attr-rssurl,+rssurl+>>:feed, article:RSS URL of the feed
+[[attr-unread_count]]<<attr-unread_count,+unread_count+>>:feed, article:number of unread articles in the feed
+[[attr-total_count]]<<attr-total_count,+total_count+>>:feed, article:total number of articles in the feed
+[[attr-tags]]<<attr-tags,+tags+>>:feed, article:all tags that are associated with the feed
+[[attr-feedindex]]<<attr-feedindex,+feedindex+>>:feed, article:Index of a feed in the feed list
+|=========================================================================
+
+Note that it's also possible to filter for feed attributes when you query for
+article attributes. This is because every article is internally linked to the
+feed from which it was downloaded.
+
+
+=== Killfiles
+
+Sometimes, a user is confronted with certain content they don't want to read,
+e.g. on topics the user is not interested in or articles written by certain people.
+In Usenet, such functionality within software is traditionally called a "killfile",
+i.e. based on the content of this "killfile", articles that match certain conditions
+do not get displayed and are not presented to the user at all.
+
+In Newsboat, such a "killfile" can be implemented on a per-article basis via
+the configuration file. The most important configuration command for this
+is <<ignore-article,`ignore-article`>>:
+
+	ignore-article "*" "title =~ \"Gentoo\""
+	ignore-article "https://synflood.at/blog/index.php?/feeds/index.rss2" "title =~ \"newsboat\""
+
+It takes two parameters. The first one is either a URL of a feed, or `"*"` to
+match any feed (asterisk is _not_ a pattern, glob or regex—we simply reserve it
+to mean "all feeds").  The second argument is <<_filter_language,a filter
+expression>> for an article, probably <<_using_double_quotes,in double quotes
+to preserve spaces inside>>. If Newsboat hits an article in the specified RSS
+feed that matches the specified filter expression, then this article is ignored
+and never presented to the user. The configuration itself can contain as many
+<<ignore-article,`ignore-article`>> commands as desired.
+
+You can also specify the way an article is ignored. There are
+two ways available:
+
+ - During download: articles are ignored when a feed is downloaded and parsed,
+   and thus won't be written to the local cache.
+ - During display: articles are downloaded and written to the local cache, but
+   are ignored when a feed is displayed.
+
+Both modes have their advantages and disadvantages: while the download ignore
+mode saves some storage, you cannot simply "undo" the ignore by removing it
+from the configuration file: if an ignored article has already vanished from a
+feed, it won't reappear. On the other hand, the display ignore mode requires
+some more space, but has the advantage that an ignore can be "undone" by
+removing the ignore-article configuration command from the configuration.
+
+The default ignore mode is `"download"`. You can set the <<ignore-mode,`ignore-mode`>> in the
+configuration file:
+
+	ignore-mode "display"
+
+
+=== Query Feeds
+
+Query feeds are a mechanism of Newsboat to define custom "meta feeds" by using
+Newsboat's built-in filter language. A query feed is a feed that is aggregated
+from all currently downloaded articles of all feeds. To narrow down the set of
+articles, the user has to specify a filter. Only articles that match this filter
+are added to the query feed.
+
+A query feed is updated whenever it is entered in the feed list. When you
+change the unread flag of an article, this is reflected in the feed where the
+article was originally fetched. If you want query feeds to be updated at
+startup, set <<prepopulate-query-feeds,`prepopulate-query-feeds`>> to `yes`.
+
+To define a query feed, the user has to add a line to the _urls_ file in the
+following format:
+
+	query:<name of feed>:<filter expression> [<tag> ...]
+
+The `query:` in the beginning tells Newsboat that it's a query feed, `<name of
+feed>` specifies the name under which the query feed shall be displayed in the
+feed list, and `<filter expression>` is the filter expression that shall be
+used. Like every other feed, a query feed can be tagged to organize it like
+a regular feed.
+
+This feature is often used to create a feed that contains all unread articles:
+
+	"query:Unread Articles:unread = \"yes\""
+
+Note the <<_using_double_quotes,use of double quotes>> to preserve spaces in
+the filter expression.
+
+If you want to combine several feeds to one single feed, a good solution is to
+tag the feeds that you want to combine with one certain tag, and then create a
+query feed that only displays articles from feeds with that certain tag:
+
+	https://domain1.tld/feed.xml fun news tag1
+	https://domain2.tld/?feed.rss private jokes tag1
+	https://domain3.tld/feeds.rss news
+	"query:tag1 Articles:tags # \"tag1\""
+
+In this example, the feeds https://domain1.tld/feed.xml and
+https://domain2.tld/?feed.rss are aggregated into the query feed named "tag1
+Articles", but the feed https://domain3.tld/feeds.rss is not.
+
+Basically, the possibility of what can be realized with query feeds is only
+limited by what can be queried from articles and feeds with the filter language
+and by your creativity.
+
+=== Flagging Articles
+
+To support custom categorization of articles by the user, it is possible to
+flag an article. A valid flag is any character from _A_ to _Z_ and from _a_ to
+_z_. Every article can be flagged with up to 52 different flags, i.e. every
+letter from the Roman alphabet in upper and lower case. Flagging is easy: just
+select an article in the article list, or enter the article view, and press "Ctrl-E".
+This will start the flag editor. By pressing "Enter", the new flags are saved.
+You can cancel by pressing the "Esc" key.
+
+The flags of an article can be used in every filter expression. The flags of an
+article are always ordered, and when new flags are added, ordering is
+immediately restored. This behaviour can also be relied upon when querying
+articles via the filter language.
+
+If an article contains one or more flags, it is marked with an "!" in the
+article list. In the article view, all flags (if available) are listed.
+
+=== Commandline Commands
+
+Newsboat comes with a `-x` option that indicates that commands added as arguments
+to the command line shall be executed. Currently, the following commands are
+available:
+
+- `reload`: this option reloads all feeds, and quits Newsboat without printing any output.
+  This is useful if a user wants to periodically reload all feeds without always having
+  a running Newsboat instance, e.g. from cron.
+- `print-unread`: this option prints the number of unread articles and quits Newsboat.
+  This is useful for users who want to integrate this number into some kind of monitoring
+  system.
+
+
+=== Format Strings
+
+Newsboat contains a powerful format string system to make it possible for the
+user to configure the format of various aspects of the application, such as
+the format of entries in the feed list or in the article list.
+
+Format strings are similar to those that are found in the `printf` function in
+the C programming language. A format sequence begins with the _%_ character,
+followed by optional alignment indication: positive numbers indicate that the
+text that is inserted for the sequence shall be padded on the left to a total
+width that is specified by the number, while negative number specify padding on
+the right. Followed by the padding indication comes the actual sequence
+identifier, which is usually a single letter. `%=[width][identifier]` centers
+the sequence, where if w=0 the whole width of the window is used.
+
+In addition, Newsboat provides other, more powerful sequences, such as
+`%>[char]`, which indicates that the text right to the sequence will be aligned
+right on the screen, and characters between the text on the left and the text
+on the right will be filled by `[char]`. Another powerful format is the
+conditional sequence, `%?[char]?[format 1]&[format 2]?`: if the text of the
+sequence identifier `[char]` contains any non-whitespace characters, then
+`[format 1]` will be evaluated and inserted, otherwise `[format 2]` will be
+evaluated and inserted. The `&` and `[format 2]` are optional, i.e. if the
+identifier's text is empty, then an empty string will be inserted.
+
+The following tables show what sequence identifiers are available for which
+format:
+
+.Available Identifiers for feedlist-format
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[feedlist-format-d]]<<feedlist-format-d,+d+>>:Feed description
+[[feedlist-format-i]]<<feedlist-format-i,+i+>>:Feed index
+[[feedlist-format-l]]<<feedlist-format-l,+l+>>:Feed link
+[[feedlist-format-L]]<<feedlist-format-L,+L+>>:Feed RSS URL
+[[feedlist-format-n]]<<feedlist-format-n,+n+>>:"unread" flag field
+[[feedlist-format-S]]<<feedlist-format-S,+S+>>:download status
+[[feedlist-format-t]]<<feedlist-format-t,+t+>>:Feed title
+[[feedlist-format-T]]<<feedlist-format-T,+T+>>:First tag of a feed in the URLs file
+[[feedlist-format-u]]<<feedlist-format-u,+u+>>:"unread/total" field
+[[feedlist-format-U]]<<feedlist-format-U,+U+>>:"unread" field
+[[feedlist-format-c]]<<feedlist-format-c,+c+>>:"total" field
+|======================================================================
+
+While a <<reload-all,`reload-all`>> operation is running, the download status indicates the
+download status of a feed, which can be "to be downloaded" (indicated by "_"),
+"currently downloading" (indicated by "."), successfully downloaded (indicated
+by " ") and "download error" (indicated by "x").
+
+.Available Identifiers for articlelist-format
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[articlelist-format-a]]<<articlelist-format-a,+a+>>:Article author
+[[articlelist-format-D]]<<articlelist-format-D,+D+>>:Publication date. This can be tweaked further with <<datetime-format,+datetime-format+>>
+[[articlelist-format-f]]<<articlelist-format-f,+f+>>:Two characters\: 1) "N" if article is unread, "D" if article is deleted, a space otherwise; 2) "!" if article has flags, a space otherwise.
+[[articlelist-format-n]]<<articlelist-format-n,+n+>>:"unread" field
+[[articlelist-format-d]]<<articlelist-format-d,+d+>>:"deleted" field
+[[articlelist-format-F]]<<articlelist-format-F,+F+>>:Article flags
+[[articlelist-format-i]]<<articlelist-format-i,+i+>>:Article index
+[[articlelist-format-t]]<<articlelist-format-t,+t+>>:Article title
+[[articlelist-format-T]]<<articlelist-format-T,+T+>>:If the article list displays articles from different feeds, then this identifier contains the title of the feed to which the article belongs.
+[[articlelist-format-L]]<<articlelist-format-L,+L+>>:Article length
+|======================================================================
+
+.Available Identifiers for selecttag-format
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[selecttag-format-i]]<<selecttag-format-i,+i+>>:Line's index in the list
+[[selecttag-format-T]]<<selecttag-format-T,+T+>>:The tag this line corresponds to
+[[selecttag-format-f]]<<selecttag-format-f,+f+>>:Number of unread feeds under this tag
+[[selecttag-format-n]]<<selecttag-format-n,+n+>>:Number of unread articles in feeds tagged with this tag
+[[selecttag-format-u]]<<selecttag-format-u,+u+>>:Number of feeds tagged with this tag
+|======================================================================
+
+.Available Identifiers for notify-format
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[notify-format-n]]<<notify-format-n,+n+>>:Number of unread articles
+[[notify-format-f]]<<notify-format-f,+f+>>:Number of unread feeds
+[[notify-format-d]]<<notify-format-d,+d+>>:Number of new unread articles (i.e. that were added through the last reload)
+[[notify-format-D]]<<notify-format-D,+D+>>:Number of new unread feeds (i.e. that were added through the last reload)
+|======================================================================
+
+.Available Identifiers for podlist-format
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[podlist-format-i]]<<podlist-format-i,+i+>>:Download index
+[[podlist-format-d]]<<podlist-format-d,+d+>>:Currently downloaded size in megabytes, displays one digit of precision
+[[podlist-format-t]]<<podlist-format-t,+t+>>:Total download size in megabytes, displays one digit of precision
+[[podlist-format-p]]<<podlist-format-p,+p+>>:Downloaded precentage, displays one digit of precision
+[[podlist-format-k]]<<podlist-format-k,+k+>>:Download speed, displays two digit of precision, always in KB/s (does not include the "KB/s" text)
+[[podlist-format-K]]<<podlist-format-K,+K+>>:Download speed, displays two digit of precision, human readable (automatically switches between KB/s, MB/s, and GB/s)
+[[podlist-format-S]]<<podlist-format-S,+S+>>:Status of download, displays one of the folowing; "queued", "downloading", "ready", "canceled", "deleted", "incomplete", "played", "finished" or "failed"
+[[podlist-format-u]]<<podlist-format-u,+u+>>:Url of the download
+[[podlist-format-F]]<<podlist-format-F,+F+>>:Absolute filename of the download from the root directory (e.g. ~/downloads/podcast.mp3 -> /home/name/downloads/podcast.mp3)
+[[podlist-format-b]]<<podlist-format-b,+b+>>:Basename of the download (e.g. /home/name/downloads/podcast.mp3 -> podcast.mp3)
+|======================================================================
+
+Examples:
+
+	feedlist-format     "%4i %n %11u %t"
+	articlelist-format  "%4i %f %D   %?T?|%-17T|  ?%t"
+	notify-format       "%d new articles (%n unread articles, %f unread feeds)"
+	podlist-format      "%4i [%-5p %%] %-12S %F"
+
+.Available Identifiers for download-path and download-filename-format
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[download-filename-format-u]]<<download-filename-format-u,+u+>>:Filename part of the download URL. May be empty. May include https\://en.wikipedia.org/wiki/Query_string[a query string]
+[[download-filename-format-n]]<<download-filename-format-n,+n+>>:Name of the podcast feed
+[[download-filename-format-N]]<<download-filename-format-N,+N+>>:Name of the podcast feed. Contains the original feed's name, even when selected through a query feed
+[[download-filename-format-h]]<<download-filename-format-h,+h+>>:Name of the podcast feed's hostname
+[[download-filename-format-t]]<<download-filename-format-t,+t+>>:Title of the podcast episode
+[[download-filename-format-e]]<<download-filename-format-e,+e+>>:Extension of the podcast episode
+[[download-filename-format-F]]<<download-filename-format-F,+F+>>:Publication date of the podcast episode formatted as yyyy-mm-dd
+[[download-filename-format-m]]<<download-filename-format-m,+m+>>:Month when podcast episode was published
+[[download-filename-format-b]]<<download-filename-format-b,+b+>>:Abbreviated month name when podcast episode was published
+[[download-filename-format-d]]<<download-filename-format-d,+d+>>:Day when podcast episode was published
+[[download-filename-format-H]]<<download-filename-format-H,+H+>>:Hour when podcast episode was published
+[[download-filename-format-M]]<<download-filename-format-M,+M+>>:Minute when podcast episode was published
+[[download-filename-format-S]]<<download-filename-format-S,+S+>>:Second when podcast episode was published
+[[download-filename-format-y]]<<download-filename-format-y,+y+>>:Year when podcast episode was published formatted as yy
+[[download-filename-format-Y]]<<download-filename-format-Y,+Y+>>:Year when podcast episode was published formatted as yyyy
+|======================================================================
+
+==== Dialog Titles
+
+You can customize
+the title format of all available dialogs. Here is a list of dialogs with their
+respective title format configuration variables, and a list of available formats
+and their meaning. Please note that the title formats are localized, so if you
+work on a different locale that is supported by Newsboat, the actually displayed
+title text may vary unless you customize it.
+
+.Dialog Title Formats
+[frame="all", grid="all", format="dsv", options="header", cols="20,30,50l"]
+|==========================================================================
+Dialog:Configuration Variable:Default Value
+Feed List:<<feedlist-title-format,+feedlist-title-format+>>:%N %V - %?F?Feeds&Your feeds? (%u unread, %t total)%?F? matching filter `%F'&?%?T? - tag `%T'&?
+Article List:<<articlelist-title-format,+articlelist-title-format+>>:%N %V - Articles in feed '%T' (%u unread, %t total)%?F? matching filter `%F'&? - %U
+Search Result:<<searchresult-title-format,+searchresult-title-format+>>:%N %V - Search results (%u unread, %t total)%?F? matching filter `%F'&?
+File Browser:<<filebrowser-title-format,+filebrowser-title-format+>>:%N %V - %?O?Open File&Save File? - %f
+Directory Browser:<<dirbrowser-title-format,+dirbrowser-title-format+>>:%N %V - %?O?Open Directory&Save File? - %f
+Help:<<help-title-format,+help-title-format+>>:%N %V - Help
+Select Tag Dialog:<<selecttag-title-format,+selecttag-title-format+>>:%N %V - Select Tag
+Select Filter Dialog:<<selectfilter-title-format,+selectfilter-title-format+>>:%N %V - Select Filter
+Article View:<<itemview-title-format,+itemview-title-format+>>:%N %V - Article '%T' (%u unread, %t total)
+URL View:<<urlview-title-format,+urlview-title-format+>>:%N %V - URLs
+Dialog List:<<dialogs-title-format,+dialogs-title-format+>>:%N %V - Dialogs
+|==========================================================================
+
+.Common Title Format Identifiers
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[common-title-format-N]]<<common-title-format-N,+N+>>:Name of the program, i.e. "Newsboat"
+[[common-title-format-V]]<<common-title-format-V,+V+>>:Program version
+|======================================================================
+
+.Feed List Title Format Identifiers
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[feedlist-title-format-T]]<<feedlist-title-format-T,+T+>>:Currently selected tag (empty if none selected)
+[[feedlist-title-format-t]]<<feedlist-title-format-t,+t+>>:Number of total feeds
+[[feedlist-title-format-u]]<<feedlist-title-format-u,+u+>>:Number of unread feeds
+[[feedlist-title-format-U]]<<feedlist-title-format-U,+U+>>:Number of unread articles
+[[feedlist-title-format-F]]<<feedlist-title-format-F,+F+>>:Current filter expression (empty if no filter is active)
+|======================================================================
+
+.Article List Title Format Identifiers
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[articlelist-title-format-T]]<<articlelist-title-format-T,+T+>>:Feed title
+[[articlelist-title-format-U]]<<articlelist-title-format-U,+U+>>:Feed URL
+[[articlelist-title-format-u]]<<articlelist-title-format-u,+u+>>:Number of unread articles
+[[articlelist-title-format-t]]<<articlelist-title-format-t,+t+>>:Number of total articles
+[[articlelist-title-format-F]]<<articlelist-title-format-F,+F+>>:Current filter expression (empty if no filter is active)
+|======================================================================
+
+.File Browser Title Format Identifiers
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[filebrowser-title-format-f]]<<filebrowser-title-format-f,+f+>>:Current path
+[[filebrowser-title-format-O]]<<filebrowser-title-format-O,+O+>>:Non-empty if file browser is in open mode, empty if in save mode
+|======================================================================
+
+.Directory Browser Title Format Identifiers
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[dirbrowser-title-format-f]]<<dirbrowser-title-format-f,+f+>>:Current path
+[[dirbrowser-title-format-O]]<<dirbrowser-title-format-O,+O+>>:Non-empty if directory browser is in open mode, empty if in save mode
+|======================================================================
+
+.Article View Title Format Identifiers
+[frame="all", grid="all", format="dsv", options="header", cols="30,70"]
+|======================================================================
+Identifier:Meaning
+[[articleview-title-format-T]]<<articleview-title-format-T,+T+>>:Article title
+[[articleview-title-format-F]]<<articleview-title-format-F,+F+>>:Feed title
+[[articleview-title-format-u]]<<articleview-title-format-u,+u+>>:Number of unread articles
+[[articleview-title-format-t]]<<articleview-title-format-t,+t+>>:Number of total articles
+|======================================================================
+
+=== Highlighting Text
+
+Newsboat supports the highlighting of text in the feed
+list, the article list and the article view, using regular expressions to
+describe patterns to be highlighted. The command syntax goes like this:
+
+	highlight <target> <regex> <fgcolor> [<bgcolor> [<attribute> ...]]
+
+Valid values for `<target>` are `feedlist`, `articlelist`, `article` and `all`.
+When specifying `all`, the matching will be done in all three views. The
+`<regex>` must be
+a https://pubs.opengroup.org/onlinepubs/9699919799.2008edition/basedefs/V1_chap09.html[POSIX
+extended regular expression], which will be matched case-insensitive against
+the text. If multiple highlight matches overlap, the style of the later
+specified highlight rule will be applied. `<fgcolor>` and `<bgcolor>` specify
+the foreground color resp. the background color of the matches. You can also
+specify 0 or more attributes. You can find a list of valid colors and
+attributes in the <<_configuring_colors>>.
+
+Examples for possible highlighting configurations are:
+
+	highlight all "newsboat" red
+	highlight article "^(Feed|Title|Author|Link|Date):" default default underline
+	highlight feedlist "https?://[^ ]+" yellow red bold
+
+Note the <<_using_double_quotes,use of double quotes>> to preserve spaces in
+the regular expressions.
+
+==== Highlighting Articles in the Article List
+
+In addition to generally highlighting text, there is also a specific way to
+highlight articles in the article list based on whether they match a certain
+filter expression. This means that you can highlight items in the article list
+based on their content. This is done using the <<highlight-article,`highlight-article`>> configuration
+command.
+
+The syntax is similar to the <<highlight,`highlight`>> configuration command, with the difference
+that there's no need to specify a target (since it only applies in the article list),
+and instead of a regular expression, a filter expression is used. After the filter
+expression, the colors and attributes are specified in the same way.
+
+Example:
+
+	highlight-article "author =~ \"Andreas Krennmair\"" white red bold
+
+Note the <<_using_double_quotes,use of double quotes>> to preserve spaces in
+the filter expression.
+
+=== Advanced Dialog Management
+
+Newsboat supports an advanced concept of dialogs.
+Previously, all dialogs (feed list, article list, article view) were internally
+laid out as a pure stack. In 2.0, this changed: all dialogs are managed in a
+list, and the user can jump to another, previously opened dialog from
+everywhere. This allows a user to open more than one article list, more than one
+article view, etc., and switch between them without closing them.
+
+The main dialog for this feature can be reached by pressing the "v" key. This
+opens the list of open dialogs. From there, the user can switch to another
+dialog by selecting the appropriate entry and pressing "Enter", or can close
+open dialogs by selecting them and pressing "Ctrl-X".
+
+=== Macro Support
+
+In Newsboat, it's possible to define macros to execute more than one command at
+once. A macro is configured using the <<macro,`macro`>> configuration command.
+The first parameter to `macro` is the key, the parameters following it are
+operations (see <<_newsboat_operations>> and <<_podboat_operations>>),
+optionally with parameters on their own, separated by the `;` character.
+A description can be specified at the end (optional). Here's a simple example:
+
+  macro k open; reload; quit                            -- "enter feed to reload it"
+  macro o open-in-browser; toggle-article-read "read"   -- "open in browser and mark read"
+
+When the user presses the macro prefix ("," by default) and then the "k" key,
+the three operations <<open,`open`>>, <<reload,`reload`>> and <<quit,`quit`>>
+will be executed subsequently.
+
+The macro prefix can be changed from the default "," to another key, e.g. "+"
+(if you don't unbind the default "," you're left with two macro prefixes):
+
+  bind-key + macro-prefix
+  unbind-key ,
+
+=== Open Links with External Commands
+
+==== Using Browser
+
+The first step to open links outside of Newsboat is to set a default
+<<browser,`browser`>> in your config file. It can be any command that you would
+normally run, such as a web browser or an executable script. For example:
+
+  browser firefox
+
+The browser command also takes an optional `%u` to specify at which point the
+URL sould be expanded. If `%u` is not set, the URL will be appended at the end of
+the command. Therefore, the following example is equivalent to the last one:
+
+  browser "firefox %u"
+
+To open any link with your browser, the versatile
+<<open-in-browser,`open-in-browser`>> operation can be used. Its behavior is
+specific to each dialog.
+
+The default keybinding for `open-in-browser` is "o". An alternative operation,
+<<open-in-browser-and-mark-read,`open-in-browser-and-mark-read`>> also marks the
+article as read when in the article list, but doesn't work in the feed list.
+The default keybinding is "O".
+
+Articles usually contain links which point to different resources and websites.
+Newsboat detects those links and creates a list which can be seen at the bottom
+of the article view. To easily scroll through the list and choose a link to
+open, one can go to the URL view with the "u" key.
+
+Those links can also be opened directly from the article view.
+Relevant operations are <<one,`one`>> to <<zero,`zero`>>
+(digits written as words) and <<goto-url,`goto-url`>>.
+Keys "1" to "0" can be used to open URL 1 to 10. To open URLs above 10,
+start with the "#" key, then type the URL's number, and press "Enter". To use
+goto-url inside a macro, simply append the URL's number (e.g. `goto-url 11`).
+
+==== Switching Browser for Different Tasks
+
+To manually change the browser from Newsboat internal command line, type
+`:set browser` followed by the command, and press "Enter".
+The variable is only set temporarily (useful for testing), so next
+time Newsboat is launched, `browser` will reset to the command specified in your
+config file:
+
+  :set browser chromium
+
+It is also possible to modify configuration variables within macros.
+For example, one can temporarily modify the browser command to do
+something else, such as running an image viewer from the URL view:
+
+  macro i set browser feh; open-in-browser; set browser elinks
+
+==== Separating Browser from Newsboat
+
+The default behavior of Newsboat when running external commands is to use the
+same terminal for the new application. It is great for a "classical" workflow
+i.e., when working from a virtual console without a graphical environment.
+On the other hand, it might seem like a limitation if you would like to keep
+using Newsboat while the command is running. A few simple tricks can be used to
+work with both Newsboat and an external application at the same time.
+Those are explained below.
+
+Applications like `firefox`, if already running, will simply open a new tab
+when receiving a link, then give control back to Newsboat. Because of that,
+Newsboat will be unavailable for a split second, then work can resume.
+
+Other applications without this kind of feature will usually do two things:
+print messages and warnings (or in the case of interactive console applications,
+overwrite Newsboat interface with their own), while also blocking user input
+(which prevents controlling Newsboat). To demonstrate this behavior,
+the single-tabbed `surf` browser is used:
+
+  :set browser surf
+
+To prevent applications from printing messages and warnings over Newsboat
+interface (useful mostly for GUI apps), you may need to "redirect standard
+output and error" to the `null` device:
+
+  :set browser "surf %u >/dev/null 2>&1"
+
+At this point, if you try to open a link, you are back to the original terminal
+from which Newsboat was initially launched, but input is still blocked.
+By adding the `&` character to the very end of the browser command, the
+application will run separately from Newsboat, which can then be used
+(and even closed) independently of the app:
+
+  :set browser "surf %u >/dev/null 2>&1 &"
+
+This can be simplified by using Newsboat's `open-in-browser-noninteractively`
+operation. The operation runs the browser while keeping Newsboat's view on the
+foreground. It does not show any of the browser's `stdout` and `stderr` output.
+
+  :set browser "surf %u &"
+  :exec open-in-browser-noninteractively
+
+This can also be useful if you want to run a download script in the background.
+For example:
+
+  macro d set browser "youtube-dl %u &"; open-in-browser-noninteractively; set browser elinks
+
+For text-based console applications, it is best to first launch a terminal
+emulator, which will in turn execute the remainder of the browser command.
+Standard output do not need to be silenced with this technique.
+Here, `alacritty` is used. Of course, you can replace it with your go-to
+terminal emulator, just remember to set the "command" or "execute" option
+(`-e` in this example). To open `lynx` in a dedicated terminal:
+
+  :set browser "alacritty -e lynx %u &"
+
+Once an application is properly detached, other apps can be launched from
+the same instance of Newsboat. Each time, you can decide to either keep the same
+browser, or change it to serve a different purpose.
+
+=== Podcast Support
+
+include::chapter-podcasts.asciidoc[]
+
+The following sections present two different ways to handle podcasts with
+Newsboat.
+
+==== Managing Audio Files with Podboat
+
+include::chapter-podboat.asciidoc[]
+
+A macro can also be used to enqueue any of the URLs from the URLs view to
+Podboat's download queue:
+
+  macro E set browser "echo %u >> ~/.newsboat/queue"; open-in-browser; set browser elinks
+
+==== Streaming Audio Content with a Media Player
+
+As an alternative to Podboat file management, media players such as `mpv` can
+stream content directly when given a URL. Since Newsboat always assign the
+enclosure link to URL 1, the operation <<one,`one`>> can be used to open the audio file
+(beware that this operation will always open URL 1, even if no enclosure is
+found). To listen to your podcast from the article view, a basic macro would be:
+
+  macro 1 set browser mpv; one; set browser firefox
+
+For media players with a graphical user interface like `vlc`, console output
+will typically need to be silenced with `>/dev/null 2>&1`. Also, the `&`
+character at the end of the browser command will detach the media player from
+Newsboat. You can then read your articles while listening to podcasts:
+
+  macro v set browser "vlc %u >/dev/null 2>&1 &"; one; set browser firefox
+
+With mpv, the podcast cover art is fetched automatically when using the
+pseudo-gui. The `--` near the end will prevent mpv from interpreting the following
+arguments as options:
+
+  macro p set browser "mpv --player-operation-mode=pseudo-gui -- %u &"; one; set browser firefox
+
+To use mpv's console interface instead, first launch a terminal emulator
+which will in turn execute mpv. This way, Newsboat and the media player can both
+be controlled with text-based interfaces, side by side:
+
+  macro c set browser "alacritty -e mpv --vid=no -- %u &"; one; set browser firefox
+
+If you are working without a graphical environment (e.g. from a virtual
+console), you want to make sure the media player doesn't try to launch a
+graphical user interface. With mpv, the `--vid=no` option can be used for this
+purpose:
+
+  macro n set browser "mpv --vid=no --"; one; set browser lynx
+
+Another use case for this macro would be when running Newsboat on a
+remote host, while logged in through a secure shell (e.g. OpenSSH).
+With this setup, Newsboat will effectively serve as the controller to an ad hoc
+"remote media server". Audio will be playing on the remote host.
+
+=== Running multiple copies of Newsboat simultaneously
+
+During development and testing, you might want to run a second copy of
+Newsboat, operating with different config, URLs list or cache file. This can
+be achieved by creative use of XDG environment variables. This approach is not
+beautiful, but it works.
+
+First of all, you will need to create a directory to store the data. Let's call
+it _test_:
+
+	$ mkdir -p test/newsboat
+
+Note that we also create a subdirectory called _newsboat_; this is required
+to satisfy XDG specification. **ATTENTION**: if this subdirectory is absent,
+Newsboat will attempt to run on your live data!
+
+You can now create _config_ and _urls_ files inside _test/newsboat_; you can
+also copy _cache.db_ if you don't want to start with a fresh one.
+
+When the files are ready, you can invoke Newsboat as follows:
+
+	$ XDG_CONFIG_HOME=test XDG_DATA_HOME=test newsboat
+
+(This will look +newsboat+ binary up in your +PATH+; if you've just built
+your own, use +./newsboat+ instead, or provide a full path.)
+
+By modifying the environment in which Newsboat runs you also modify
+environments of all the programs that Newsboat starts; that includes filters
+and external HTML renderers. If they rely on +XDG_*+ variables, they will look
+for things in +test+ directory and might fail.
+
+For filters, you should either copy the files they need to _test_, or invoke
+them in such a way that they don't look in XDG directories at all.
+
+For renderers, you can work around the issue by undoing the modifications to
+environment, e.g.:
+
+	html-renderer "XDG_CONFIG_HOME=$HOME/.config XDG_DATA_HOME=$HOME/.data w3c"
+
+As already said: not beautiful, but gets the job done.
+
+=== Using SQLite Triggers with Newsboat
+
+This section was written by mailto:elrond+newsbeuter(at)samba-tng.org[Elrond],
+originally for Newsbeuter.
+
+SQLite, the db used by Newsboat, supports triggers. These are small
+snippets of SQL that get executed inside the database by the database
+engine. They're stored inside the db and the normal user (including
+Newsboat itself) doesn't see them. Just the db seems to do some magic:
+Like changing some values when you change another value.
+
+So what is this good for when looking at Newsboat? Well, first off, it's a
+hack. The real answer should be to use application logic (do it inside
+Newsboat, not in the db). So: Don't use this, unless you know, what you're
+doing, and unless you have some sort of backup.
+
+==== Example
+
+So after the "don't use it" you still want to know, what one can do? So here's an example.
+
+Suppose you have a strange feed where the articles become "new" by just
+changing their subject, and nothing else changes. The body is just empty, and
+the URL keeps the same. This feed really exists. It's the "updated software rss
+feed" of some major company and the title just contains the name of the driver
+and version number. And the URL points to the download page. Newsboat
+considers articles only as new, when they have a new UniqueID (this is good).
+So those articles are never marked as new (unread) ever again.
+
+So what can we do? We do some magic: We let the db test if Newsboat
+changes the subject and then let itself mark the article again as unread.
+
+1. You need the `sqlite3` command line tool (available via `apt-get install sqlite3` on Debian) or some other tool to do direct sql on the sqlite database.
+
+2. Start `sqlite3` with the Newsboat db:
+
+	 Rivendell:~/.newsboat% sqlite3 cache.db
+	 SQLite version 3.4.2
+	 Enter ".help" for instructions
+	 sqlite>
+
+3. Create the trigger:
+
+	 sqlite> create trigger update_item_title update of title on rss_item
+		   > for each row when old.title != new.title
+		   > begin
+		   >   update rss_item set unread = 1 where rowid == new.rowid;
+		   > end;
+
+4. Leave `sqlite3` with "Ctrl-D" or `.quit`.
+
+That's it. Newsboat (well, its db) now marks articles as unread when their
+title changes. And nicely enough this works all inside Newsboat, no need to
+restart it so that it rereads the cache, that magically modifies itself. It
+just works.
+
+=== Environment variables
+
+include::chapter-environment-variables.asciidoc[]
+
+== Feedback and security
+
+Please report security vulnerabilities to security@newsboat.org, encrypting your
+emails to https://newsboat.org/newsboat.pgp[PGP key 4ED6CD61932B9EBE] if at all
+possible.
+
+Non-security issues and general questions can be discussed on
+https://github.com/newsboat/newsboat/issues/[the issue tracker] and
+mailto:newsboat@googlegroups.com[the mailing list].
+
+You can also chat with developers and fellow users on #newsboat at Freenode
+(irc.freenode.net or https://webchat.freenode.net/?channels=newsboat[via
+webchat]).
+
+[appendix]
+== Newsboat Configuration Commands
+
+include::configcommands-linked.asciidoc[]
+
+[appendix]
+== Newsboat Operations
+
+include::availableoperations-linked.asciidoc[]
+
+[appendix]
+== Podboat Configuration Commands
+
+include::podboat-cmds-linked.asciidoc[]
+
+[appendix]
+== Podboat Operations
+
+.Available Operations in Podboat
+[frame="all", grid="all", format="dsv", options="header", cols="20,20,60"]
+|=========================================================================
+Operation:Default key:Description
+[[pb-quit]]<<pb-quit,+quit+>>:q:Quit the program.
+[[pb-hard-quit]]<<pb-hard-quit,+hard-quit+>>:Q:Quit the program without confirmation.
+[[pb-help]]<<pb-help,+help+>>:?:Show the help screen.
+[[pb-download]]<<pb-download,+pb-download+>>:d:Download the currently selected URL.
+[[pb-cancel]]<<pb-cancel,+pb-cancel+>>:c:Cancel the currently selected download.
+[[pb-play]]<<pb-play,+pb-play+>>:p:Start player with currently selected download.
+[[pb-mark-as-finished]]<<pb-mark-as-finished,+pb-mark-as-finished+>>:m:Mark currently selected entry as finished.
+[[pb-delete]]<<pb-delete,+pb-delete+>>:D:Delete the currently selected URL from the queue.
+[[pb-purge]]<<pb-purge,+pb-purge+>>:P:Remove all finished and deleted downloads from the queue and load URLs that were newly added to the queue.
+[[pb-toggle-download-all]]<<pb-toggle-download-all,+pb-toggle-download-all+>>:a:Toggle the "automatic download" feature where all queued URLs are downloaded one after the other. The "max-downloads" configuration option controls how many downloads are done in parallel.
+[[pb-increase-max-dls]]<<pb-increase-max-dls,+pb-increase-max-dls+>>:+:Increase the "max-downloads" option by 1.
+[[pb-decrease-max-dls]]<<pb-decrease-max-dls,+pb-decrease-max-dls+>>:-:Decrease the "max-downloads" option by 1. If the option is already 1, no further decrease is possible.
+|=========================================================================
+
+
+[appendix]
+== License
+
+MIT License
+
+Copyright 2006-2015 Andreas Krennmair <ak@newsbeuter.org> +
+Copyright 2015-2021 Alexander Batischev <eual.jp@gmail.com> +
+Copyright 2006-2017 Newsbeuter contributors +
+Copyright 2017-2021 Newsboat contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.

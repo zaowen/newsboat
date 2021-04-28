@@ -1,8 +1,12 @@
 #ifndef NEWSBOAT_CLIARGSPARSER_H_
 #define NEWSBOAT_CLIARGSPARSER_H_
 
+#include "cliargsparser.rs.h"
+
 #include <string>
 #include <vector>
+
+#include "3rd-party/optional.hpp"
 
 #include "logger.h"
 
@@ -10,84 +14,79 @@ namespace newsboat {
 class CliArgsParser {
 public:
 	CliArgsParser(int argc, char* argv[]);
+	~CliArgsParser() = default;
 
-	bool do_import = false;
-	bool do_export = false;
-	bool do_vacuum = false;
-	std::string importfile;
-	bool do_read_import = false;
-	bool do_read_export = false;
-	std::string program_name;
-	std::string readinfofile;
-	unsigned int show_version = 0;
-	bool silent = false;
-	bool using_nonstandard_configs = false;
+	bool do_import() const;
 
-	/// If `should_return` is `true`, the creator of `CliArgsParser` object
-	/// should call `exit(return_code)`.
-	// TODO: replace this with std::optional once we upgraded to C++17.
-	bool should_return = false;
-	int return_code = 0;
+	bool do_export() const;
 
-	/// If `display_msg` is not empty, the creator of `CliArgsParser` should
+	bool do_vacuum() const;
+
+	bool do_cleanup() const;
+
+	std::string importfile() const;
+
+	/// If non-null, Newsboat should import read articles info from this
+	/// filepath.
+	nonstd::optional<std::string> readinfo_import_file() const;
+
+	/// If non-null, Newsboat should export read articles info to this
+	/// filepath.
+	nonstd::optional<std::string> readinfo_export_file() const;
+
+	std::string program_name() const;
+
+	unsigned int show_version() const;
+
+	bool silent() const;
+
+	bool using_nonstandard_configs() const;
+
+	/// If non-null, the creator of `CliArgsParser` object should call `exit()`
+	/// with this code.
+	nonstd::optional<int> return_code() const;
+
+	/// If `display_msg()` is not empty, the creator of `CliArgsParser` should
 	/// print its contents to stderr.
 	///
-	/// \note The contents of this string should be checked before
-	/// processing `should_return`.
-	std::string display_msg;
+	/// \note The contents of this string should be checked before processing
+	/// `return_code()`.
+	std::string display_msg() const;
 
-	/// If `should_print_usage` is `true`, the creator of `CliArgsParser`
+	/// If `should_print_usage()` is `true`, the creator of `CliArgsParser`
 	/// object should print usage information.
 	///
 	/// \note This field should be checked before processing
 	/// `should_return`.
-	bool should_print_usage = false;
+	bool should_print_usage() const;
 
-	bool refresh_on_start = false;
+	bool refresh_on_start() const;
 
-	/// The value of `url_file` should only be used if `set_url_file` is
-	/// `true`.
-	// TODO: replace this with std::optional once we upgraded to C++17.
-	bool set_url_file = false;
-	std::string url_file;
+	nonstd::optional<std::string> url_file() const;
 
-	/// The value of `lock_file` should only be used if `set_lock_file` is
-	/// `true`.
-	// TODO: replace this with std::optional once we upgraded to C++17.
-	bool set_lock_file = false;
-	std::string lock_file;
+	nonstd::optional<std::string> lock_file() const;
 
-	/// The value of `cache_file` should only be used if `set_cache_file` is
-	/// `true`.
-	// TODO: replace this with std::optional once we upgraded to C++17.
-	bool set_cache_file = false;
-	std::string cache_file;
+	nonstd::optional<std::string> cache_file() const;
 
-	/// The value of `config_file` should only be used if `set_config_file`
-	/// is `true`.
-	// TODO: replace this with std::optional once we upgraded to C++17.
-	bool set_config_file = false;
-	std::string config_file;
+	nonstd::optional<std::string> config_file() const;
 
-	/// If 'execute_cmds' is true, the 'CliArgsParser' object holds commands
-	/// that should be executed in cmds_to_execute vector.
+	/// If non-empty, Newsboat should execute these commands and then quit.
 	///
 	/// \note The parser does not check if the passed commands are valid.
-	// TODO: replace this with std::optional once we upgraded to C++17.
-	bool execute_cmds = false;
-	std::vector<std::string> cmds_to_execute;
+	std::vector<std::string> cmds_to_execute() const;
 
-	/// The value of `log_file` should only be used if `set_log_file` is
-	/// `true`.
-	// TODO: replace this with std::optional once we upgraded to C++17.
-	bool set_log_file = false;
-	std::string log_file;
+	nonstd::optional<std::string> log_file() const;
 
-	/// The value of `log_level` should only be used if `set_log_level` is
-	/// `true`.
-	// TODO: replace this with std::optional once we upgraded to C++17.
-	bool set_log_level = false;
-	Level log_level = Level::NONE;
+	nonstd::optional<Level> log_level() const;
+
+	/// Returns the pointer to the Rust object.
+	///
+	/// This is only meant to be used in situations when one wants to pass
+	/// a pointer to CliArgsParser back to Rust.
+	void* get_rust_pointer() const;
+
+private:
+	rust::Box<cliargsparser::bridged::CliArgsParser> rs_object;
 };
 } // namespace newsboat
 

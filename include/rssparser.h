@@ -1,16 +1,24 @@
 #ifndef NEWSBOAT_RSSPARSER_H_
 #define NEWSBOAT_RSSPARSER_H_
 
+#include <memory>
 #include <string>
 
 #include "remoteapi.h"
-#include "rss.h"
-#include "rsspp.h"
+#include "rss/feed.h"
+
+namespace rsspp {
+class Item;
+}
 
 namespace newsboat {
 
-class ConfigContainer;
 class Cache;
+class ConfigContainer;
+class CurlHandle;
+class RssFeed;
+class RssIgnores;
+class RssItem;
 
 class RssParser {
 public:
@@ -67,18 +75,20 @@ private:
 	void fetch_ttrss(const std::string& feed_id);
 	void fetch_newsblur(const std::string& feed_id);
 	void fetch_ocnews(const std::string& feed_id);
+	void fetch_miniflux(const std::string& feed_id);
+	void fetch_freshrss(const std::string& feed_id);
 
 	std::string my_uri;
 	Cache* ch;
 	ConfigContainer* cfgcont;
-	bool skip_parsing;
-	bool is_valid;
 	RssIgnores* ign;
 	rsspp::Feed f;
 	RemoteApi* api;
 	bool is_ttrss;
 	bool is_newsblur;
 	bool is_ocnews;
+	bool is_miniflux;
+	bool is_freshrss;
 
 	CurlHandle* easyhandle;
 };
